@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 375 812" width="375" height="812">
+  <defs>
+    <filter id="shadow" x="-2%" y="-2%" width="104%" height="104%">
+      <feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="#000" flood-opacity="0.08"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="375" height="812" fill="#F5F5F5" rx="20"/>
+
+  <!-- Status bar -->
+  <rect width="375" height="44" fill="#FFFFFF"/>
+  <text x="187" y="30" font-family="system-ui, sans-serif" font-size="14" font-weight="600" fill="#333" text-anchor="middle">9:41</text>
+
+  <!-- Logo area -->
+  <circle cx="187" cy="200" r="48" fill="#4A90D9" opacity="0.12"/>
+  <text x="187" y="192" font-family="system-ui, sans-serif" font-size="28" font-weight="300" fill="#4A90D9" text-anchor="middle">+</text>
+  <text x="187" y="212" font-family="system-ui, sans-serif" font-size="14" font-weight="600" fill="#4A90D9" text-anchor="middle" letter-spacing="1">CARE</text>
+
+  <text x="187" y="280" font-family="system-ui, sans-serif" font-size="32" font-weight="700" fill="#333" text-anchor="middle">CareHub</text>
+  <text x="187" y="310" font-family="system-ui, sans-serif" font-size="15" fill="#888" text-anchor="middle">Family caregiving, simplified</text>
+
+  <!-- Email input card -->
+  <rect x="24" y="380" width="327" height="56" rx="12" fill="#FFFFFF" filter="url(#shadow)"/>
+  <text x="48" y="413" font-family="system-ui, sans-serif" font-size="16" fill="#AAA">Email address</text>
+  <!-- Email icon -->
+  <rect x="310" y="398" width="20" height="14" rx="2" fill="none" stroke="#CCC" stroke-width="1.5"/>
+  <polyline points="310,398 320,407 330,398" fill="none" stroke="#CCC" stroke-width="1.5"/>
+
+  <!-- Send magic link button -->
+  <rect x="24" y="460" width="327" height="56" rx="12" fill="#4A90D9"/>
+  <text x="187" y="493" font-family="system-ui, sans-serif" font-size="17" font-weight="600" fill="#FFFFFF" text-anchor="middle">Send Magic Link</text>
+
+  <!-- Divider -->
+  <line x1="24" y1="548" x2="170" y2="548" stroke="#DDD" stroke-width="1"/>
+  <text x="187" y="553" font-family="system-ui, sans-serif" font-size="13" fill="#AAA" text-anchor="middle">or</text>
+  <line x1="205" y1="548" x2="351" y2="548" stroke="#DDD" stroke-width="1"/>
+
+  <!-- Google sign in -->
+  <rect x="24" y="580" width="327" height="56" rx="12" fill="#FFFFFF" filter="url(#shadow)"/>
+  <text x="187" y="613" font-family="system-ui, sans-serif" font-size="16" font-weight="500" fill="#555" text-anchor="middle">Continue with Google</text>
+
+  <!-- Footer text -->
+  <text x="187" y="740" font-family="system-ui, sans-serif" font-size="13" fill="#AAA" text-anchor="middle">No password needed. We'll email you a sign-in link.</text>
+  <text x="187" y="770" font-family="system-ui, sans-serif" font-size="12" fill="#BBB" text-anchor="middle">By continuing, you agree to our Terms of Service</text>
+
+  <!-- Home indicator -->
+  <rect x="140" y="790" width="95" height="5" rx="2.5" fill="#DDD"/>
+</svg>

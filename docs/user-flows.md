@@ -1,0 +1,149 @@
+# User Flows
+
+Step-by-step workflows for core tasks. Wireframe references point to files in `designs/`.
+
+---
+
+## 1. First-Time Setup
+
+**Actor:** New caretaker (Admin)
+
+1. Navigate to CareHub login page (`designs/01-login.svg`)
+2. Sign in via Google OAuth or enter email for magic link
+3. Receive magic link email, click to authenticate
+4. Prompted to create a household (name it, e.g., "Nguyen Family")
+5. Add first care profile: enter name, relationship, date of birth, photo
+6. Fill in initial health info: known conditions, current medications, notes
+7. Land on home dashboard with the new profile card (`designs/02-home-dashboard.svg`)
+
+---
+
+## 2. Adding a Medication
+
+**Actor:** Caretaker (Admin)
+
+1. From home dashboard, tap a profile card (`designs/02-home-dashboard.svg`)
+2. Profile detail opens (`designs/03-profile-detail.svg`)
+3. Tap the Medications tab (`designs/04-medications.svg`)
+4. Tap "Add Medication" button
+5. Fill form: medication name, dosage, frequency, time-of-day schedule
+6. Optionally add prescribing doctor and notes
+7. Tap Save
+8. Medication appears in the active list with time-of-day badge
+
+---
+
+## 3. Doctor Visit Workflow
+
+**Actor:** Caretaker (Admin), at a doctor's office
+
+1. Doctor provides paper documents (lab results, prescriptions)
+2. Open CareHub on phone, navigate to the profile
+3. Tap Documents tab (`designs/07-documents.svg`)
+4. Tap "Upload" and select camera capture
+5. Photograph each document
+6. Upload completes; OCR runs automatically in background
+7. Review extracted text and auto-assigned category (`designs/08-document-detail.svg`)
+8. Adjust category or add tags if needed
+9. Navigate to Calendar tab (`designs/05-calendar.svg`)
+10. Create a calendar event for the visit (date, doctor name, location)
+11. Link the uploaded documents to this event
+12. Navigate to Journals, create a new entry (`designs/06-journal-entry.svg`)
+13. Write visit notes and key takeaways
+14. Link the journal entry to the calendar event
+15. All related data is now connected: event, documents, and notes
+
+---
+
+## 4. Setting Up and Pairing a Tablet
+
+**Actor:** Caretaker (Admin), with physical access to the tablet
+
+1. Sideload the CareHub kiosk APK onto the tablet
+2. Open the app; it launches in Lock Task Mode (full-screen, no exit)
+3. Tablet displays a QR code on its pairing screen (`designs/13-tablet-qr-pairing.svg`)
+4. On phone: navigate to Devices section in portal (`designs/09-devices.svg`)
+5. Tap "Pair New Tablet" (`designs/10-pair-tablet.svg`)
+6. Phone camera opens
+7. Walk to the tablet and scan the QR code displayed on screen
+8. Portal shows confirmation: select which care profiles to assign to this tablet
+9. Tap Confirm
+10. Tablet receives pairing confirmation via WebSocket
+11. Tablet transitions to kiosk home screen (`designs/11-tablet-home.svg`)
+12. Device appears in portal device list with online status
+13. Future updates are delivered automatically via Capgo OTA -- no manual reinstall needed
+
+---
+
+## 5. Calling Grandparent from Portal
+
+**Actor:** Caretaker (Admin or Viewer)
+
+1. From home dashboard, tap the grandparent's profile card
+2. On profile detail page, tap "Call Tablet" button
+3. Portal requests microphone and camera permissions (first time only)
+4. WebRTC signaling initiates; call request sent to tablet via WebSocket (or FCM if WebSocket is disconnected)
+5. Tablet app displays incoming call screen with caretaker's name and photo (`designs/12-tablet-incoming-call.svg`)
+6. Grandparent taps the large Accept button
+7. Video call connects; both sides see and hear each other
+8. Either party can end the call
+
+---
+
+## 6. Grandparent Calling Caretaker
+
+**Actor:** Elderly family member (Tablet user)
+
+1. Grandparent sees kiosk home screen with caretaker photo cards (`designs/11-tablet-home.svg`)
+2. Taps a caretaker's photo card
+3. Tablet shows "Calling..." state; call request sent to server via WebSocket
+4. Server sends a high-priority FCM data message to caretaker's phone
+5. Caretaker's phone displays a **full-screen incoming call notification** (over lock screen) with grandparent's name, photo, ringtone, and vibration
+6. Caretaker taps the large Accept button
+7. App opens (or foregrounds); WebRTC video call connects full-screen on both sides
+8. Either party can end the call
+9. If caretaker does not answer within timeout, tablet shows "No Answer" and returns to home screen
+
+---
+
+## 7. Pushing Content to Tablet
+
+**Actor:** Caretaker (Admin)
+
+1. Navigate to Devices section in portal (`designs/09-devices.svg`)
+2. Select the target tablet
+3. Tap "Push Content"
+4. Choose content type: photo, appointment reminder, or text message
+5. Select or compose the content
+6. Tap Send
+7. Content is delivered to the tablet via WebSocket (or FCM if WebSocket is disconnected)
+8. Tablet app displays the content immediately (photo fills screen, appointment shows as card, message displays with large text)
+
+---
+
+## 8. Inviting a New Viewer
+
+**Actor:** Caretaker (Admin)
+
+1. Navigate to Settings in portal
+2. Tap "Invite Member"
+3. Enter the person's email address
+4. Select role: Viewer (read-only access)
+5. Tap Send Invite
+6. System sends email with magic link invitation
+7. New user clicks magic link, authenticates, and lands on the home dashboard
+8. Viewer sees all household profiles in read-only mode
+
+---
+
+## 9. Searching Documents
+
+**Actor:** Caretaker (Admin or Viewer)
+
+1. Navigate to a profile's Documents tab (`designs/07-documents.svg`)
+2. Tap the search bar
+3. Type a search term (e.g., "cholesterol")
+4. PostgreSQL full-text search queries the OCR-extracted text across all documents for this profile
+5. Results display matching documents with highlighted excerpts
+6. Tap a result to view the full document (`designs/08-document-detail.svg`)
+7. Original image and extracted text displayed side by side

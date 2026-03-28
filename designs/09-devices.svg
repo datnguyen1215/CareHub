@@ -1,0 +1,104 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 375 812" width="375" height="812">
+  <defs>
+    <filter id="shadow" x="-2%" y="-2%" width="104%" height="104%">
+      <feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="#000" flood-opacity="0.08"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="375" height="812" fill="#F5F5F5" rx="20"/>
+
+  <!-- Top bar -->
+  <rect width="375" height="96" fill="#FFFFFF" filter="url(#shadow)"/>
+  <text x="24" y="72" font-family="system-ui, sans-serif" font-size="22" font-weight="700" fill="#333">My Devices</text>
+  <text x="335" y="72" font-family="system-ui, sans-serif" font-size="14" fill="#888" text-anchor="end">2 devices</text>
+
+  <!-- Device 1: Living Room Tablet -->
+  <rect x="16" y="116" width="343" height="200" rx="12" fill="#FFFFFF" filter="url(#shadow)"/>
+  <!-- Header -->
+  <rect x="16" y="116" width="343" height="56" rx="12" fill="#FFFFFF"/>
+  <rect x="32" y="132" width="40" height="28" rx="6" fill="#E8F0FE"/>
+  <text x="52" y="151" font-family="system-ui, sans-serif" font-size="16" text-anchor="middle">📱</text>
+  <text x="84" y="144" font-family="system-ui, sans-serif" font-size="16" font-weight="600" fill="#333">Living Room Tablet</text>
+  <text x="84" y="162" font-family="system-ui, sans-serif" font-size="12" fill="#888">Samsung Galaxy Tab A9+</text>
+  <!-- Online status -->
+  <circle cx="326" cy="140" r="6" fill="#5CB85C"/>
+  <text x="326" y="162" font-family="system-ui, sans-serif" font-size="11" fill="#5CB85C" text-anchor="middle">Online</text>
+
+  <line x1="32" y1="176" x2="343" y2="176" stroke="#F0F0F0" stroke-width="1"/>
+
+  <!-- Assigned profiles -->
+  <text x="32" y="198" font-family="system-ui, sans-serif" font-size="12" font-weight="500" fill="#888">Assigned to:</text>
+  <circle cx="120" cy="194" r="12" fill="#E8F0FE"/>
+  <text x="120" y="198" font-family="system-ui, sans-serif" font-size="10" text-anchor="middle">👴</text>
+  <text x="138" y="198" font-family="system-ui, sans-serif" font-size="12" fill="#333">Grandpa</text>
+  <circle cx="200" cy="194" r="12" fill="#FDE8F0"/>
+  <text x="200" y="198" font-family="system-ui, sans-serif" font-size="10" text-anchor="middle">👵</text>
+  <text x="218" y="198" font-family="system-ui, sans-serif" font-size="12" fill="#333">Grandma</text>
+
+  <!-- Last seen -->
+  <text x="32" y="226" font-family="system-ui, sans-serif" font-size="12" fill="#888">Last active: Just now</text>
+  <text x="32" y="244" font-family="system-ui, sans-serif" font-size="12" fill="#888">Battery: 85%</text>
+  <rect x="120" y="236" width="60" height="8" rx="4" fill="#E8E8E8"/>
+  <rect x="120" y="236" width="51" height="8" rx="4" fill="#5CB85C"/>
+
+  <!-- Action buttons -->
+  <line x1="32" y1="260" x2="343" y2="260" stroke="#F0F0F0" stroke-width="1"/>
+  <rect x="32" y="272" width="92" height="36" rx="8" fill="#E8F0FE"/>
+  <text x="78" y="295" font-family="system-ui, sans-serif" font-size="12" font-weight="500" fill="#4A90D9" text-anchor="middle">Push Content</text>
+  <rect x="136" y="272" width="68" height="36" rx="8" fill="#E8F4E8"/>
+  <text x="170" y="295" font-family="system-ui, sans-serif" font-size="12" font-weight="500" fill="#5CB85C" text-anchor="middle">Call</text>
+  <rect x="216" y="272" width="76" height="36" rx="8" fill="#F5F5F5"/>
+  <text x="254" y="295" font-family="system-ui, sans-serif" font-size="12" font-weight="500" fill="#888" text-anchor="middle">Settings</text>
+
+  <!-- Device 2: Bedroom Tablet -->
+  <rect x="16" y="336" width="343" height="200" rx="12" fill="#FFFFFF" filter="url(#shadow)"/>
+  <rect x="32" y="352" width="40" height="28" rx="6" fill="#FFF3E0"/>
+  <text x="52" y="371" font-family="system-ui, sans-serif" font-size="16" text-anchor="middle">📱</text>
+  <text x="84" y="364" font-family="system-ui, sans-serif" font-size="16" font-weight="600" fill="#333">Bedroom Tablet</text>
+  <text x="84" y="382" font-family="system-ui, sans-serif" font-size="12" fill="#888">iPad 10th Gen</text>
+  <!-- Offline status -->
+  <circle cx="326" cy="360" r="6" fill="#DDD"/>
+  <text x="326" y="382" font-family="system-ui, sans-serif" font-size="11" fill="#AAA" text-anchor="middle">Offline</text>
+
+  <line x1="32" y1="396" x2="343" y2="396" stroke="#F0F0F0" stroke-width="1"/>
+
+  <!-- Assigned profiles -->
+  <text x="32" y="418" font-family="system-ui, sans-serif" font-size="12" font-weight="500" fill="#888">Assigned to:</text>
+  <circle cx="120" cy="414" r="12" fill="#E8F0FE"/>
+  <text x="120" y="418" font-family="system-ui, sans-serif" font-size="10" text-anchor="middle">👴</text>
+  <text x="138" y="418" font-family="system-ui, sans-serif" font-size="12" fill="#333">Grandpa</text>
+
+  <!-- Last seen -->
+  <text x="32" y="446" font-family="system-ui, sans-serif" font-size="12" fill="#AAA">Last active: 2 hours ago</text>
+  <text x="32" y="464" font-family="system-ui, sans-serif" font-size="12" fill="#AAA">Battery: 42%</text>
+  <rect x="120" y="456" width="60" height="8" rx="4" fill="#E8E8E8"/>
+  <rect x="120" y="456" width="25" height="8" rx="4" fill="#F0AD4E"/>
+
+  <!-- Action buttons (dimmed for offline) -->
+  <line x1="32" y1="480" x2="343" y2="480" stroke="#F0F0F0" stroke-width="1"/>
+  <rect x="32" y="492" width="92" height="36" rx="8" fill="#F5F5F5"/>
+  <text x="78" y="515" font-family="system-ui, sans-serif" font-size="12" font-weight="500" fill="#CCC" text-anchor="middle">Push Content</text>
+  <rect x="136" y="492" width="68" height="36" rx="8" fill="#F5F5F5"/>
+  <text x="170" y="515" font-family="system-ui, sans-serif" font-size="12" font-weight="500" fill="#CCC" text-anchor="middle">Call</text>
+  <rect x="216" y="492" width="76" height="36" rx="8" fill="#F5F5F5"/>
+  <text x="254" y="515" font-family="system-ui, sans-serif" font-size="12" font-weight="500" fill="#888" text-anchor="middle">Settings</text>
+
+  <!-- Pair new tablet button -->
+  <rect x="16" y="570" width="343" height="56" rx="12" fill="#FFFFFF" filter="url(#shadow)"/>
+  <rect x="16" y="570" width="343" height="56" rx="12" fill="#FFFFFF" stroke="#4A90D9" stroke-width="1.5" stroke-dasharray="6,4"/>
+  <text x="187" y="603" font-family="system-ui, sans-serif" font-size="16" font-weight="500" fill="#4A90D9" text-anchor="middle">+ Pair New Tablet</text>
+
+  <!-- Bottom nav -->
+  <rect x="0" y="732" width="375" height="80" fill="#FFFFFF" filter="url(#shadow)"/>
+  <rect x="40" y="744" width="24" height="18" rx="3" fill="none" stroke="#AAA" stroke-width="1.5"/>
+  <text x="52" y="779" font-family="system-ui, sans-serif" font-size="11" fill="#AAA" text-anchor="middle">Home</text>
+  <!-- Devices (active) -->
+  <rect x="164" y="744" width="22" height="16" rx="3" fill="none" stroke="#4A90D9" stroke-width="2"/>
+  <rect x="170" y="762" width="10" height="2" rx="1" fill="#4A90D9"/>
+  <text x="175" y="779" font-family="system-ui, sans-serif" font-size="11" font-weight="600" fill="#4A90D9" text-anchor="middle">Devices</text>
+  <circle cx="298" cy="753" r="9" fill="none" stroke="#AAA" stroke-width="1.5"/>
+  <text x="298" y="779" font-family="system-ui, sans-serif" font-size="11" fill="#AAA" text-anchor="middle">Settings</text>
+
+  <rect x="140" y="800" width="95" height="5" rx="2.5" fill="#DDD"/>
+</svg>

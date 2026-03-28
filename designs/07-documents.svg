@@ -1,0 +1,110 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 375 812" width="375" height="812">
+  <defs>
+    <filter id="shadow" x="-2%" y="-2%" width="104%" height="104%">
+      <feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="#000" flood-opacity="0.08"/>
+    </filter>
+    <filter id="fabShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#4A90D9" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="375" height="812" fill="#F5F5F5" rx="20"/>
+
+  <!-- Top bar -->
+  <rect width="375" height="96" fill="#FFFFFF" filter="url(#shadow)"/>
+  <polyline points="20,66 32,54" fill="none" stroke="#4A90D9" stroke-width="2.5" stroke-linecap="round"/>
+  <line x1="20" y1="66" x2="32" y2="78" stroke="#4A90D9" stroke-width="2.5" stroke-linecap="round"/>
+  <text x="48" y="72" font-family="system-ui, sans-serif" font-size="20" font-weight="700" fill="#333">Grandpa</text>
+
+  <!-- Tab bar -->
+  <rect x="0" y="96" width="375" height="48" fill="#FFFFFF"/>
+  <text x="52" y="125" font-family="system-ui, sans-serif" font-size="14" fill="#888" text-anchor="middle">Overview</text>
+  <text x="145" y="125" font-family="system-ui, sans-serif" font-size="14" fill="#888" text-anchor="middle">Meds</text>
+  <text x="230" y="125" font-family="system-ui, sans-serif" font-size="14" fill="#888" text-anchor="middle">Calendar</text>
+  <text x="325" y="125" font-family="system-ui, sans-serif" font-size="14" font-weight="600" fill="#4A90D9" text-anchor="middle">Documents</text>
+  <rect x="293" y="138" width="64" height="3" rx="1.5" fill="#4A90D9"/>
+  <line x1="0" y1="144" x2="375" y2="144" stroke="#EEE" stroke-width="1"/>
+
+  <!-- Search bar -->
+  <rect x="16" y="160" width="343" height="48" rx="12" fill="#FFFFFF" filter="url(#shadow)"/>
+  <circle cx="40" cy="184" r="10" fill="none" stroke="#AAA" stroke-width="1.5"/>
+  <line x1="47" y1="191" x2="52" y2="196" stroke="#AAA" stroke-width="1.5" stroke-linecap="round"/>
+  <text x="64" y="189" font-family="system-ui, sans-serif" font-size="15" fill="#AAA">Search documents with AI...</text>
+  <!-- AI sparkle icon -->
+  <rect x="316" y="172" width="30" height="24" rx="6" fill="#E8F0FE"/>
+  <text x="331" y="189" font-family="system-ui, sans-serif" font-size="13" fill="#4A90D9" text-anchor="middle">AI</text>
+
+  <!-- Filter chips -->
+  <rect x="16" y="222" width="42" height="32" rx="16" fill="#4A90D9"/>
+  <text x="37" y="243" font-family="system-ui, sans-serif" font-size="13" font-weight="500" fill="#FFFFFF" text-anchor="middle">All</text>
+
+  <rect x="66" y="222" width="90" height="32" rx="16" fill="#FFFFFF" filter="url(#shadow)"/>
+  <text x="111" y="243" font-family="system-ui, sans-serif" font-size="13" fill="#666" text-anchor="middle">Lab Results</text>
+
+  <rect x="164" y="222" width="100" height="32" rx="16" fill="#FFFFFF" filter="url(#shadow)"/>
+  <text x="214" y="243" font-family="system-ui, sans-serif" font-size="13" fill="#666" text-anchor="middle">Prescriptions</text>
+
+  <rect x="272" y="222" width="82" height="32" rx="16" fill="#FFFFFF" filter="url(#shadow)"/>
+  <text x="313" y="243" font-family="system-ui, sans-serif" font-size="13" fill="#666" text-anchor="middle">Insurance</text>
+
+  <!-- Document grid -->
+  <!-- Doc 1 -->
+  <rect x="16" y="272" width="167" height="190" rx="12" fill="#FFFFFF" filter="url(#shadow)"/>
+  <rect x="28" y="284" width="143" height="100" rx="8" fill="#E8F0FE"/>
+  <rect x="52" y="304" width="96" height="60" rx="4" fill="#D0E0F5"/>
+  <text x="100" y="330" font-family="system-ui, sans-serif" font-size="11" fill="#4A90D9" text-anchor="middle">PDF</text>
+  <text x="100" y="348" font-family="system-ui, sans-serif" font-size="9" fill="#4A90D9" text-anchor="middle">3 pages</text>
+  <text x="28" y="404" font-family="system-ui, sans-serif" font-size="14" font-weight="500" fill="#333">Blood Panel</text>
+  <text x="28" y="422" font-family="system-ui, sans-serif" font-size="12" fill="#888">Mar 20, 2026</text>
+  <rect x="28" y="432" width="68" height="20" rx="10" fill="#E8F0FE"/>
+  <text x="62" y="446" font-family="system-ui, sans-serif" font-size="10" font-weight="500" fill="#4A90D9" text-anchor="middle">Lab Result</text>
+
+  <!-- Doc 2 -->
+  <rect x="192" y="272" width="167" height="190" rx="12" fill="#FFFFFF" filter="url(#shadow)"/>
+  <rect x="204" y="284" width="143" height="100" rx="8" fill="#FFF3E0"/>
+  <rect x="228" y="304" width="96" height="60" rx="4" fill="#FFE0B2"/>
+  <text x="276" y="330" font-family="system-ui, sans-serif" font-size="11" fill="#F0AD4E" text-anchor="middle">IMG</text>
+  <text x="276" y="348" font-family="system-ui, sans-serif" font-size="9" fill="#F0AD4E" text-anchor="middle">Photo</text>
+  <text x="204" y="404" font-family="system-ui, sans-serif" font-size="14" font-weight="500" fill="#333">Rx - Lisinopril</text>
+  <text x="204" y="422" font-family="system-ui, sans-serif" font-size="12" fill="#888">Mar 18, 2026</text>
+  <rect x="204" y="432" width="84" height="20" rx="10" fill="#FFF3E0"/>
+  <text x="246" y="446" font-family="system-ui, sans-serif" font-size="10" font-weight="500" fill="#F0AD4E" text-anchor="middle">Prescription</text>
+
+  <!-- Doc 3 -->
+  <rect x="16" y="478" width="167" height="190" rx="12" fill="#FFFFFF" filter="url(#shadow)"/>
+  <rect x="28" y="490" width="143" height="100" rx="8" fill="#E8F4E8"/>
+  <rect x="52" y="510" width="96" height="60" rx="4" fill="#C8E6C9"/>
+  <text x="100" y="536" font-family="system-ui, sans-serif" font-size="11" fill="#5CB85C" text-anchor="middle">PDF</text>
+  <text x="100" y="554" font-family="system-ui, sans-serif" font-size="9" fill="#5CB85C" text-anchor="middle">5 pages</text>
+  <text x="28" y="610" font-family="system-ui, sans-serif" font-size="14" font-weight="500" fill="#333">Insurance Card</text>
+  <text x="28" y="628" font-family="system-ui, sans-serif" font-size="12" fill="#888">Feb 15, 2026</text>
+  <rect x="28" y="638" width="68" height="20" rx="10" fill="#E8F4E8"/>
+  <text x="62" y="652" font-family="system-ui, sans-serif" font-size="10" font-weight="500" fill="#5CB85C" text-anchor="middle">Insurance</text>
+
+  <!-- Doc 4 -->
+  <rect x="192" y="478" width="167" height="190" rx="12" fill="#FFFFFF" filter="url(#shadow)"/>
+  <rect x="204" y="490" width="143" height="100" rx="8" fill="#E8F0FE"/>
+  <rect x="228" y="510" width="96" height="60" rx="4" fill="#D0E0F5"/>
+  <text x="276" y="536" font-family="system-ui, sans-serif" font-size="11" fill="#4A90D9" text-anchor="middle">PDF</text>
+  <text x="276" y="554" font-family="system-ui, sans-serif" font-size="9" fill="#4A90D9" text-anchor="middle">1 page</text>
+  <text x="204" y="610" font-family="system-ui, sans-serif" font-size="14" font-weight="500" fill="#333">EKG Report</text>
+  <text x="204" y="628" font-family="system-ui, sans-serif" font-size="12" fill="#888">Mar 26, 2026</text>
+  <rect x="204" y="638" width="68" height="20" rx="10" fill="#E8F0FE"/>
+  <text x="238" y="652" font-family="system-ui, sans-serif" font-size="10" font-weight="500" fill="#4A90D9" text-anchor="middle">Lab Result</text>
+
+  <!-- FAB -->
+  <circle cx="335" cy="670" r="28" fill="#4A90D9" filter="url(#fabShadow)"/>
+  <text x="335" y="678" font-family="system-ui, sans-serif" font-size="28" font-weight="300" fill="#FFFFFF" text-anchor="middle">+</text>
+
+  <!-- Bottom nav -->
+  <rect x="0" y="732" width="375" height="80" fill="#FFFFFF" filter="url(#shadow)"/>
+  <rect x="40" y="744" width="24" height="18" rx="3" fill="none" stroke="#AAA" stroke-width="1.5"/>
+  <text x="52" y="779" font-family="system-ui, sans-serif" font-size="11" fill="#AAA" text-anchor="middle">Home</text>
+  <rect x="164" y="744" width="22" height="16" rx="3" fill="none" stroke="#AAA" stroke-width="1.5"/>
+  <text x="175" y="779" font-family="system-ui, sans-serif" font-size="11" fill="#AAA" text-anchor="middle">Devices</text>
+  <circle cx="298" cy="753" r="9" fill="none" stroke="#AAA" stroke-width="1.5"/>
+  <text x="298" y="779" font-family="system-ui, sans-serif" font-size="11" fill="#AAA" text-anchor="middle">Settings</text>
+
+  <rect x="140" y="800" width="95" height="5" rx="2.5" fill="#DDD"/>
+</svg>

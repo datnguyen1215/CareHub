@@ -1,0 +1,96 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 530" width="800" height="530">
+  <defs>
+    <filter id="shadow" x="-2%" y="-2%" width="104%" height="104%">
+      <feDropShadow dx="0" dy="2" stdDeviation="6" flood-color="#000" flood-opacity="0.08"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="800" height="530" fill="#F5F5F5" rx="16"/>
+
+  <!-- CareHub logo at top -->
+  <circle cx="400" cy="60" r="24" fill="#4A90D9" opacity="0.12"/>
+  <text x="400" y="54" font-family="system-ui, sans-serif" font-size="16" font-weight="300" fill="#4A90D9" text-anchor="middle">+</text>
+  <text x="400" y="68" font-family="system-ui, sans-serif" font-size="9" font-weight="600" fill="#4A90D9" text-anchor="middle" letter-spacing="1">CARE</text>
+  <text x="400" y="98" font-family="system-ui, sans-serif" font-size="20" font-weight="700" fill="#333" text-anchor="middle">CareHub</text>
+
+  <!-- QR Code card -->
+  <rect x="240" y="124" width="320" height="320" rx="20" fill="#FFFFFF" filter="url(#shadow)"/>
+
+  <!-- QR Code (simplified representation) -->
+  <rect x="300" y="148" width="200" height="200" rx="8" fill="#FFFFFF" stroke="#E8E8E8" stroke-width="1"/>
+
+  <!-- QR Code pattern (simplified blocky pattern) -->
+  <!-- Top-left finder -->
+  <rect x="312" y="160" width="40" height="40" fill="#333"/>
+  <rect x="318" y="166" width="28" height="28" fill="#FFFFFF"/>
+  <rect x="324" y="172" width="16" height="16" fill="#333"/>
+
+  <!-- Top-right finder -->
+  <rect x="448" y="160" width="40" height="40" fill="#333"/>
+  <rect x="454" y="166" width="28" height="28" fill="#FFFFFF"/>
+  <rect x="460" y="172" width="16" height="16" fill="#333"/>
+
+  <!-- Bottom-left finder -->
+  <rect x="312" y="296" width="40" height="40" fill="#333"/>
+  <rect x="318" y="302" width="28" height="28" fill="#FFFFFF"/>
+  <rect x="324" y="308" width="16" height="16" fill="#333"/>
+
+  <!-- Data modules (random pattern to simulate QR) -->
+  <rect x="360" y="160" width="8" height="8" fill="#333"/>
+  <rect x="376" y="160" width="8" height="8" fill="#333"/>
+  <rect x="392" y="168" width="8" height="8" fill="#333"/>
+  <rect x="408" y="160" width="8" height="8" fill="#333"/>
+  <rect x="424" y="168" width="8" height="8" fill="#333"/>
+  <rect x="440" y="160" width="8" height="8" fill="#333"/>
+
+  <rect x="360" y="208" width="8" height="8" fill="#333"/>
+  <rect x="376" y="216" width="8" height="8" fill="#333"/>
+  <rect x="392" y="208" width="8" height="8" fill="#333"/>
+  <rect x="408" y="224" width="8" height="8" fill="#333"/>
+  <rect x="424" y="208" width="8" height="8" fill="#333"/>
+  <rect x="440" y="216" width="8" height="8" fill="#333"/>
+
+  <rect x="360" y="240" width="8" height="8" fill="#333"/>
+  <rect x="376" y="248" width="8" height="8" fill="#333"/>
+  <rect x="392" y="240" width="8" height="8" fill="#333"/>
+  <rect x="408" y="248" width="8" height="8" fill="#333"/>
+  <rect x="424" y="240" width="8" height="8" fill="#333"/>
+
+  <rect x="360" y="272" width="8" height="8" fill="#333"/>
+  <rect x="376" y="280" width="8" height="8" fill="#333"/>
+  <rect x="392" y="272" width="8" height="8" fill="#333"/>
+  <rect x="408" y="280" width="8" height="8" fill="#333"/>
+  <rect x="440" y="272" width="8" height="8" fill="#333"/>
+
+  <rect x="360" y="304" width="8" height="8" fill="#333"/>
+  <rect x="376" y="312" width="8" height="8" fill="#333"/>
+  <rect x="392" y="304" width="8" height="8" fill="#333"/>
+  <rect x="408" y="312" width="8" height="8" fill="#333"/>
+  <rect x="440" y="304" width="8" height="8" fill="#333"/>
+  <rect x="456" y="312" width="8" height="8" fill="#333"/>
+  <rect x="472" y="304" width="8" height="8" fill="#333"/>
+
+  <rect x="456" y="248" width="8" height="8" fill="#333"/>
+  <rect x="472" y="240" width="8" height="8" fill="#333"/>
+  <rect x="480" y="256" width="8" height="8" fill="#333"/>
+  <rect x="472" y="272" width="8" height="8" fill="#333"/>
+  <rect x="480" y="288" width="8" height="8" fill="#333"/>
+
+  <!-- Instructions text -->
+  <text x="400" y="380" font-family="system-ui, sans-serif" font-size="16" font-weight="600" fill="#333" text-anchor="middle">Scan this QR code with your phone</text>
+  <text x="400" y="404" font-family="system-ui, sans-serif" font-size="14" fill="#888" text-anchor="middle">to pair this tablet with CareHub</text>
+
+  <!-- Device ID -->
+  <rect x="320" y="418" width="160" height="28" rx="14" fill="#F0F0F0"/>
+  <text x="400" y="436" font-family="system-ui, sans-serif" font-size="12" font-weight="500" fill="#888" text-anchor="middle">Device: TAB-A9X-7823</text>
+
+  <!-- Bottom help text -->
+  <text x="400" y="486" font-family="system-ui, sans-serif" font-size="14" fill="#AAA" text-anchor="middle">Open CareHub on your phone &gt; Devices &gt; Pair New Tablet</text>
+
+  <!-- Waiting indicator -->
+  <circle cx="376" cy="510" r="4" fill="#4A90D9" opacity="0.3"/>
+  <circle cx="392" cy="510" r="4" fill="#4A90D9" opacity="0.6"/>
+  <circle cx="408" cy="510" r="4" fill="#4A90D9" opacity="0.9"/>
+  <circle cx="424" cy="510" r="4" fill="#4A90D9" opacity="0.6"/>
+</svg>

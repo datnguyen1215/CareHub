@@ -1,0 +1,214 @@
+# Technical Architecture
+
+## Recommended Stack
+
+| Layer | Technology | Rationale |
+|---|---|---|
+| Frontend | SvelteKit | SSR + SPA hybrid, mobile-first responsive, fast builds |
+| Backend/API | SvelteKit API routes | Unified codebase, server-side logic co-located with frontend |
+| Database | PostgreSQL via Supabase | Relational data, row-level security, managed hosting |
+| Auth | Supabase Auth | Magic link + Google OAuth built-in, JWT sessions |
+| File Storage | Supabase Storage | S3-compatible, integrated with auth policies |
+| Real-time | Supabase Realtime / WebSockets | Tablet push, device status, call signaling |
+| Video Calling | WebRTC (PeerJS or LiveKit) | Peer-to-peer video, minimal server cost |
+| Push Notifications | Firebase Cloud Messaging (FCM) | High-priority data messages for call notifications; reliable delivery even when app is closed |
+| Native App Shell | Capacitor | Wraps SvelteKit web app in native Android shell for both caretaker phones and elderly tablets; enables native push, full-screen call intent, foreground services, lock task mode |
+| OTA Updates | Capgo (self-hosted) | Over-the-air web bundle updates for all Capacitor apps; no manual APK reinstall for UI/logic changes |
+| OCR/AI | Google Vision API or AWS Textract | Document text extraction; Tesseract as self-hosted alternative |
+| Search | PostgreSQL full-text search | Search over OCR-extracted text, no extra infrastructure |
+| Hosting | Vercel or Cloudflare Pages | Edge deployment, serverless functions |
+| Tablet Runtime | Capacitor APK with Android Lock Task Mode | Native app shell prevents exit, auto-restarts on boot, receives FCM push even if backgrounded |
+
+---
+
+## Data Model
+
+### Entity Relationship Overview
+
+```
+Household
+  |-- has many --> User (via HouseholdMember)
+  |-- has many --> CareProfile
+                      |-- has many --> Medication
+                      |-- has many --> CalendarEvent
+                      |-- has many --> JournalEntry
+                      |-- has many --> Document
+                      |-- assigned to --> Device (many-to-many)
+
+User
+  |-- belongs to --> Household (via HouseholdMember)
+  |-- has many --> DeviceAccess
+
+Device
+  |-- assigned --> CareProfile (many-to-many)
+  |-- has many --> DeviceAccess
+```
+
+### Entities
+
+**User**
+- `id` (UUID, primary key)
+- `email` (unique)
+- `name`
+- `avatar_url`
+- `created_at`
+
+**Household**
+- `id` (UUID, primary key)
+- `name`
+- `created_at`
+
+**HouseholdMember** (join table)
+- `user_id` (FK -> User)
+- `household_id` (FK -> Household)
+- `role` (enum: admin, viewer)
+- `invited_at`
+- `accepted_at`
+
+**CareProfile**
+- `id` (UUID, primary key)
+- `household_id` (FK -> Household)
+- `name`
+- `avatar_url`
+- `date_of_birth`
+- `relationship` (e.g., grandmother, father)
+- `health_notes` (text)
+- `conditions` (text array)
+- `status` (enum: stable, needs_attention, recent_visit)
+- `created_at`, `updated_at`
+
+**Medication**
+- `id` (UUID, primary key)
+- `care_profile_id` (FK -> CareProfile)
+- `name`
+- `dosage`
+- `frequency`
+- `schedule` (time-of-day: morning, afternoon, evening, bedtime)
+- `prescribing_doctor` (optional)
+- `status` (enum: active, discontinued)
+- `notes`
+- `created_at`, `updated_at`
+
+**CalendarEvent**
+- `id` (UUID, primary key)
+- `care_profile_id` (FK -> CareProfile)
+- `title`
+- `event_type` (enum: doctor_visit, lab_work, therapy, general)
+- `start_datetime`
+- `end_datetime` (optional)
+- `location`
+- `notes`
+- `created_at`, `updated_at`
+
+**JournalEntry**
+- `id` (UUID, primary key)
+- `care_profile_id` (FK -> CareProfile)
+- `calendar_event_id` (FK -> CalendarEvent, optional)
+- `content` (text)
+- `key_takeaways` (text)
+- `date`
+- `created_at`, `updated_at`
+
+**Document**
+- `id` (UUID, primary key)
+- `care_profile_id` (FK -> CareProfile)
+- `calendar_event_id` (FK -> CalendarEvent, optional)
+- `journal_entry_id` (FK -> JournalEntry, optional)
+- `file_url`
+- `file_name`
+- `mime_type`
+- `ocr_text` (text, indexed for full-text search)
+- `category` (enum: lab_results, prescription, insurance, billing, imaging, other)
+- `tags` (text array)
+- `created_at`
+
+**Device**
+- `id` (UUID, primary key)
+- `device_identifier` (unique hardware/browser ID)
+- `name`
+- `status` (enum: online, offline)
+- `battery_level` (integer, nullable)
+- `last_seen_at`
+- `paired_at`
+- `created_at`
+
+**DeviceCareProfile** (join table)
+- `device_id` (FK -> Device)
+- `care_profile_id` (FK -> CareProfile)
+
+**DeviceAccess**
+- `id` (UUID, primary key)
+- `device_id` (FK -> Device)
+- `user_id` (FK -> User)
+- `granted_at`
+- `granted_by` (FK -> User)
+
+---
+
+## Key Architecture Decisions
+
+### Web-Based Core with Capacitor Native Shell
+
+All interfaces are built with SvelteKit as web applications. Both the caretaker phone app and the elderly tablet kiosk are wrapped in Capacitor to produce native Android APKs from the same codebase. The desktop caretaker portal remains a standard web app accessed through the browser. Capacitor enables native push notifications (FCM), phone-style incoming call UI, foreground services, lock task mode (tablet), and auto-restart on boot (tablet). No separate mobile development is required -- the entire UI is Svelte 5 running in a web view.
+
+### Mobile-First Responsive Design
+
+The caretaker portal is designed mobile-first since most interactions (photo capture at doctor visits, quick medication checks) happen on phones. Desktop layout adapts from the mobile base.
+
+### Real-Time via WebSockets
+
+Tablet push notifications, device status monitoring, and video call signaling all use persistent WebSocket connections. Supabase Realtime handles database change subscriptions; a lightweight signaling server handles WebRTC negotiation.
+
+### Peer-to-Peer Video
+
+Video calls use WebRTC for direct peer-to-peer connections, avoiding the cost and complexity of a media server. STUN servers handle NAT traversal. A TURN relay serves as fallback when direct connection fails.
+
+### Capacitor Native Apps
+
+Both the caretaker phone app and the elderly tablet kiosk are Capacitor APKs built from the same SvelteKit codebase. Each uses a different entry point (caretaker portal vs. kiosk UI) but shares all underlying code.
+
+**Caretaker phone app enables:**
+
+- **Native push notifications via FCM** -- High-priority data messages wake the device and bypass Doze mode, ensuring call notifications are delivered even when the app is closed or the screen is off.
+- **Full-screen call intent** -- Incoming calls display a native full-screen notification over the lock screen (using Android's `fullScreenIntent`), identical to how WhatsApp or a regular phone call behaves. Shows caller name, photo, and large Accept/Decline buttons.
+- **Foreground service** -- Keeps the WebRTC connection alive during active calls so Android does not kill the process.
+
+**Tablet kiosk app enables:**
+
+- **Lock Task Mode** -- Android API that pins the app to the screen. The elderly user cannot exit to the home screen, open the notification shade, or switch apps. This is what commercial kiosk devices use.
+- **Auto-restart on boot** -- App launches automatically when the tablet powers on (e.g., after a power outage or reboot).
+- **Foreground service** -- Keeps the WebSocket connection alive so the tablet is always reachable for incoming calls and content pushes.
+- **FCM fallback** -- If the foreground service is killed by Android, a high-priority FCM message can wake the app back up for incoming calls.
+
+**No separate codebase** -- The entire UI remains Svelte 5 running in a web view. Capacitor only provides the native bridge for push notifications, call UI, kiosk lock-down, and background services.
+
+### Over-the-Air Updates (Capgo)
+
+All Capacitor apps (caretaker phones and elderly tablets) receive UI and logic updates over-the-air via Capgo (self-hosted). This avoids manually sideloading a new APK for every change.
+
+- App checks for updates periodically (e.g., every hour) or on launch.
+- New web bundles are downloaded silently in the background.
+- Updates apply on next app restart -- no user interaction required.
+- APK rebuild is only needed when native plugins or Capacitor configuration change (rare after initial setup).
+- Elderly tablets update automatically with zero intervention.
+
+### Push Notification Flow (Incoming Calls)
+
+1. Elderly family member taps a caretaker's photo on the tablet kiosk app.
+2. Tablet app sends a call request to the server via WebSocket (kept alive by foreground service).
+3. Server sends a **high-priority FCM data message** to the caretaker's device, containing caller name, photo URL, and call session ID.
+4. Capacitor FCM plugin receives the message and triggers a **full-screen incoming call notification** with ringtone and vibration.
+5. Caretaker taps Accept -- app opens (or foregrounds) and WebRTC call connects.
+6. If the caretaker does not answer within a timeout, the tablet shows a "no answer" state.
+
+### OCR at Upload Time
+
+Documents are processed through OCR immediately on upload. The extracted text is stored in the `ocr_text` column and indexed with PostgreSQL full-text search. This avoids runtime processing delays during search and keeps the search infrastructure simple.
+
+### QR Pairing with Expiring Tokens
+
+Tablet pairing uses a one-time token with a 5-minute expiry. The tablet displays the token as a QR code. The caretaker scans it with their phone camera from the portal. This avoids manual code entry and prevents stale pairing sessions.
+
+### Row-Level Security
+
+Supabase RLS policies enforce data access at the database level. Users can only access data within their household. Viewers are restricted to read operations. This provides defense-in-depth beyond application-level checks.

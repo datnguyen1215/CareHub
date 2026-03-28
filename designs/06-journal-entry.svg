@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 375 812" width="375" height="812">
+  <defs>
+    <filter id="shadow" x="-2%" y="-2%" width="104%" height="104%">
+      <feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="#000" flood-opacity="0.08"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="375" height="812" fill="#F5F5F5" rx="20"/>
+
+  <!-- Top bar -->
+  <rect width="375" height="96" fill="#FFFFFF" filter="url(#shadow)"/>
+  <polyline points="20,66 32,54" fill="none" stroke="#4A90D9" stroke-width="2.5" stroke-linecap="round"/>
+  <line x1="20" y1="66" x2="32" y2="78" stroke="#4A90D9" stroke-width="2.5" stroke-linecap="round"/>
+  <text x="48" y="66" font-family="system-ui, sans-serif" font-size="18" font-weight="700" fill="#333">March 26, 2026</text>
+  <text x="48" y="84" font-family="system-ui, sans-serif" font-size="12" fill="#888">Journal Entry</text>
+  <!-- Edit button -->
+  <rect x="304" y="52" width="52" height="30" rx="8" fill="#E8F0FE"/>
+  <text x="330" y="72" font-family="system-ui, sans-serif" font-size="13" font-weight="500" fill="#4A90D9" text-anchor="middle">Edit</text>
+
+  <!-- Linked event tag -->
+  <rect x="16" y="112" width="343" height="44" rx="10" fill="#FFFFFF" filter="url(#shadow)"/>
+  <rect x="24" y="122" width="8" height="24" rx="4" fill="#4A90D9"/>
+  <text x="44" y="132" font-family="system-ui, sans-serif" font-size="12" fill="#888">Linked to appointment</text>
+  <text x="44" y="148" font-family="system-ui, sans-serif" font-size="14" font-weight="500" fill="#4A90D9">Dr. Nguyen - Cardiology at 2:00 PM</text>
+
+  <!-- Journal content card -->
+  <rect x="16" y="172" width="343" height="310" rx="12" fill="#FFFFFF" filter="url(#shadow)"/>
+  <text x="32" y="200" font-family="system-ui, sans-serif" font-size="15" font-weight="600" fill="#333">Visit Notes</text>
+  <line x1="32" y1="212" x2="343" y2="212" stroke="#F0F0F0" stroke-width="1"/>
+
+  <text x="32" y="238" font-family="system-ui, sans-serif" font-size="14" fill="#444">
+    <tspan x="32" dy="0">Met with Dr. Nguyen for quarterly</tspan>
+    <tspan x="32" dy="22">cardiology check-up. Blood pressure was</tspan>
+    <tspan x="32" dy="22">slightly elevated at 138/85, but doctor</tspan>
+    <tspan x="32" dy="22">said this is likely due to the cold weather.</tspan>
+    <tspan x="32" dy="30" font-weight="600" fill="#333">Key Takeaways:</tspan>
+    <tspan x="32" dy="22">- Continue current medication regimen</tspan>
+    <tspan x="32" dy="22">- Increase walking to 30 min daily</tspan>
+    <tspan x="32" dy="22">- Follow up blood work in 2 weeks</tspan>
+    <tspan x="32" dy="22">- Monitor sodium intake more closely</tspan>
+    <tspan x="32" dy="30" font-weight="600" fill="#333">Mood &amp; Energy:</tspan>
+    <tspan x="32" dy="22">Grandpa seemed in good spirits. Said he</tspan>
+    <tspan x="32" dy="22">enjoyed the car ride. A bit tired after.</tspan>
+  </text>
+
+  <!-- Attached documents section -->
+  <rect x="16" y="500" width="343" height="160" rx="12" fill="#FFFFFF" filter="url(#shadow)"/>
+  <text x="32" y="528" font-family="system-ui, sans-serif" font-size="15" font-weight="600" fill="#333">Attachments</text>
+  <text x="335" y="528" font-family="system-ui, sans-serif" font-size="13" fill="#888" text-anchor="end">2 items</text>
+  <line x1="32" y1="540" x2="343" y2="540" stroke="#F0F0F0" stroke-width="1"/>
+
+  <!-- Photo thumbnail 1 -->
+  <rect x="32" y="552" width="100" height="88" rx="8" fill="#E8F0FE"/>
+  <rect x="52" y="572" width="60" height="44" rx="4" fill="#D0E0F5"/>
+  <text x="82" y="598" font-family="system-ui, sans-serif" font-size="10" fill="#4A90D9" text-anchor="middle">Lab Results</text>
+  <text x="82" y="632" font-family="system-ui, sans-serif" font-size="11" fill="#666" text-anchor="middle">EKG Report.pdf</text>
+
+  <!-- Photo thumbnail 2 -->
+  <rect x="148" y="552" width="100" height="88" rx="8" fill="#FFF3E0"/>
+  <rect x="168" y="572" width="60" height="44" rx="4" fill="#FFE0B2"/>
+  <text x="198" y="598" font-family="system-ui, sans-serif" font-size="10" fill="#F0AD4E" text-anchor="middle">Prescription</text>
+  <text x="198" y="632" font-family="system-ui, sans-serif" font-size="11" fill="#666" text-anchor="middle">Rx_update.jpg</text>
+
+  <!-- Bottom action buttons -->
+  <rect x="16" y="680" width="167" height="52" rx="12" fill="#FFFFFF" filter="url(#shadow)"/>
+  <text x="100" y="711" font-family="system-ui, sans-serif" font-size="14" font-weight="500" fill="#4A90D9" text-anchor="middle">Add Photo</text>
+
+  <rect x="192" y="680" width="167" height="52" rx="12" fill="#FFFFFF" filter="url(#shadow)"/>
+  <text x="275" y="711" font-family="system-ui, sans-serif" font-size="14" font-weight="500" fill="#4A90D9" text-anchor="middle">Add Document</text>
+
+  <!-- Home indicator -->
+  <rect x="140" y="790" width="95" height="5" rx="2.5" fill="#DDD"/>
+</svg>
