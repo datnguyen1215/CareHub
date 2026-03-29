@@ -10,14 +10,21 @@
 
 	let { groupId: _groupId, profile = null, onSave, onClose }: Props = $props();
 
-	let name = $state(profile?.name ?? '');
-	let dateOfBirth = $state(profile?.date_of_birth ?? '');
-	let relationship = $state(profile?.relationship ?? '');
-	let conditionsRaw = $state((profile?.conditions ?? []).join(', '));
+	let name = $state('');
+	let dateOfBirth = $state('');
+	let relationship = $state('');
+	let conditionsRaw = $state('');
 	let error = $state('');
 	let loading = $state(false);
 
 	const isEdit = $derived(!!profile);
+
+	$effect(() => {
+		name = profile?.name ?? '';
+		dateOfBirth = profile?.date_of_birth ?? '';
+		relationship = profile?.relationship ?? '';
+		conditionsRaw = (profile?.conditions ?? []).join(', ');
+	});
 
 	async function handleSubmit(e: SubmitEvent) {
 		e.preventDefault();
@@ -60,6 +67,7 @@
 	role="dialog"
 	aria-modal="true"
 	aria-labelledby="modal-title"
+	tabindex="-1"
 	onmousedown={handleBackdropClick}
 >
 	<div class="card w-full max-w-md">
