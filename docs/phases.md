@@ -15,7 +15,7 @@ Establish authentication, core data structures, and basic health tracking.
 - **Database** -- PostgreSQL running in Docker, schema managed with Drizzle ORM
 - **Group creation** -- Create and name a group during onboarding
 - **Care profile CRUD** -- Add, edit, and remove profiles with name, photo, relationship, date of birth, and known conditions
-- **Medication management** -- Add/edit/remove medications with name, dosage, schedule (morning/afternoon/evening/bedtime), and active/discontinued status
+- **Medication management** -- Add/edit/remove medications via modal; fields: name, dosage, schedule (multi-select: morning/afternoon/evening/bedtime), status (active/discontinued); discontinued medications hidden by default with a "Show discontinued" toggle
 - **Home dashboard** -- Card grid showing all profiles; each card displays name, relationship, conditions (tags), and active medication count
 - **Profile detail view** -- Overview and Medications tabs
 - **Deployment** -- Self-hosted via Docker
