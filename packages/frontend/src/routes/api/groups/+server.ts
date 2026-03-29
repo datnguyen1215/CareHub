@@ -1,5 +1,5 @@
 /** Groups routes — list and create groups. */
-import { json } from '@sveltejs/kit';
+import { json, error } from '@sveltejs/kit';
 import { eq } from 'drizzle-orm';
 import { db } from '$lib/server/db';
 import { requireAuth } from '$lib/server/auth';
@@ -10,7 +10,7 @@ import type { RequestHandler } from './$types';
  * GET /api/groups — list all groups the authenticated user belongs to.
  * @returns {Response} Array of groups
  */
-export const GET: RequestHandler = async (event): Promise<Response> => {
+export const GET: RequestHandler = async (event) => {
 	try {
 		const user = requireAuth(event);
 
@@ -22,12 +22,10 @@ export const GET: RequestHandler = async (event): Promise<Response> => {
 
 		return json(rows.map((r) => r.group));
 	} catch (err) {
-		// If err is already a Response (from requireAuth), re-throw it
-		if (err instanceof Response) {
-			throw err;
+		if (err instanceof Error && err.message === 'Unauthorized') {
+			error(401, { message: 'Unauthorized' });
 		}
-		console.error('GET /api/groups error:', err);
-		return json({ error: 'Failed to fetch groups' }, { status: 500 });
+		throw err;
 	}
 };
 
@@ -35,14 +33,14 @@ export const GET: RequestHandler = async (event): Promise<Response> => {
  * POST /api/groups — create a group and add the creator as admin.
  * @returns {Response} Created group with 201 status
  */
-export const POST: RequestHandler = async (event): Promise<Response> => {
+export const POST: RequestHandler = async (event) => {
 	try {
 		const user = requireAuth(event);
 		const body = await event.request.json();
 		const { name } = body as { name?: string };
 
 		if (!name || typeof name !== 'string' || !name.trim()) {
-			return json({ error: 'name is required' }, { status: 400 });
+			error(400, { message: 'name is required' });
 		}
 
 		const group = await db.transaction(async (tx) => {
@@ -59,11 +57,9 @@ export const POST: RequestHandler = async (event): Promise<Response> => {
 
 		return json(group, { status: 201 });
 	} catch (err) {
-		// If err is already a Response (from requireAuth), re-throw it
-		if (err instanceof Response) {
-			throw err;
+		if (err instanceof Error && err.message === 'Unauthorized') {
+			error(401, { message: 'Unauthorized' });
 		}
-		console.error('POST /api/groups error:', err);
-		return json({ error: 'Failed to create group' }, { status: 500 });
+		throw err;
 	}
 };

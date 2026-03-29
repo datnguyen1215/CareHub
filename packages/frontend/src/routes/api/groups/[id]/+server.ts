@@ -1,5 +1,5 @@
 /** PATCH /api/groups/:id — rename a group (admin only). */
-import { json } from '@sveltejs/kit';
+import { json, error } from '@sveltejs/kit';
 import { eq, and } from 'drizzle-orm';
 import { db } from '$lib/server/db';
 import { requireAuth } from '$lib/server/auth';
@@ -10,7 +10,7 @@ import type { RequestHandler } from './$types';
  * PATCH /api/groups/:id — update group name (admin only).
  * @returns {Response} Updated group or error
  */
-export const PATCH: RequestHandler = async (event): Promise<Response> => {
+export const PATCH: RequestHandler = async (event) => {
 	try {
 		const user = requireAuth(event);
 		const id = event.params.id;
@@ -18,7 +18,7 @@ export const PATCH: RequestHandler = async (event): Promise<Response> => {
 		const { name } = body as { name?: string };
 
 		if (!name || typeof name !== 'string' || !name.trim()) {
-			return json({ error: 'name is required' }, { status: 400 });
+			error(400, { message: 'name is required' });
 		}
 
 		// Check the user is an admin of the group
@@ -29,11 +29,11 @@ export const PATCH: RequestHandler = async (event): Promise<Response> => {
 			.limit(1);
 
 		if (!membership) {
-			return json({ error: 'Forbidden' }, { status: 403 });
+			error(403, { message: 'Forbidden' });
 		}
 
 		if (membership.role !== 'admin') {
-			return json({ error: 'Only admins can rename the group' }, { status: 403 });
+			error(403, { message: 'Only admins can rename the group' });
 		}
 
 		const [updated] = await db
@@ -43,16 +43,14 @@ export const PATCH: RequestHandler = async (event): Promise<Response> => {
 			.returning();
 
 		if (!updated) {
-			return json({ error: 'Group not found' }, { status: 404 });
+			error(404, { message: 'Group not found' });
 		}
 
 		return json(updated);
 	} catch (err) {
-		// If err is already a Response (from requireAuth), re-throw it
-		if (err instanceof Response) {
-			throw err;
+		if (err instanceof Error && err.message === 'Unauthorized') {
+			error(401, { message: 'Unauthorized' });
 		}
-		console.error('PATCH /api/groups/:id error:', err);
-		return json({ error: 'Failed to rename group' }, { status: 500 });
+		throw err;
 	}
 };
