@@ -44,8 +44,11 @@ Detailed feature breakdown organized by area. See [phases.md](phases.md) for imp
 ### Home Dashboard
 
 - All profiles visible from home screen as cards
-- Each card shows: name, relationship, conditions (tags), active medication count
-- Tap to enter full profile detail
+- Each card shows: name, relationship (subtitle), conditions (tags, max 3 + overflow count), active medication count
+- Tap a card to navigate to `/profiles/:id` (profile detail)
+- "Add Profile" button in header when profiles exist; empty state with icon and "Add your first care profile" CTA when no profiles exist
+- Top bar: "CareHub" branding left, user avatar/initial right (navigates to settings)
+- Bottom navigation: Home (active), Devices, Settings tabs
 
 ---
 
