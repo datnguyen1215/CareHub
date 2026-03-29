@@ -1,4 +1,13 @@
-import { pgTable, uuid, varchar, text, timestamp, pgEnum, integer } from 'drizzle-orm/pg-core'
+import {
+  pgTable,
+  uuid,
+  varchar,
+  text,
+  timestamp,
+  pgEnum,
+  integer,
+  primaryKey,
+} from 'drizzle-orm/pg-core'
 
 // --- Enums ---
 
@@ -44,17 +53,23 @@ export const households = pgTable('households', {
 /**
  * HouseholdMembers: join table linking users to households with a role
  */
-export const householdMembers = pgTable('household_members', {
-  userId: uuid('user_id')
-    .notNull()
-    .references(() => users.id, { onDelete: 'cascade' }),
-  householdId: uuid('household_id')
-    .notNull()
-    .references(() => households.id, { onDelete: 'cascade' }),
-  role: userRoleEnum('role').notNull().default('viewer'),
-  invitedAt: timestamp('invited_at', { withTimezone: true }).notNull().defaultNow(),
-  acceptedAt: timestamp('accepted_at', { withTimezone: true }),
-})
+export const householdMembers = pgTable(
+  'household_members',
+  {
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    householdId: uuid('household_id')
+      .notNull()
+      .references(() => households.id, { onDelete: 'cascade' }),
+    role: userRoleEnum('role').notNull().default('viewer'),
+    invitedAt: timestamp('invited_at', { withTimezone: true }).notNull().defaultNow(),
+    acceptedAt: timestamp('accepted_at', { withTimezone: true }),
+  },
+  (t) => ({
+    pk: primaryKey({ columns: [t.userId, t.householdId] }),
+  })
+)
 
 /**
  * CareProfiles: the people being cared for within a household

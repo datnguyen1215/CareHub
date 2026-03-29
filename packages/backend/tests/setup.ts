@@ -24,12 +24,18 @@ beforeAll(async () => {
     await migrate(db, { migrationsFolder })
     console.log('Test DB migrations applied')
   } catch (err) {
-    // If migrations folder doesn't exist yet (no generated migrations), skip
+    // If migrations folder doesn't exist yet (no generated migrations), skip gracefully.
+    // Any other error (e.g. DB unreachable, bad credentials) is fatal — rethrow so
+    // tests fail fast rather than running against an un-migrated schema.
     const message = err instanceof Error ? err.message : String(err)
-    if (message.includes('no such file') || message.includes('ENOENT')) {
+    if (
+      message.includes('no such file') ||
+      message.includes('ENOENT') ||
+      message.includes('_journal.json')
+    ) {
       console.warn('No migration files found — skipping test DB migration')
     } else {
-      console.warn('Migration warning (continuing):', message)
+      throw err
     }
   }
 })

@@ -10,6 +10,8 @@ import express, { type Application } from 'express'
 export function applyMiddleware(app: Application): void {
   app.use(
     cors({
+      // credentials: true requires a specific origin in production — '*' is
+      // intentionally permissive for local development only.
       origin: process.env.CORS_ORIGIN ?? '*',
       credentials: true,
     })

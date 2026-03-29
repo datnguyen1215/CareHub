@@ -1,6 +1,4 @@
 import { Router } from 'express'
-import { mailer } from '../config/mailer.js'
-import { env } from '../config/env.js'
 
 const router = Router()
 
