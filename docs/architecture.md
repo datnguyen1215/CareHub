@@ -74,12 +74,12 @@ All main pages (home, devices, settings) are wrapped by `src/routes/(app)/+layou
 
 ### Profile Detail Page (`/profiles/:id`)
 
-The profile detail page renders its own fixed top bar inside `<main>`, overriding the global `TopBar` visually. It contains:
+The profile detail page lives inside the `(app)` route group, so the global `TopBar` and `BottomNav` are always rendered by the shared layout. The page additionally renders its own fixed top bar inside `<main>`, which visually replaces the global top bar but stacks a second `h-14` spacer — a known layout issue to be fixed in a future pass (move the route out of `(app)` or suppress the global TopBar on this page). It contains:
 
 1. **Custom top bar** — Back arrow (→ `/`), profile name centered, pencil-icon edit button that opens `ProfileModal`.
 2. **Tab bar** — Sticky below the top bar. Two tabs: **Overview** (default) and **Meds**. Active tab is underlined with primary blue.
 3. **Overview tab** — Profile info card (name, relationship, date of birth, conditions as badges) and a Recent Medications card (top 3 active meds, "See all" link switching to Meds tab, empty state).
-4. **Meds tab** — Medications management component (built in the medication management feature).
+4. **Meds tab** — Full medication management: add/edit/discontinue medications via `MedicationModal`, with a "Show discontinued" toggle.
 
 ### Auth Guard
 
