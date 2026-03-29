@@ -16,7 +16,7 @@ Establish authentication, core data structures, and basic health tracking.
 - **Group creation** -- Create and name a group during onboarding
 - **Care profile CRUD** -- Add, edit, and remove profiles with name, photo, relationship, date of birth, and known conditions
 - **Medication management** -- Add/edit/remove medications with name, dosage, schedule (morning/afternoon/evening/bedtime), and active/discontinued status
-- **Home dashboard** -- Card grid showing all profiles
+- **Home dashboard** -- Card grid showing all profiles; each card displays name, relationship, conditions (tags), and active medication count
 - **Profile detail view** -- Overview and Medications tabs
 - **Deployment** -- Self-hosted via Docker
 - **Mobile-responsive layout** -- Bottom navigation, card-based UI, mobile-first
