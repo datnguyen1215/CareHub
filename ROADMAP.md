@@ -18,7 +18,7 @@ Core authentication, profiles, medications, and deployment infrastructure are li
 Established authentication, core data structures, and basic health tracking.
 
 - [x] Auth system (Email + OTP via Nodemailer, JWT in httpOnly cookies)
-- [x] Monorepo setup (npm workspaces: frontend, backend, shared, mobile)
+- [x] Monorepo setup (npm workspaces: frontend, shared, mobile)
 - [x] Database (PostgreSQL + Docker + Drizzle ORM)
 - [x] Group creation (onboarding flow)
 - [x] Care profile CRUD (name, photo, relationship, DOB, conditions)

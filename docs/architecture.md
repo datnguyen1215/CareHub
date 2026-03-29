@@ -6,7 +6,7 @@
 | ------------------ | ----------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Package Manager    | npm with workspaces                                               | Monorepo support, standard tooling                                                                                                                                               |
 | Frontend           | SvelteKit + Tailwind CSS                                          | SSR + SPA hybrid, mobile-first responsive, fast builds                                                                                                                           |
-| Backend/API        | Express + nodemon                                                 | Separate service, clear API boundary, fast dev iteration                                                                                                                         |
+| Backend/API        | SvelteKit API routes                                              | Server-side API routes in same framework, type-safe, no CORS needed                                                                                                              |
 | Database           | PostgreSQL via Docker (self-hosted)                               | Relational data, full control, no external dependency                                                                                                                            |
 | ORM / Migrations   | Drizzle ORM                                                       | Type-safe queries, SQL-first migrations                                                                                                                                          |
 | Auth               | Email + OTP (Nodemailer + Gmail SMTP)                             | Passwordless email login without third-party auth service                                                                                                                        |
@@ -30,8 +30,7 @@
 
 ```
 packages/
-  frontend/    # SvelteKit + Tailwind CSS web app
-  backend/     # Express API server
+  frontend/    # SvelteKit + Tailwind CSS web app with server-side API routes
   shared/      # Shared types, utilities, and Drizzle schema
   mobile/      # Capacitor mobile wrapper (Phase 3 placeholder)
 ```
@@ -237,13 +236,13 @@ All interfaces are built with SvelteKit as web applications. Both the caretaker 
 
 The caretaker portal is designed mobile-first since most interactions (photo capture at doctor visits, quick medication checks) happen on phones. Desktop layout adapts from the mobile base.
 
-### Separate Frontend and Backend Services
+### Consolidated SvelteKit Architecture
 
-The frontend (SvelteKit) and backend (Express) are separate packages in the monorepo. The Express backend exposes a REST API consumed by the frontend. This separation allows independent deployment, clearer API boundaries, and straightforward integration testing with Supertest.
+The application uses SvelteKit for both frontend UI and backend API routes. All API endpoints are implemented as SvelteKit server-side routes in `src/routes/api/`. This consolidation eliminates CORS complexity, enables type-safe server-client communication, and simplifies deployment to a single container.
 
 ### Real-Time via WebSockets
 
-Tablet push notifications, device status monitoring, and video call signaling all use persistent WebSocket connections managed by the Express backend.
+Tablet push notifications, device status monitoring, and video call signaling all use persistent WebSocket connections managed by SvelteKit server hooks.
 
 ### Peer-to-Peer Video
 
@@ -343,11 +342,11 @@ A dedicated Gmail account is recommended for sending OTP emails.
 
 ### Application-Level Access Control
 
-Data access is enforced at the application layer in the Express backend. Users can only access data within their group. Viewers are restricted to read operations.
+Data access is enforced at the application layer in SvelteKit API routes. Users can only access data within their group. Viewers are restricted to read operations.
 
 ### Production Deployment
 
-Production runs via `docker-compose.prod.yml` with 4 services: Traefik, frontend, backend, and PostgreSQL.
+Production runs via `docker-compose.prod.yml` with 3 services: Traefik, frontend, and PostgreSQL.
 
 **Traefik reverse proxy:**
 
@@ -357,7 +356,7 @@ Production runs via `docker-compose.prod.yml` with 4 services: Traefik, frontend
 
 **Container setup:**
 
-- Frontend and backend are separate Docker images built with multi-stage builds
+- Frontend is a single Docker image with multi-stage build (includes both UI and API)
 - PostgreSQL data persisted via named Docker volume
 - All containers configured with health checks and `restart: unless-stopped` for reliability
 
@@ -389,4 +388,4 @@ Production runs via `docker-compose.prod.yml` with 4 services: Traefik, frontend
 
 ### Testing Strategy
 
-Integration tests only, using Vitest + Supertest against the Express API. No unit tests or frontend component tests. This keeps the test suite lean while covering the critical API surface.
+Integration tests only, using Vitest + Supertest against the SvelteKit API routes. No unit tests or frontend component tests. This keeps the test suite lean while covering the critical API surface.
