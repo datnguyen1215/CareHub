@@ -9,6 +9,7 @@ export default defineConfig({
     env: {
       JWT_SECRET: 'test-secret',
       DATABASE_URL: 'postgresql://postgres@localhost:5432/carehub_test',
+      DATABASE_URL_TEST: 'postgresql://postgres@localhost:5432/carehub_test',
     },
     // Disable file parallelism to prevent race conditions in database tests
     fileParallelism: false,
