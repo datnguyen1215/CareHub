@@ -57,7 +57,7 @@ src/
       +page.svelte         # Home dashboard — profile card grid
       profiles/
         [id]/
-          +page.svelte     # Profile detail — Overview and Medications tabs
+          +page.svelte     # Profile detail — custom top bar, Overview/Meds tabs
       devices/
         +page.svelte       # Devices placeholder (Phase 3)
       settings/
@@ -71,6 +71,15 @@ All main pages (home, devices, settings) are wrapped by `src/routes/(app)/+layou
 1. `TopBar` — Fixed top bar with "CareHub" title and user avatar. Avatar fetches `GET /api/users/me` and displays the user's initial. Tapping navigates to `/settings`.
 2. `<main>` — Page content with top and bottom padding to clear the fixed bars.
 3. `BottomNav` — Fixed bottom navigation with three tabs. Active tab is highlighted with primary blue using the `$page` store. Tabs: Home (`/`), Devices (`/devices`), Settings (`/settings`).
+
+### Profile Detail Page (`/profiles/:id`)
+
+The profile detail page renders its own fixed top bar inside `<main>`, overriding the global `TopBar` visually. It contains:
+
+1. **Custom top bar** — Back arrow (→ `/`), profile name centered, pencil-icon edit button that opens `ProfileModal`.
+2. **Tab bar** — Sticky below the top bar. Two tabs: **Overview** (default) and **Meds**. Active tab is underlined with primary blue.
+3. **Overview tab** — Profile info card (name, relationship, date of birth, conditions as badges) and a Recent Medications card (top 3 active meds, "See all" link switching to Meds tab, empty state).
+4. **Meds tab** — Medications management component (built in the medication management feature).
 
 ### Auth Guard
 

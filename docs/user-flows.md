@@ -33,9 +33,17 @@ Step-by-step workflows for core tasks. Wireframe references point to files in `d
 
 ### Edit a profile
 
-1. On any profile card on the home dashboard, tap "Edit"
+From the home dashboard:
+
+1. On any profile card, tap "Edit"
 2. The same modal opens pre-filled with existing values
 3. Modify any field and tap Save; the card updates in place
+
+From the profile detail page (`/profiles/:id`):
+
+1. Tap the pencil icon in the top bar
+2. The same edit modal opens pre-filled with existing values
+3. Modify any field and tap Save; the top bar name and profile card update in place
 
 ### Delete a profile
 
