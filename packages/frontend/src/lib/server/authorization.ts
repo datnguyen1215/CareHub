@@ -1,7 +1,7 @@
-/** Authorization helpers — group membership verification for SvelteKit. */
+/** Authorization helpers — verify group membership and resource ownership. */
 import { eq, and } from 'drizzle-orm';
 import { db } from './db';
-import { groupMembers } from '@carehub/shared';
+import { groupMembers, careProfiles } from '@carehub/shared';
 
 /**
  * Returns the membership record for a user in a group, or null if not a member.
@@ -37,4 +37,20 @@ export async function getAdminMembership(
 		return null;
 	}
 	return membership;
+}
+
+/**
+ * Get profile by ID, verifying it belongs to the specified group.
+ * @param profileId - Profile ID to fetch
+ * @param groupId - Group ID the profile must belong to
+ * @returns Profile record or null if not found or not in group
+ */
+export async function getProfile(profileId: string, groupId: string) {
+	const [profile] = await db
+		.select()
+		.from(careProfiles)
+		.where(and(eq(careProfiles.id, profileId), eq(careProfiles.group_id, groupId)))
+		.limit(1);
+
+	return profile ?? null;
 }
