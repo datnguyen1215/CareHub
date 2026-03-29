@@ -3,6 +3,7 @@ import cookieParser from 'cookie-parser'
 import cors from 'cors'
 import { authRouter } from './routes/auth'
 import { usersRouter } from './routes/users'
+import healthRouter from './routes/health'
 
 export function createApp() {
   const app = express()
@@ -11,6 +12,7 @@ export function createApp() {
   app.use(express.json())
   app.use(cookieParser())
 
+  app.use('/health', healthRouter)
   app.use('/api/auth', authRouter)
   app.use('/api/users', usersRouter)
 
