@@ -327,6 +327,7 @@ Email + OTP passwordless login via Nodemailer + Gmail SMTP.
 | `GET`    | `/api/groups/:groupId/profiles/:profileId/medications`     | Member only | List medications; active only by default; add `?include_discontinued=true` to include discontinued ones |
 | `PATCH`  | `/api/groups/:groupId/profiles/:profileId/medications/:id` | Member only | Partial update of any medication field; use `status: "discontinued"` to discontinue                     |
 | `DELETE` | `/api/groups/:groupId/profiles/:profileId/medications/:id` | Member only | Hard delete a medication                                                                                |
+| `GET`    | `/api/health`                                              | Public      | Health check — returns `{ status: "ok" }`; used by Traefik and Docker health checks                     |
 
 **SMTP configuration via environment variables:**
 
