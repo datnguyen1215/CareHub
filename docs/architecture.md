@@ -38,6 +38,42 @@ packages/
 
 ---
 
+## Frontend Route Structure
+
+The SvelteKit frontend uses a route group `(app)` to wrap all authenticated main pages with a shared layout.
+
+```
+src/
+  lib/
+    TopBar.svelte       # Fixed top bar — "CareHub" branding left, user avatar right
+    BottomNav.svelte    # Fixed bottom navigation — Home, Devices, Settings tabs
+    ProfileModal.svelte # Create/edit care profile modal
+    api.ts              # API client with auth cookie handling
+  routes/
+    login/              # Public auth pages (email entry, OTP verify, account setup)
+    (app)/
+      +layout.svelte    # Shared layout: TopBar + main content area + BottomNav
+      +page.svelte      # Home dashboard — profile card grid
+      devices/
+        +page.svelte    # Devices placeholder (Phase 3)
+      settings/
+        +page.svelte    # Settings — group rename, member management
+```
+
+### Shared Layout (`(app)` route group)
+
+All main pages (home, devices, settings) are wrapped by `src/routes/(app)/+layout.svelte`, which renders:
+
+1. `TopBar` — Fixed top bar with "CareHub" title and user avatar. Avatar fetches `GET /api/users/me` and displays the user's initial. Tapping navigates to `/settings`.
+2. `<main>` — Page content with top and bottom padding to clear the fixed bars.
+3. `BottomNav` — Fixed bottom navigation with three tabs. Active tab is highlighted with primary blue using the `$page` store. Tabs: Home (`/`), Devices (`/devices`), Settings (`/settings`).
+
+### Auth Guard
+
+`src/hooks.server.ts` enforces authentication for all non-login routes. Unauthenticated requests to any route outside `/login` are redirected to `/login`.
+
+---
+
 ## Data Model
 
 ### Entity Relationship Overview
