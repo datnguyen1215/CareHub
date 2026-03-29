@@ -71,7 +71,9 @@ export function getUserFromRequest(request: Request): JwtPayload | null {
  * @returns {JwtPayload} User payload
  * @throws {Error} Throws error with 401 status if not authenticated
  */
-export function requireAuth(event: { cookies: { get: (name: string) => string | undefined } }): JwtPayload {
+export function requireAuth(event: {
+	cookies: { get: (name: string) => string | undefined };
+}): JwtPayload {
 	const token = event.cookies.get('token');
 	if (!token) {
 		throw new Error('Unauthorized');
