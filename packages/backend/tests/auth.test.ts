@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import request from 'supertest'
+import jwt from 'jsonwebtoken'
 import { createApp } from '../src/app'
 
 // Mock drizzle db
@@ -9,6 +10,7 @@ vi.mock('../src/db', () => {
     select: vi.fn(),
     delete: vi.fn(),
     update: vi.fn(),
+    transaction: vi.fn(),
   }
   return { db: mockDb, pool: {} }
 })
@@ -25,6 +27,7 @@ const mockDb = db as {
   select: ReturnType<typeof vi.fn>
   delete: ReturnType<typeof vi.fn>
   update: ReturnType<typeof vi.fn>
+  transaction: ReturnType<typeof vi.fn>
 }
 
 function makeSelectChain(rows: unknown[]) {
@@ -106,15 +109,18 @@ describe('POST /api/auth/verify-otp', () => {
   })
 
   it('sets token cookie and returns isNewUser=false for existing user', async () => {
-    // First select: OTP lookup
-    // Second select: user lookup
-    let callCount = 0
-    mockDb.select.mockImplementation(() => {
-      callCount++
-      if (callCount === 1) return makeSelectChain([VALID_OTP])
-      return makeSelectChain([EXISTING_USER])
+    // OTP lookup (outside transaction)
+    mockDb.select.mockReturnValue(makeSelectChain([VALID_OTP]))
+
+    // Transaction: delete OTP, find existing user
+    mockDb.transaction.mockImplementation(async (fn: (tx: unknown) => Promise<unknown>) => {
+      const tx = {
+        delete: vi.fn().mockReturnValue({ where: vi.fn().mockResolvedValue(undefined) }),
+        select: vi.fn().mockReturnValue(makeSelectChain([EXISTING_USER])),
+        insert: vi.fn(),
+      }
+      return fn(tx)
     })
-    mockDb.delete.mockReturnValue({ where: vi.fn().mockResolvedValue(undefined) })
 
     const res = await request(app)
       .post('/api/auth/verify-otp')
@@ -127,20 +133,31 @@ describe('POST /api/auth/verify-otp', () => {
     const tokenCookie = cookies.find((c: string) => c.startsWith('token='))
     expect(tokenCookie).toBeDefined()
     expect(tokenCookie).toContain('HttpOnly')
+
+    // Verify the JWT cookie contains a valid parseable payload
+    const tokenValue = tokenCookie!.split('=')[1].split(';')[0]
+    const decoded = jwt.decode(tokenValue) as { userId: string; email: string }
+    expect(decoded).toBeTruthy()
+    expect(decoded.userId).toBe('user-id')
+    expect(decoded.email).toBe('test@example.com')
   })
 
   it('creates new user and returns isNewUser=true', async () => {
-    let callCount = 0
-    mockDb.select.mockImplementation(() => {
-      callCount++
-      if (callCount === 1) return makeSelectChain([VALID_OTP])
-      return makeSelectChain([]) // no existing user
-    })
-    mockDb.delete.mockReturnValue({ where: vi.fn().mockResolvedValue(undefined) })
-    mockDb.insert.mockReturnValue({
-      values: vi.fn().mockReturnValue({
-        returning: vi.fn().mockResolvedValue([EXISTING_USER]),
-      }),
+    // OTP lookup (outside transaction)
+    mockDb.select.mockReturnValue(makeSelectChain([VALID_OTP]))
+
+    // Transaction: delete OTP, no existing user, create new
+    mockDb.transaction.mockImplementation(async (fn: (tx: unknown) => Promise<unknown>) => {
+      const tx = {
+        delete: vi.fn().mockReturnValue({ where: vi.fn().mockResolvedValue(undefined) }),
+        select: vi.fn().mockReturnValue(makeSelectChain([])),
+        insert: vi.fn().mockReturnValue({
+          values: vi.fn().mockReturnValue({
+            returning: vi.fn().mockResolvedValue([EXISTING_USER]),
+          }),
+        }),
+      }
+      return fn(tx)
     })
 
     const res = await request(app)
@@ -158,11 +175,9 @@ describe('POST /api/auth/logout', () => {
     expect(res.status).toBe(200)
     expect(res.body.message).toBe('Logged out')
     const cookies = res.headers['set-cookie'] as string[]
-    if (cookies) {
-      const tokenCookie = cookies.find((c: string) => c.startsWith('token='))
-      // Cookie should be cleared (empty value or expired)
-      expect(tokenCookie).toBeDefined()
-    }
+    expect(cookies).toBeDefined()
+    const tokenCookie = cookies.find((c: string) => c.startsWith('token='))
+    expect(tokenCookie).toBeDefined()
   })
 })
 

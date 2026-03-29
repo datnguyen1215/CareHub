@@ -1,0 +1,1 @@
+CREATE INDEX "otps_email_code_idx" ON "otps" USING btree ("email","code");

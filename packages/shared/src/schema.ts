@@ -7,6 +7,7 @@ import {
   text,
   pgEnum,
   primaryKey,
+  index,
 } from 'drizzle-orm/pg-core'
 
 // Enums
@@ -78,10 +79,16 @@ export const medications = pgTable('medications', {
 })
 
 // OTP
-export const otps = pgTable('otps', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  email: varchar('email').notNull(),
-  code: varchar('code', { length: 6 }).notNull(),
-  expires_at: timestamp('expires_at').notNull(),
-  created_at: timestamp('created_at').defaultNow().notNull(),
-})
+export const otps = pgTable(
+  'otps',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    email: varchar('email').notNull(),
+    code: varchar('code', { length: 6 }).notNull(),
+    expires_at: timestamp('expires_at').notNull(),
+    created_at: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => ({
+    emailCodeIdx: index('otps_email_code_idx').on(table.email, table.code),
+  })
+)

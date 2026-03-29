@@ -22,6 +22,11 @@ usersRouter.get('/me', requireAuth, async (req: Request, res: Response): Promise
 usersRouter.patch('/me', requireAuth, async (req: Request, res: Response): Promise<void> => {
   const { first_name, last_name } = req.body as { first_name?: string; last_name?: string }
 
+  if (!first_name && !last_name) {
+    res.status(400).json({ error: 'At least one of first_name or last_name is required' })
+    return
+  }
+
   const [user] = await db
     .update(users)
     .set({ first_name, last_name })
