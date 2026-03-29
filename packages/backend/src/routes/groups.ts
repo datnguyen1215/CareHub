@@ -4,6 +4,7 @@ import { eq, and } from 'drizzle-orm'
 import { db } from '../db'
 import { groups, groupMembers } from '@carehub/shared'
 import { requireAuth } from '../middleware/auth'
+import { logger } from '../services/logger'
 
 export const groupsRouter = Router()
 
@@ -31,7 +32,7 @@ groupsRouter.post('/', requireAuth, async (req: Request, res: Response): Promise
 
     res.status(201).json(group)
   } catch (err) {
-    console.error('POST /groups error:', err)
+    logger.error({ err }, 'POST /groups error')
     res.status(500).json({ error: 'Failed to create group' })
   }
 })
@@ -77,7 +78,7 @@ groupsRouter.patch('/:id', requireAuth, async (req: Request, res: Response): Pro
 
     res.json(updated)
   } catch (err) {
-    console.error('PATCH /groups/:id error:', err)
+    logger.error({ err }, 'PATCH /groups/:id error')
     res.status(500).json({ error: 'Failed to rename group' })
   }
 })
@@ -93,7 +94,7 @@ groupsRouter.get('/', requireAuth, async (req: Request, res: Response): Promise<
 
     res.json(rows.map((r) => r.group))
   } catch (err) {
-    console.error('GET /groups error:', err)
+    logger.error({ err }, 'GET /groups error')
     res.status(500).json({ error: 'Failed to fetch groups' })
   }
 })

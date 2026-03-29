@@ -6,6 +6,7 @@ import { db } from '../db'
 import { otps, users } from '@carehub/shared'
 import { sendOtpEmail } from '../services/email'
 import { signToken } from '../middleware/auth'
+import { logger } from '../services/logger'
 
 export const authRouter = Router()
 
@@ -49,7 +50,7 @@ authRouter.post('/request-otp', async (req: Request, res: Response): Promise<voi
 
     res.json({ message: 'OTP sent' })
   } catch (err) {
-    console.error('request-otp error:', err)
+    logger.error({ err }, 'request-otp error')
     res.status(500).json({ error: 'Failed to send OTP' })
   }
 })
@@ -99,7 +100,7 @@ authRouter.post('/verify-otp', async (req: Request, res: Response): Promise<void
       })
       .json({ isNewUser })
   } catch (err) {
-    console.error('verify-otp error:', err)
+    logger.error({ err }, 'verify-otp error')
     res.status(500).json({ error: 'Verification failed' })
   }
 })

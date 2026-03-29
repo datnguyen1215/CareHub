@@ -3,6 +3,7 @@ import { eq } from 'drizzle-orm'
 import { db } from '../db'
 import { users } from '@carehub/shared'
 import { requireAuth } from '../middleware/auth'
+import { logger } from '../services/logger'
 
 export const usersRouter = Router()
 
@@ -18,7 +19,7 @@ usersRouter.get('/me', requireAuth, async (req: Request, res: Response): Promise
 
     res.json(user)
   } catch (err) {
-    console.error('GET /users/me error:', err)
+    logger.error({ err }, 'GET /users/me error')
     res.status(500).json({ error: 'Failed to fetch user' })
   }
 })
@@ -46,7 +47,7 @@ usersRouter.patch('/me', requireAuth, async (req: Request, res: Response): Promi
 
     res.json(user)
   } catch (err) {
-    console.error('PATCH /users/me error:', err)
+    logger.error({ err }, 'PATCH /users/me error')
     res.status(500).json({ error: 'Failed to update user' })
   }
 })

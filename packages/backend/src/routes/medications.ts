@@ -4,6 +4,7 @@ import { eq, and } from 'drizzle-orm'
 import { db } from '../db'
 import { medications, groupMembers, careProfiles } from '@carehub/shared'
 import { requireAuth } from '../middleware/auth'
+import { logger } from '../services/logger'
 
 export const medicationsRouter = Router({ mergeParams: true })
 
@@ -77,7 +78,7 @@ medicationsRouter.post('/', requireAuth, async (req: Request, res: Response): Pr
 
     res.status(201).json(medication)
   } catch (err) {
-    console.error('POST medications error:', err)
+    logger.error({ err }, 'POST medications error')
     res.status(500).json({ error: 'Failed to create medication' })
   }
 })
@@ -110,7 +111,7 @@ medicationsRouter.get('/', requireAuth, async (req: Request, res: Response): Pro
 
     res.json(rows)
   } catch (err) {
-    console.error('GET medications error:', err)
+    logger.error({ err }, 'GET medications error')
     res.status(500).json({ error: 'Failed to fetch medications' })
   }
 })
@@ -182,7 +183,7 @@ medicationsRouter.patch('/:id', requireAuth, async (req: Request, res: Response)
 
     res.json(updated)
   } catch (err) {
-    console.error('PATCH medications error:', err)
+    logger.error({ err }, 'PATCH medications error')
     res.status(500).json({ error: 'Failed to update medication' })
   }
 })
@@ -221,7 +222,7 @@ medicationsRouter.delete(
 
       res.status(204).send()
     } catch (err) {
-      console.error('DELETE medications error:', err)
+      logger.error({ err }, 'DELETE medications error')
       res.status(500).json({ error: 'Failed to delete medication' })
     }
   }

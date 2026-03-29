@@ -4,6 +4,7 @@ import { eq, and } from 'drizzle-orm'
 import { db } from '../db'
 import { careProfiles, groupMembers } from '@carehub/shared'
 import { requireAuth } from '../middleware/auth'
+import { logger } from '../services/logger'
 
 export const profilesRouter = Router({ mergeParams: true })
 
@@ -58,7 +59,7 @@ profilesRouter.post('/', requireAuth, async (req: Request, res: Response): Promi
 
     res.status(201).json(profile)
   } catch (err) {
-    console.error('POST /groups/:groupId/profiles error:', err)
+    logger.error({ err }, 'POST /groups/:groupId/profiles error')
     res.status(500).json({ error: 'Failed to create profile' })
   }
 })
@@ -78,7 +79,7 @@ profilesRouter.get('/', requireAuth, async (req: Request, res: Response): Promis
 
     res.json(profiles)
   } catch (err) {
-    console.error('GET /groups/:groupId/profiles error:', err)
+    logger.error({ err }, 'GET /groups/:groupId/profiles error')
     res.status(500).json({ error: 'Failed to fetch profiles' })
   }
 })
@@ -108,7 +109,7 @@ profilesRouter.get('/:id', requireAuth, async (req: Request, res: Response): Pro
 
     res.json(profile)
   } catch (err) {
-    console.error('GET /groups/:groupId/profiles/:id error:', err)
+    logger.error({ err }, 'GET /groups/:groupId/profiles/:id error')
     res.status(500).json({ error: 'Failed to fetch profile' })
   }
 })
@@ -168,7 +169,7 @@ profilesRouter.patch('/:id', requireAuth, async (req: Request, res: Response): P
 
     res.json(updated)
   } catch (err) {
-    console.error('PATCH /groups/:groupId/profiles/:id error:', err)
+    logger.error({ err }, 'PATCH /groups/:groupId/profiles/:id error')
     res.status(500).json({ error: 'Failed to update profile' })
   }
 })
@@ -201,7 +202,7 @@ profilesRouter.delete('/:id', requireAuth, async (req: Request, res: Response): 
 
     res.status(204).send()
   } catch (err) {
-    console.error('DELETE /groups/:groupId/profiles/:id error:', err)
+    logger.error({ err }, 'DELETE /groups/:groupId/profiles/:id error')
     res.status(500).json({ error: 'Failed to delete profile' })
   }
 })
