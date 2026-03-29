@@ -110,6 +110,10 @@ export function updateProfile(groupId: string, id: string, data: Partial<CreateP
 	return request<CareProfile>('PATCH', `/groups/${groupId}/profiles/${id}`, data);
 }
 
+export function getProfile(groupId: string, id: string) {
+	return request<CareProfile>('GET', `/groups/${groupId}/profiles/${id}`);
+}
+
 export function deleteProfile(groupId: string, id: string) {
 	return request<void>('DELETE', `/groups/${groupId}/profiles/${id}`);
 }
