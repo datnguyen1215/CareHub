@@ -190,6 +190,7 @@ The `dev` script uses: `nodemon --exec tsx src/index.ts`
 ## Getting Help
 
 For detailed documentation, see:
+- [Roadmap](./ROADMAP.md) - Project milestones and progress tracking
 - [Architecture Documentation](./docs/design.md)
 - [API Documentation](./docs/api.md)
 - [Data Model](./docs/data-model.md)

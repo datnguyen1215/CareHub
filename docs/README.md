@@ -33,6 +33,7 @@ Managing health care for multiple elderly family members involves tracking medic
 
 | Document                           | Description                                       |
 | ---------------------------------- | ------------------------------------------------- |
+| [Roadmap](../ROADMAP.md)           | Project milestones and progress tracking          |
 | [Features](features.md)            | Detailed feature specifications by area           |
 | [Architecture](architecture.md)    | Technical stack, data model, and key decisions    |
 | [User Flows](user-flows.md)        | Step-by-step workflows for core tasks             |
