@@ -16,6 +16,7 @@ export function createApp() {
   app.use(cookieParser())
 
   app.use('/health', healthRouter)
+  app.use('/api/health', healthRouter)
   app.use('/api/auth', authRouter)
   app.use('/api/users', usersRouter)
   app.use('/api/groups', groupsRouter)
