@@ -64,3 +64,52 @@ export function getMe() {
 export function updateMe(data: { first_name: string; last_name: string }) {
 	return request<MeResponse>('PATCH', '/users/me', data);
 }
+
+// Groups
+
+export interface Group {
+	id: string;
+	name: string;
+	created_at: string;
+}
+
+export function listGroups() {
+	return request<Group[]>('GET', '/groups');
+}
+
+// Care Profiles
+
+export interface CareProfile {
+	id: string;
+	group_id: string;
+	name: string;
+	avatar_url: string | null;
+	date_of_birth: string | null;
+	relationship: string | null;
+	conditions: string[];
+	created_at: string;
+	updated_at: string;
+}
+
+export interface CreateProfileInput {
+	name: string;
+	date_of_birth?: string | null;
+	relationship?: string | null;
+	conditions?: string[];
+}
+
+export function listProfiles(groupId: string) {
+	return request<CareProfile[]>('GET', `/groups/${groupId}/profiles`);
+}
+
+export function createProfile(groupId: string, data: CreateProfileInput) {
+	return request<CareProfile>('POST', `/groups/${groupId}/profiles`, data);
+}
+
+export function updateProfile(groupId: string, id: string, data: Partial<CreateProfileInput>) {
+	return request<CareProfile>('PATCH', `/groups/${groupId}/profiles/${id}`, data);
+}
+
+export function deleteProfile(groupId: string, id: string) {
+	return request<void>('DELETE', `/groups/${groupId}/profiles/${id}`);
+}
