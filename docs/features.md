@@ -11,7 +11,7 @@ Detailed feature breakdown organized by area. See [phases.md](phases.md) for imp
 - Email + OTP authentication (passwordless, delivered via Nodemailer + Gmail SMTP)
 - No password required; 6-digit OTP expires after 15 minutes
 - JWT issued on successful verification, stored in an httpOnly cookie with no expiration
-- First-time login creates a User record and prompts for first and last name
+- First-time login creates a User record, redirects to `/login/setup` for name entry, then auto-creates a default group named "My Family" (user is assigned admin role) before landing on the dashboard
 
 ### Invitations
 

@@ -13,7 +13,7 @@ Step-by-step workflows for core tasks. Wireframe references point to files in `d
 3. Receive 6-digit OTP via email (`designs/01b-otp-verify.svg`)
 4. Enter OTP to verify; JWT cookie is set on success
 5. Prompted to enter first and last name (`designs/01c-account-setup.svg`)
-6. Prompted to create a household (name it, e.g., "Nguyen Family")
+6. On submit: profile is saved, a default group named "My Family" is created automatically (no user prompt), and the user is redirected to `/`
 7. Add first care profile: enter name, relationship, date of birth, photo
 8. Fill in initial health info: known conditions, current medications, notes
 9. Land on home dashboard with the new profile card (`designs/02-home-dashboard.svg`)
