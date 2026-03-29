@@ -17,8 +17,34 @@ export function createLogger(): pino.Logger {
     level: logLevel,
   }
 
-  // In development with pretty format, or when explicitly requested
-  if ((isDev && logFormat === 'pretty') || logFormat === 'pretty') {
+  const usePretty = logFormat === 'pretty'
+
+  // Configure transport for pretty printing and/or file output
+  if (usePretty && logFile) {
+    // Both pretty printing and file output: use multiple targets in transport
+    options.transport = {
+      targets: [
+        {
+          target: 'pino-pretty',
+          level: logLevel,
+          options: {
+            destination: 1, // stdout
+            colorize: true,
+            translateTime: 'HH:MM:ss',
+            ignore: 'pid,hostname',
+          },
+        },
+        {
+          target: 'pino/file',
+          level: logLevel,
+          options: {
+            destination: logFile,
+          },
+        },
+      ],
+    }
+  } else if (usePretty) {
+    // Pretty printing only (stdout)
     options.transport = {
       target: 'pino-pretty',
       options: {
@@ -27,15 +53,12 @@ export function createLogger(): pino.Logger {
         ignore: 'pid,hostname',
       },
     }
-  }
-
-  // If log file is specified, use multistream
-  if (logFile) {
+  } else if (logFile) {
+    // File output only (JSON format): use multistream
     const streams: pino.StreamEntry[] = [
       { stream: process.stdout },
       { stream: pino.destination(logFile) },
     ]
-
     return pino(options, pino.multistream(streams))
   }
 
