@@ -1,7 +1,7 @@
 /** Auth routes — OTP request, verification, and logout. */
 import { Router, Request, Response } from 'express'
 import crypto from 'crypto'
-import { eq, and, gt } from 'drizzle-orm'
+import { eq, and, gt, max } from 'drizzle-orm'
 import { db } from '../db'
 import { otps, users } from '@carehub/shared'
 import { sendOtpEmail } from '../services/email'
@@ -24,6 +24,21 @@ authRouter.post('/request-otp', async (req: Request, res: Response): Promise<voi
     if (!email || typeof email !== 'string' || !EMAIL_RE.test(email)) {
       res.status(400).json({ error: 'A valid email is required' })
       return
+    }
+
+    // Enforce 60-second cooldown between OTP requests for the same email
+    const [{ lastSent }] = await db
+      .select({ lastSent: max(otps.created_at) })
+      .from(otps)
+      .where(eq(otps.email, email))
+
+    if (lastSent) {
+      const secondsElapsed = (Date.now() - new Date(lastSent).getTime()) / 1000
+      const retryAfter = Math.ceil(60 - secondsElapsed)
+      if (retryAfter > 0) {
+        res.status(429).json({ error: 'Please wait before requesting another OTP', retryAfter })
+        return
+      }
     }
 
     const code = generateOtp()
@@ -62,7 +77,7 @@ authRouter.post('/verify-otp', async (req: Request, res: Response): Promise<void
 
     // Delete used OTP and upsert user in a transaction
     const { user, isNewUser } = await db.transaction(async (tx) => {
-      await tx.delete(otps).where(eq(otps.id, otp.id))
+      await tx.delete(otps).where(eq(otps.email, email))
 
       let [existing] = await tx.select().from(users).where(eq(users.email, email)).limit(1)
       const isNew = !existing

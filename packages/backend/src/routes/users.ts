@@ -8,35 +8,45 @@ export const usersRouter = Router()
 
 // GET /api/users/me
 usersRouter.get('/me', requireAuth, async (req: Request, res: Response): Promise<void> => {
-  const [user] = await db.select().from(users).where(eq(users.id, req.user!.userId)).limit(1)
+  try {
+    const [user] = await db.select().from(users).where(eq(users.id, req.user!.userId)).limit(1)
 
-  if (!user) {
-    res.status(404).json({ error: 'User not found' })
-    return
+    if (!user) {
+      res.status(404).json({ error: 'User not found' })
+      return
+    }
+
+    res.json(user)
+  } catch (err) {
+    console.error('GET /users/me error:', err)
+    res.status(500).json({ error: 'Failed to fetch user' })
   }
-
-  res.json(user)
 })
 
 // PATCH /api/users/me — account setup
 usersRouter.patch('/me', requireAuth, async (req: Request, res: Response): Promise<void> => {
-  const { first_name, last_name } = req.body as { first_name?: string; last_name?: string }
+  try {
+    const { first_name, last_name } = req.body as { first_name?: string; last_name?: string }
 
-  if (!first_name && !last_name) {
-    res.status(400).json({ error: 'At least one of first_name or last_name is required' })
-    return
+    if (!first_name && !last_name) {
+      res.status(400).json({ error: 'At least one of first_name or last_name is required' })
+      return
+    }
+
+    const [user] = await db
+      .update(users)
+      .set({ first_name, last_name })
+      .where(eq(users.id, req.user!.userId))
+      .returning()
+
+    if (!user) {
+      res.status(404).json({ error: 'User not found' })
+      return
+    }
+
+    res.json(user)
+  } catch (err) {
+    console.error('PATCH /users/me error:', err)
+    res.status(500).json({ error: 'Failed to update user' })
   }
-
-  const [user] = await db
-    .update(users)
-    .set({ first_name, last_name })
-    .where(eq(users.id, req.user!.userId))
-    .returning()
-
-  if (!user) {
-    res.status(404).json({ error: 'User not found' })
-    return
-  }
-
-  res.json(user)
 })
