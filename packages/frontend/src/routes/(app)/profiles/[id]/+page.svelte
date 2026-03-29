@@ -78,7 +78,12 @@
 		loadingMeds = true;
 		try {
 			medications = await listMedications(groupId, profileId, showDiscontinued);
-		} catch {
+		} catch (err: unknown) {
+			const apiErr = err as { status?: number };
+			if (apiErr?.status === 401) {
+				goto('/login');
+				return;
+			}
 			// keep current list on error
 		} finally {
 			loadingMeds = false;
