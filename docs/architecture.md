@@ -253,7 +253,22 @@ Email + OTP passwordless login via Nodemailer + Gmail SMTP.
 - User submits their email address
 - Server generates a 6-digit OTP, stores it in the `Otp` table with a 15-minute expiry, and sends it via email
 - User submits the OTP; server verifies it and issues a JWT stored in an httpOnly cookie (no expiration)
-- First-time login creates a new `User` record and prompts the user to enter their `first_name` and `last_name`
+- First-time login creates a new `User` record and redirects to `/login/setup`
+- On the setup page the user enters their `first_name` and `last_name`; on submit the frontend:
+  1. Calls `PATCH /api/users/me` to save the profile
+  2. Calls `POST /api/groups` with `{ name: "My Family" }` to auto-create a default group (creator is assigned the `admin` role via `GroupMember`)
+  3. Redirects to `/` (dashboard)
+
+**API Endpoints**
+
+| Method  | Path               | Auth     | Description                                         |
+| ------- | ------------------ | -------- | --------------------------------------------------- |
+| `POST`  | `/api/auth/email`  | Public   | Send OTP to email address                           |
+| `POST`  | `/api/auth/verify` | Public   | Verify OTP; issues JWT httpOnly cookie              |
+| `PATCH` | `/api/users/me`    | Required | Update authenticated user's first and last name     |
+| `POST`  | `/api/groups`      | Required | Create a group; creator is added as admin           |
+| `PATCH` | `/api/groups/:id`  | Required | Rename a group (admin only)                         |
+| `GET`   | `/api/groups`      | Required | Return all groups the authenticated user belongs to |
 
 **SMTP configuration via environment variables:**
 
