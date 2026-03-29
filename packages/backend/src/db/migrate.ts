@@ -6,6 +6,7 @@ import { drizzle } from 'drizzle-orm/node-postgres'
 import { migrate } from 'drizzle-orm/node-postgres/migrator'
 import { Pool } from 'pg'
 import path from 'path'
+import { logger } from '../services/logger'
 
 const migrationsFolder = path.join(
   __dirname,
@@ -25,15 +26,15 @@ async function runMigrations(
   const pool = new Pool({ connectionString: url })
   const db = drizzle(pool)
 
-  console.log('Running migrations against:', url.replace(/:[^:@]+@/, ':***@'))
+  logger.info('Running migrations against: %s', url.replace(/:[^:@]+@/, ':***@'))
   await migrate(db, { migrationsFolder })
-  console.log('Migrations complete')
+  logger.info('Migrations complete')
 
   await pool.end()
 }
 
 const url = process.env.DATABASE_URL_TEST ?? process.env.DATABASE_URL
 runMigrations(url).catch((err) => {
-  console.error('Migration failed:', err)
+  logger.error({ err }, 'Migration failed')
   process.exit(1)
 })

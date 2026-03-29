@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import { db } from '../db'
 import { sql } from 'drizzle-orm'
+import { logger } from '../services/logger'
 
 const router = Router()
 
@@ -14,7 +15,7 @@ router.get('/', async (_req, res) => {
     await db.execute(sql`SELECT 1`)
     res.json({ status: 'ok' })
   } catch (err) {
-    console.error('Health check failed:', err)
+    logger.error({ err }, 'Health check failed')
     res.status(503).json({ status: 'error', message: 'Database unavailable' })
   }
 })
