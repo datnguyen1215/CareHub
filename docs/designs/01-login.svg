@@ -27,21 +27,12 @@
   <rect x="310" y="398" width="20" height="14" rx="2" fill="none" stroke="#CCC" stroke-width="1.5"/>
   <polyline points="310,398 320,407 330,398" fill="none" stroke="#CCC" stroke-width="1.5"/>
 
-  <!-- Send magic link button -->
+  <!-- Send Code button -->
   <rect x="24" y="460" width="327" height="56" rx="12" fill="#4A90D9"/>
-  <text x="187" y="493" font-family="system-ui, sans-serif" font-size="17" font-weight="600" fill="#FFFFFF" text-anchor="middle">Send Magic Link</text>
-
-  <!-- Divider -->
-  <line x1="24" y1="548" x2="170" y2="548" stroke="#DDD" stroke-width="1"/>
-  <text x="187" y="553" font-family="system-ui, sans-serif" font-size="13" fill="#AAA" text-anchor="middle">or</text>
-  <line x1="205" y1="548" x2="351" y2="548" stroke="#DDD" stroke-width="1"/>
-
-  <!-- Google sign in -->
-  <rect x="24" y="580" width="327" height="56" rx="12" fill="#FFFFFF" filter="url(#shadow)"/>
-  <text x="187" y="613" font-family="system-ui, sans-serif" font-size="16" font-weight="500" fill="#555" text-anchor="middle">Continue with Google</text>
+  <text x="187" y="493" font-family="system-ui, sans-serif" font-size="17" font-weight="600" fill="#FFFFFF" text-anchor="middle">Send Code</text>
 
   <!-- Footer text -->
-  <text x="187" y="740" font-family="system-ui, sans-serif" font-size="13" fill="#AAA" text-anchor="middle">No password needed. We'll email you a sign-in link.</text>
+  <text x="187" y="740" font-family="system-ui, sans-serif" font-size="13" fill="#AAA" text-anchor="middle">No password needed. We'll email you a 6-digit code.</text>
   <text x="187" y="770" font-family="system-ui, sans-serif" font-size="12" fill="#BBB" text-anchor="middle">By continuing, you agree to our Terms of Service</text>
 
   <!-- Home indicator -->
