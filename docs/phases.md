@@ -18,7 +18,7 @@ Establish authentication, core data structures, and basic health tracking.
 - **Medication management** -- Add/edit/remove medications via modal; fields: name, dosage, schedule (multi-select: morning/afternoon/evening/bedtime), status (active/discontinued); discontinued medications hidden by default with a "Show discontinued" toggle
 - **Home dashboard** -- Card grid showing all profiles; each card displays name, relationship, conditions (tags), and active medication count
 - **Profile detail view** -- Overview and Medications tabs
-- **Deployment** -- Self-hosted via Docker
+- **Deployment** -- Production Docker Compose with Traefik reverse proxy, Let's Encrypt SSL, separate frontend/backend containers, PostgreSQL with persistent volume
 - **Mobile-responsive layout** -- Bottom navigation, card-based UI, mobile-first
 
 ### Screens Implemented

@@ -2,27 +2,27 @@
 
 ## Stack
 
-| Layer              | Technology                                | Rationale                                                                                                                                                                        |
-| ------------------ | ----------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Package Manager    | npm with workspaces                       | Monorepo support, standard tooling                                                                                                                                               |
-| Frontend           | SvelteKit + Tailwind CSS                  | SSR + SPA hybrid, mobile-first responsive, fast builds                                                                                                                           |
-| Backend/API        | Express + nodemon                         | Separate service, clear API boundary, fast dev iteration                                                                                                                         |
-| Database           | PostgreSQL via Docker (self-hosted)       | Relational data, full control, no external dependency                                                                                                                            |
-| ORM / Migrations   | Drizzle ORM                               | Type-safe queries, SQL-first migrations                                                                                                                                          |
-| Auth               | Email + OTP (Nodemailer + Gmail SMTP)     | Passwordless email login without third-party auth service                                                                                                                        |
-| File Storage       | TBD                                       | To be decided in a future phase                                                                                                                                                  |
-| Real-time          | WebSockets (custom)                       | Tablet push, device status, call signaling                                                                                                                                       |
-| Video Calling      | WebRTC (PeerJS or LiveKit)                | Peer-to-peer video, minimal server cost                                                                                                                                          |
-| Push Notifications | Firebase Cloud Messaging (FCM)            | High-priority data messages for call notifications; reliable delivery even when app is closed                                                                                    |
-| Native App Shell   | Capacitor                                 | Wraps SvelteKit web app in native Android shell for both caretaker phones and elderly tablets; enables native push, full-screen call intent, foreground services, lock task mode |
-| OTA Updates        | Capgo (self-hosted)                       | Over-the-air web bundle updates for all Capacitor apps; no manual APK reinstall for UI/logic changes                                                                             |
-| OCR/AI             | Google Vision API or AWS Textract         | Document text extraction; Tesseract as self-hosted alternative                                                                                                                   |
-| Search             | PostgreSQL full-text search               | Search over OCR-extracted text, no extra infrastructure                                                                                                                          |
-| Hosting            | Self-hosted via Docker                    | Full control, no cloud vendor dependency                                                                                                                                         |
-| Testing            | Vitest + Supertest                        | Integration tests only; no unit or frontend tests                                                                                                                                |
-| TypeScript         | Default SvelteKit config                  | Standard configuration, no custom overrides                                                                                                                                      |
-| Linting            | ESLint + Prettier (SvelteKit defaults)    | Consistent code style with minimal setup                                                                                                                                         |
-| Tablet Runtime     | Capacitor APK with Android Lock Task Mode | Native app shell prevents exit, auto-restarts on boot, receives FCM push even if backgrounded                                                                                    |
+| Layer              | Technology                                                        | Rationale                                                                                                                                                                        |
+| ------------------ | ----------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Package Manager    | npm with workspaces                                               | Monorepo support, standard tooling                                                                                                                                               |
+| Frontend           | SvelteKit + Tailwind CSS                                          | SSR + SPA hybrid, mobile-first responsive, fast builds                                                                                                                           |
+| Backend/API        | Express + nodemon                                                 | Separate service, clear API boundary, fast dev iteration                                                                                                                         |
+| Database           | PostgreSQL via Docker (self-hosted)                               | Relational data, full control, no external dependency                                                                                                                            |
+| ORM / Migrations   | Drizzle ORM                                                       | Type-safe queries, SQL-first migrations                                                                                                                                          |
+| Auth               | Email + OTP (Nodemailer + Gmail SMTP)                             | Passwordless email login without third-party auth service                                                                                                                        |
+| File Storage       | TBD                                                               | To be decided in a future phase                                                                                                                                                  |
+| Real-time          | WebSockets (custom)                                               | Tablet push, device status, call signaling                                                                                                                                       |
+| Video Calling      | WebRTC (PeerJS or LiveKit)                                        | Peer-to-peer video, minimal server cost                                                                                                                                          |
+| Push Notifications | Firebase Cloud Messaging (FCM)                                    | High-priority data messages for call notifications; reliable delivery even when app is closed                                                                                    |
+| Native App Shell   | Capacitor                                                         | Wraps SvelteKit web app in native Android shell for both caretaker phones and elderly tablets; enables native push, full-screen call intent, foreground services, lock task mode |
+| OTA Updates        | Capgo (self-hosted)                                               | Over-the-air web bundle updates for all Capacitor apps; no manual APK reinstall for UI/logic changes                                                                             |
+| OCR/AI             | Google Vision API or AWS Textract                                 | Document text extraction; Tesseract as self-hosted alternative                                                                                                                   |
+| Search             | PostgreSQL full-text search                                       | Search over OCR-extracted text, no extra infrastructure                                                                                                                          |
+| Hosting            | Self-hosted via Docker — Traefik reverse proxy, Let's Encrypt SSL | Full control, no cloud vendor dependency                                                                                                                                         |
+| Testing            | Vitest + Supertest                                                | Integration tests only; no unit or frontend tests                                                                                                                                |
+| TypeScript         | Default SvelteKit config                                          | Standard configuration, no custom overrides                                                                                                                                      |
+| Linting            | ESLint + Prettier (SvelteKit defaults)                            | Consistent code style with minimal setup                                                                                                                                         |
+| Tablet Runtime     | Capacitor APK with Android Lock Task Mode                         | Native app shell prevents exit, auto-restarts on boot, receives FCM push even if backgrounded                                                                                    |
 
 ---
 
@@ -270,6 +270,48 @@ A dedicated Gmail account is recommended for sending OTP emails.
 ### Application-Level Access Control
 
 Data access is enforced at the application layer in the Express backend. Users can only access data within their group. Viewers are restricted to read operations.
+
+### Production Deployment
+
+Production runs via `docker-compose.prod.yml` with 4 services: Traefik, frontend, backend, and PostgreSQL.
+
+**Traefik reverse proxy:**
+
+- Auto-discovers services via Docker labels
+- Manages SSL certificates via Let's Encrypt HTTP challenge
+- Automatically redirects HTTP to HTTPS
+
+**Container setup:**
+
+- Frontend and backend are separate Docker images built with multi-stage builds
+- PostgreSQL data persisted via named Docker volume
+- All containers configured with health checks and `restart: unless-stopped` for reliability
+
+**Configuration:**
+
+- All runtime configuration via `.env` file (domain, database credentials, JWT secret, SMTP)
+- Domain configured via `APP_DOMAIN` env var (default: `care.dnguyen.us`)
+
+**Dev vs production:**
+
+- Dev compose file only runs PostgreSQL — the app runs directly on the host
+- Production compose file runs all services in containers
+
+**Environment variables:**
+
+| Variable            | Description               | Example                           |
+| ------------------- | ------------------------- | --------------------------------- |
+| `APP_DOMAIN`        | Production domain         | `care.dnguyen.us`                 |
+| `ACME_EMAIL`        | Email for Let's Encrypt   | `you@example.com`                 |
+| `POSTGRES_USER`     | Database username         | `carehub`                         |
+| `POSTGRES_PASSWORD` | Database password         | (secret)                          |
+| `POSTGRES_DB`       | Database name             | `carehub`                         |
+| `JWT_SECRET`        | JWT signing secret        | (secret)                          |
+| `SMTP_HOST`         | SMTP server               | `smtp.gmail.com`                  |
+| `SMTP_PORT`         | SMTP port                 | `587`                             |
+| `SMTP_USER`         | SMTP username             | `carehub.notifications@gmail.com` |
+| `SMTP_PASS`         | SMTP app password         | (secret)                          |
+| `SMTP_FROM_NAME`    | Email sender display name | `CareHub`                         |
 
 ### Testing Strategy
 
