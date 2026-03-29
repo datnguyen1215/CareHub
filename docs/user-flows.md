@@ -9,12 +9,14 @@ Step-by-step workflows for core tasks. Wireframe references point to files in `d
 **Actor:** New caretaker (Admin)
 
 1. Navigate to CareHub login page (`designs/01-login.svg`)
-2. Sign in via Google OAuth or enter email for magic link
-3. Receive magic link email, click to authenticate
-4. Prompted to create a household (name it, e.g., "Nguyen Family")
-5. Add first care profile: enter name, relationship, date of birth, photo
-6. Fill in initial health info: known conditions, current medications, notes
-7. Land on home dashboard with the new profile card (`designs/02-home-dashboard.svg`)
+2. Enter email address and tap "Send Code"
+3. Receive 6-digit OTP via email (`designs/01b-otp-verify.svg`)
+4. Enter OTP to verify; JWT cookie is set on success
+5. Prompted to enter first and last name (`designs/01c-account-setup.svg`)
+6. Prompted to create a household (name it, e.g., "Nguyen Family")
+7. Add first care profile: enter name, relationship, date of birth, photo
+8. Fill in initial health info: known conditions, current medications, notes
+9. Land on home dashboard with the new profile card (`designs/02-home-dashboard.svg`)
 
 ---
 
@@ -129,8 +131,8 @@ Step-by-step workflows for core tasks. Wireframe references point to files in `d
 3. Enter the person's email address
 4. Select role: Viewer (read-only access)
 5. Tap Send Invite
-6. System sends email with magic link invitation
-7. New user clicks magic link, authenticates, and lands on the home dashboard
+6. System sends email invitation with a login link
+7. New user navigates to login, enters email, completes OTP verification, and lands on the home dashboard
 8. Viewer sees all household profiles in read-only mode
 
 ---
