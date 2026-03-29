@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 375 812" width="375" height="812">
+  <defs>
+    <filter id="shadow" x="-2%" y="-2%" width="104%" height="104%">
+      <feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="#000" flood-opacity="0.08"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="375" height="812" fill="#F5F5F5" rx="20"/>
+
+  <!-- Status bar -->
+  <rect width="375" height="44" fill="#FFFFFF"/>
+  <text x="187" y="30" font-family="system-ui, sans-serif" font-size="14" font-weight="600" fill="#333" text-anchor="middle">9:41</text>
+
+  <!-- Logo area -->
+  <circle cx="187" cy="160" r="40" fill="#4A90D9" opacity="0.12"/>
+  <text x="187" y="153" font-family="system-ui, sans-serif" font-size="24" font-weight="300" fill="#4A90D9" text-anchor="middle">+</text>
+  <text x="187" y="170" font-family="system-ui, sans-serif" font-size="12" font-weight="600" fill="#4A90D9" text-anchor="middle" letter-spacing="1">CARE</text>
+
+  <!-- Title -->
+  <text x="187" y="240" font-family="system-ui, sans-serif" font-size="28" font-weight="700" fill="#333333" text-anchor="middle">Set up your account</text>
+
+  <!-- Subtitle -->
+  <text x="187" y="272" font-family="system-ui, sans-serif" font-size="15" fill="#666666" text-anchor="middle">Just a couple things to get started</text>
+
+  <!-- First name input -->
+  <rect x="24" y="310" width="327" height="56" rx="12" fill="#FFFFFF" filter="url(#shadow)"/>
+  <text x="48" y="343" font-family="system-ui, sans-serif" font-size="16" fill="#AAA">First name</text>
+
+  <!-- Last name input -->
+  <rect x="24" y="386" width="327" height="56" rx="12" fill="#FFFFFF" filter="url(#shadow)"/>
+  <text x="48" y="419" font-family="system-ui, sans-serif" font-size="16" fill="#AAA">Last name</text>
+
+  <!-- Continue button -->
+  <rect x="24" y="466" width="327" height="56" rx="12" fill="#4A90D9"/>
+  <text x="187" y="499" font-family="system-ui, sans-serif" font-size="17" font-weight="600" fill="#FFFFFF" text-anchor="middle">Continue</text>
+
+  <!-- Home indicator -->
+  <rect x="140" y="790" width="95" height="5" rx="2.5" fill="#DDD"/>
+</svg>
