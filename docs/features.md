@@ -8,22 +8,21 @@ Detailed feature breakdown organized by area. See [phases.md](phases.md) for imp
 
 ### Login
 
-- Magic link authentication (passwordless email login)
-- Google OAuth as alternative sign-in method
-- Session management via Supabase Auth
+- Email + OTP authentication (passwordless, delivered via Nodemailer + Gmail SMTP)
+- No password required; OTP expires after a short window
 
 ### Invitations
 
 - Email-based invitation system for adding new viewers
 - Invite link contains role assignment (Viewer by default)
-- Invited users authenticate via magic link on first visit
+- Invited users authenticate via OTP on first visit
 
 ### Roles
 
-| Role | Create | Read | Update | Delete | Manage Devices |
-|---|---|---|---|---|---|
-| Admin | Yes | Yes | Yes | Yes | Yes |
-| Viewer | No | Yes | No | No | No |
+| Role   | Create | Read | Update | Delete | Manage Devices |
+| ------ | ------ | ---- | ------ | ------ | -------------- |
+| Admin  | Yes    | Yes  | Yes    | Yes    | Yes            |
+| Viewer | No     | Yes  | No     | No     | No             |
 
 ### Shared Access
 

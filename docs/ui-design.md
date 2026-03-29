@@ -2,7 +2,7 @@
 
 ## Design Approach
 
-Mobile-first responsive design. The caretaker portal is built for phone-sized screens first, then adapted for tablet and desktop. The caretaker mobile app is the same SvelteKit web app wrapped in Capacitor, with native incoming call UI for phone-style call notifications. The elderly tablet runs a separate Capacitor APK with a kiosk layout optimized for large touch targets, locked to the screen via Android Lock Task Mode.
+Styles are implemented with Tailwind CSS within the SvelteKit frontend package. Mobile-first responsive design. The caretaker portal is built for phone-sized screens first, then adapted for tablet and desktop. The caretaker mobile app is the same SvelteKit web app wrapped in Capacitor, with native incoming call UI for phone-style call notifications. The elderly tablet runs a separate Capacitor APK with a kiosk layout optimized for large touch targets, locked to the screen via Android Lock Task Mode.
 
 ---
 
@@ -18,16 +18,16 @@ Mobile-first responsive design. The caretaker portal is built for phone-sized sc
 
 ## Color Scheme
 
-| Role | Color | Hex | Usage |
-|---|---|---|---|
-| Primary | Blue | `#4A90D9` | Actions, links, active states, headers |
-| Success | Green | `#5CB85C` | Positive status, confirmations, active medications |
-| Warning | Amber | `#F0AD4E` | Attention needed, pending states |
-| Danger | Red | `#D9534F` | Destructive actions, critical alerts, declined calls |
-| Background | Light gray | `#F5F5F5` | Page backgrounds |
-| Surface | White | `#FFFFFF` | Cards, modals, input fields |
-| Text Primary | Dark gray | `#333333` | Body text |
-| Text Secondary | Medium gray | `#666666` | Labels, captions, secondary info |
+| Role           | Color       | Hex       | Usage                                                |
+| -------------- | ----------- | --------- | ---------------------------------------------------- |
+| Primary        | Blue        | `#4A90D9` | Actions, links, active states, headers               |
+| Success        | Green       | `#5CB85C` | Positive status, confirmations, active medications   |
+| Warning        | Amber       | `#F0AD4E` | Attention needed, pending states                     |
+| Danger         | Red         | `#D9534F` | Destructive actions, critical alerts, declined calls |
+| Background     | Light gray  | `#F5F5F5` | Page backgrounds                                     |
+| Surface        | White       | `#FFFFFF` | Cards, modals, input fields                          |
+| Text Primary   | Dark gray   | `#333333` | Body text                                            |
+| Text Secondary | Medium gray | `#666666` | Labels, captions, secondary info                     |
 
 ---
 
@@ -91,19 +91,19 @@ Mobile-first responsive design. The caretaker portal is built for phone-sized sc
 
 All wireframes are in the `designs/` directory.
 
-| File | Screen | Description |
-|---|---|---|
-| `01-login.svg` | Login | Authentication screen with magic link and Google OAuth options |
-| `02-home-dashboard.svg` | Home Dashboard | Grid of care profile cards with status indicators |
-| `03-profile-detail.svg` | Profile Detail | Profile header with health summary and tab navigation |
-| `04-medications.svg` | Medications | List of active and discontinued medications with time-of-day badges |
-| `05-calendar.svg` | Calendar | Monthly calendar view with event dots and upcoming appointments |
-| `06-journal-entry.svg` | Journal Entry | Entry form with content field, key takeaways, and linked event |
-| `07-documents.svg` | Documents | Document grid with categories, search bar, and upload button |
-| `08-document-detail.svg` | Document Detail | Original image alongside extracted OCR text and metadata |
-| `09-devices.svg` | Devices | List of paired tablets with status, battery, and last seen |
-| `10-pair-tablet.svg` | Pair Tablet | QR scanning interface for pairing a new tablet |
-| `11-tablet-home.svg` | Tablet Home (Kiosk) | Large caretaker cards, today's schedule, greeting |
-| `12-tablet-incoming-call.svg` | Tablet Incoming Call | Full-screen caller info with large Accept/Decline buttons |
-| `13-tablet-qr-pairing.svg` | Tablet QR Pairing | QR code display on tablet during pairing flow |
-| `14-flow-diagram.svg` | Flow Diagram | Overall system flow showing user journeys between screens |
+| File                          | Screen               | Description                                                         |
+| ----------------------------- | -------------------- | ------------------------------------------------------------------- |
+| `01-login.svg`                | Login                | Authentication screen with email + OTP login                        |
+| `02-home-dashboard.svg`       | Home Dashboard       | Grid of care profile cards with status indicators                   |
+| `03-profile-detail.svg`       | Profile Detail       | Profile header with health summary and tab navigation               |
+| `04-medications.svg`          | Medications          | List of active and discontinued medications with time-of-day badges |
+| `05-calendar.svg`             | Calendar             | Monthly calendar view with event dots and upcoming appointments     |
+| `06-journal-entry.svg`        | Journal Entry        | Entry form with content field, key takeaways, and linked event      |
+| `07-documents.svg`            | Documents            | Document grid with categories, search bar, and upload button        |
+| `08-document-detail.svg`      | Document Detail      | Original image alongside extracted OCR text and metadata            |
+| `09-devices.svg`              | Devices              | List of paired tablets with status, battery, and last seen          |
+| `10-pair-tablet.svg`          | Pair Tablet          | QR scanning interface for pairing a new tablet                      |
+| `11-tablet-home.svg`          | Tablet Home (Kiosk)  | Large caretaker cards, today's schedule, greeting                   |
+| `12-tablet-incoming-call.svg` | Tablet Incoming Call | Full-screen caller info with large Accept/Decline buttons           |
+| `13-tablet-qr-pairing.svg`    | Tablet QR Pairing    | QR code display on tablet during pairing flow                       |
+| `14-flow-diagram.svg`         | Flow Diagram         | Overall system flow showing user journeys between screens           |
