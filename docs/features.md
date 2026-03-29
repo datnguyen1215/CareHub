@@ -9,7 +9,9 @@ Detailed feature breakdown organized by area. See [phases.md](phases.md) for imp
 ### Login
 
 - Email + OTP authentication (passwordless, delivered via Nodemailer + Gmail SMTP)
-- No password required; OTP expires after a short window
+- No password required; 6-digit OTP expires after 15 minutes
+- JWT issued on successful verification, stored in an httpOnly cookie with no expiration
+- First-time login creates a User record and prompts for first and last name
 
 ### Invitations
 
@@ -26,8 +28,8 @@ Detailed feature breakdown organized by area. See [phases.md](phases.md) for imp
 
 ### Shared Access
 
-- Multiple admins per household (e.g., both caretakers)
-- All admins share full access to all profiles within the household
+- Multiple admins per group (e.g., both caretakers)
+- All admins share full access to all profiles within the group
 - Viewers see all profiles they are granted access to
 
 ---
@@ -37,14 +39,11 @@ Detailed feature breakdown organized by area. See [phases.md](phases.md) for imp
 ### Health Dashboard
 
 - Per-person profile with avatar and basic info (name, age, relationship)
-- Key health metrics: blood pressure, weight, known conditions
-- Free-form health notes
-- Profile status indicators (e.g., needs attention, stable, recent visit)
+- Known conditions
 
 ### Home Dashboard
 
 - All profiles visible from home screen as cards
-- Quick-glance status for each profile
 - Tap to enter full profile detail
 
 ---
@@ -54,9 +53,8 @@ Detailed feature breakdown organized by area. See [phases.md](phases.md) for imp
 ### Medication List
 
 - Per-profile medication list
-- Fields: name, dosage, frequency, schedule, prescribing doctor (optional), notes
+- Fields: name, dosage, schedule (morning, afternoon, evening, bedtime)
 - Active vs. discontinued status toggle
-- Time-of-day badges (Morning, Afternoon, Evening, Bedtime)
 
 ### Future: Medication Reminders
 

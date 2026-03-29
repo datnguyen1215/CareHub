@@ -10,14 +10,13 @@ Establish authentication, core data structures, and basic health tracking.
 
 ### Key Deliverables
 
-- **Auth system** -- Email + OTP via Nodemailer + Gmail SMTP
+- **Auth system** -- Email + OTP via Nodemailer + Gmail SMTP; 6-digit code, 15-minute expiry; JWT in httpOnly cookie; first-time login prompts for first and last name
 - **Monorepo setup** -- npm workspaces with `packages/frontend`, `backend`, `shared`, `mobile`
 - **Database** -- PostgreSQL running in Docker, schema managed with Drizzle ORM
-- **Household creation** -- Create and name a household during onboarding
-- **Care profile CRUD** -- Add, edit, and remove profiles with name, photo, relationship, date of birth
-- **Health info** -- Per-profile health notes, known conditions, blood pressure, weight tracking
-- **Medication management** -- Add/edit/remove medications with dosage, frequency, schedule, and active/discontinued status
-- **Home dashboard** -- Card grid showing all profiles with status indicators
+- **Group creation** -- Create and name a group during onboarding
+- **Care profile CRUD** -- Add, edit, and remove profiles with name, photo, relationship, date of birth, and known conditions
+- **Medication management** -- Add/edit/remove medications with name, dosage, schedule (morning/afternoon/evening/bedtime), and active/discontinued status
+- **Home dashboard** -- Card grid showing all profiles
 - **Profile detail view** -- Overview and Medications tabs
 - **Deployment** -- Self-hosted via Docker
 - **Mobile-responsive layout** -- Bottom navigation, card-based UI, mobile-first
