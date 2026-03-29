@@ -113,3 +113,49 @@ export function updateProfile(groupId: string, id: string, data: Partial<CreateP
 export function deleteProfile(groupId: string, id: string) {
 	return request<void>('DELETE', `/groups/${groupId}/profiles/${id}`);
 }
+
+// Medications
+
+export interface Medication {
+	id: string;
+	care_profile_id: string;
+	name: string;
+	dosage: string | null;
+	schedule: string[];
+	status: 'active' | 'discontinued';
+	created_at: string;
+	updated_at: string;
+}
+
+export interface CreateMedicationInput {
+	name: string;
+	dosage?: string | null;
+	schedule?: string[];
+	status?: 'active' | 'discontinued';
+}
+
+export function listMedications(groupId: string, profileId: string, includeDiscontinued = false) {
+	const qs = includeDiscontinued ? '?include_discontinued=true' : '';
+	return request<Medication[]>('GET', `/groups/${groupId}/profiles/${profileId}/medications${qs}`);
+}
+
+export function createMedication(groupId: string, profileId: string, data: CreateMedicationInput) {
+	return request<Medication>('POST', `/groups/${groupId}/profiles/${profileId}/medications`, data);
+}
+
+export function updateMedication(
+	groupId: string,
+	profileId: string,
+	id: string,
+	data: Partial<CreateMedicationInput>
+) {
+	return request<Medication>(
+		'PATCH',
+		`/groups/${groupId}/profiles/${profileId}/medications/${id}`,
+		data
+	);
+}
+
+export function deleteMedication(groupId: string, profileId: string, id: string) {
+	return request<void>('DELETE', `/groups/${groupId}/profiles/${profileId}/medications/${id}`);
+}
