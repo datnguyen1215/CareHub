@@ -1,69 +1,34 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import request from 'supertest'
-import jwt from 'jsonwebtoken'
 import { createApp } from '../src/app'
+import {
+  makeAuthCookie,
+  makeSelectChain,
+  makeSelectChainResolvesOnWhere,
+  makeUpdateChain,
+  type MockDb,
+} from './utils'
 
 // Mock drizzle db
 vi.mock('../src/db', () => {
-  const mockDb = {
-    insert: vi.fn(),
-    select: vi.fn(),
-    delete: vi.fn(),
-    update: vi.fn(),
-    transaction: vi.fn(),
+  return {
+    db: {
+      insert: vi.fn(),
+      select: vi.fn(),
+      delete: vi.fn(),
+      update: vi.fn(),
+      transaction: vi.fn(),
+    },
+    pool: {},
   }
-  return { db: mockDb, pool: {} }
 })
 
 import { db } from '../src/db'
 
-const mockDb = db as {
-  insert: ReturnType<typeof vi.fn>
-  select: ReturnType<typeof vi.fn>
-  delete: ReturnType<typeof vi.fn>
-  update: ReturnType<typeof vi.fn>
-  transaction: ReturnType<typeof vi.fn>
-}
-
+const mockDb = db as MockDb
 const app = createApp()
 
-const JWT_SECRET = 'test-secret'
-
-function makeAuthCookie(userId = 'user-1', email = 'user@example.com') {
-  const token = jwt.sign({ userId, email }, JWT_SECRET)
-  return `token=${token}`
-}
-
-function makeSelectChain(rows: unknown[]) {
-  return {
-    from: vi.fn().mockReturnThis(),
-    innerJoin: vi.fn().mockReturnThis(),
-    where: vi.fn().mockReturnThis(),
-    limit: vi.fn().mockResolvedValue(rows),
-  }
-}
-
-function makeSelectChainResolvesOnWhere(rows: unknown[]) {
-  const chain = {
-    from: vi.fn().mockReturnThis(),
-    innerJoin: vi.fn().mockReturnThis(),
-    where: vi.fn().mockResolvedValue(rows),
-    limit: vi.fn().mockResolvedValue(rows),
-  }
-  return chain
-}
-
-function makeUpdateChain(returning: unknown[]) {
-  return {
-    set: vi.fn().mockReturnThis(),
-    where: vi.fn().mockReturnThis(),
-    returning: vi.fn().mockResolvedValue(returning),
-  }
-}
-
 describe('POST /api/groups', () => {
-  beforeEach(() => vi.clearAllMocks())
-
   it('returns 401 without auth', async () => {
     const res = await request(app).post('/api/groups').send({ name: 'My Family' })
     expect(res.status).toBe(401)
@@ -106,8 +71,6 @@ describe('POST /api/groups', () => {
 })
 
 describe('PATCH /api/groups/:id', () => {
-  beforeEach(() => vi.clearAllMocks())
-
   it('returns 401 without auth', async () => {
     const res = await request(app).patch('/api/groups/group-1').send({ name: 'New Name' })
     expect(res.status).toBe(401)
@@ -176,8 +139,6 @@ describe('PATCH /api/groups/:id', () => {
 })
 
 describe('GET /api/groups', () => {
-  beforeEach(() => vi.clearAllMocks())
-
   it('returns 401 without auth', async () => {
     const res = await request(app).get('/api/groups')
     expect(res.status).toBe(401)

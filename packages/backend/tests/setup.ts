@@ -1,11 +1,12 @@
 /**
  * Vitest global test setup.
  * Connects to the test database and runs all migrations before the test suite.
+ * Ensures proper cleanup of all resources to prevent memory leaks.
  */
-import { beforeAll, afterAll } from 'vitest'
-import { drizzle } from 'drizzle-orm/postgres-js'
-import { migrate } from 'drizzle-orm/postgres-js/migrator'
-import postgres from 'postgres'
+import { beforeAll, afterAll, afterEach, vi } from 'vitest'
+import { drizzle } from 'drizzle-orm/node-postgres'
+import { migrate } from 'drizzle-orm/node-postgres/migrator'
+import { Pool } from 'pg'
 import path from 'path'
 import { fileURLToPath } from 'url'
 import { env } from '../src/config/env.js'
@@ -13,14 +14,18 @@ import { env } from '../src/config/env.js'
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const migrationsFolder = path.join(__dirname, '../src/db/migrations')
 
-let migrationClient: postgres.Sql | null = null
+let migrationPool: Pool | null = null
 
 beforeAll(async () => {
   const url = env.DATABASE_URL_TEST
 
   try {
-    migrationClient = postgres(url, { max: 1 })
-    const db = drizzle(migrationClient)
+    // Use a dedicated pool for migrations with a single connection
+    migrationPool = new Pool({
+      connectionString: url,
+      max: 1,
+    })
+    const db = drizzle(migrationPool)
     await migrate(db, { migrationsFolder })
     console.log('Test DB migrations applied')
   } catch (err) {
@@ -40,6 +45,25 @@ beforeAll(async () => {
   }
 })
 
+afterEach(() => {
+  // Reset all mocks after each test to prevent state leakage
+  vi.resetAllMocks()
+})
+
 afterAll(async () => {
-  await migrationClient?.end()
+  // Close migration pool if it was successfully created
+  if (migrationPool) {
+    try {
+      await migrationPool.end()
+    } catch (err) {
+      console.error('Error closing migration pool:', err)
+    } finally {
+      migrationPool = null
+    }
+  }
+
+  // Clear all mocks and timers
+  vi.clearAllMocks()
+  vi.clearAllTimers()
+  vi.useRealTimers()
 })

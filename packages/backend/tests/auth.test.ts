@@ -1,18 +1,21 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import request from 'supertest'
 import jwt from 'jsonwebtoken'
 import { createApp } from '../src/app'
+import { makeSelectChain, makeInsertChain, type MockDb } from './utils'
 
 // Mock drizzle db
 vi.mock('../src/db', () => {
-  const mockDb = {
-    insert: vi.fn(),
-    select: vi.fn(),
-    delete: vi.fn(),
-    update: vi.fn(),
-    transaction: vi.fn(),
+  return {
+    db: {
+      insert: vi.fn(),
+      select: vi.fn(),
+      delete: vi.fn(),
+      update: vi.fn(),
+      transaction: vi.fn(),
+    },
+    pool: {},
   }
-  return { db: mockDb, pool: {} }
 })
 
 // Mock email service
@@ -22,52 +25,19 @@ vi.mock('../src/services/email', () => ({
 
 import { db } from '../src/db'
 
-const mockDb = db as {
-  insert: ReturnType<typeof vi.fn>
-  select: ReturnType<typeof vi.fn>
-  delete: ReturnType<typeof vi.fn>
-  update: ReturnType<typeof vi.fn>
-  transaction: ReturnType<typeof vi.fn>
-}
-
-function makeSelectChain(rows: unknown[]) {
-  const chain = {
-    from: vi.fn().mockReturnThis(),
-    where: vi.fn().mockReturnThis(),
-    limit: vi.fn().mockResolvedValue(rows),
-  }
-  return chain
-}
+const mockDb = db as MockDb
 
 /** Select chain that resolves directly (no .limit() needed — used for MAX aggregate). */
 function makeAggregateSelectChain(rows: unknown[]) {
-  const chain = {
+  return {
     from: vi.fn().mockReturnThis(),
     where: vi.fn().mockResolvedValue(rows),
   }
-  return chain
-}
-
-function makeInsertChain(returning?: unknown[]) {
-  const chain: Record<string, ReturnType<typeof vi.fn>> = {
-    values: vi.fn().mockReturnThis(),
-    returning: vi.fn().mockResolvedValue(returning ?? []),
-  }
-  // values resolves to undefined when no returning() is called (e.g. otp insert)
-  chain.values = vi.fn().mockReturnValue({
-    returning: vi.fn().mockResolvedValue(returning ?? []),
-    then: vi.fn().mockImplementation((resolve: (v: undefined) => void) => resolve(undefined)),
-  })
-  return chain
 }
 
 const app = createApp()
 
 describe('POST /api/auth/request-otp', () => {
-  beforeEach(() => {
-    vi.clearAllMocks()
-  })
-
   it('returns 400 when email is missing', async () => {
     const res = await request(app).post('/api/auth/request-otp').send({})
     expect(res.status).toBe(400)
@@ -123,10 +93,6 @@ describe('POST /api/auth/verify-otp', () => {
     avatar_url: null,
     created_at: new Date(),
   }
-
-  beforeEach(() => {
-    vi.clearAllMocks()
-  })
 
   it('returns 400 when email or code missing', async () => {
     const res = await request(app).post('/api/auth/verify-otp').send({ email: 'test@example.com' })
