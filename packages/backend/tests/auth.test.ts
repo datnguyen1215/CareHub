@@ -1,41 +1,23 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, beforeAll } from 'vitest'
 import request from 'supertest'
 import jwt from 'jsonwebtoken'
 import { createApp } from '../src/app'
-import { makeSelectChain, makeInsertChain, type MockDb } from './utils'
-
-// Mock drizzle db
-vi.mock('../src/db', () => {
-  return {
-    db: {
-      insert: vi.fn(),
-      select: vi.fn(),
-      delete: vi.fn(),
-      update: vi.fn(),
-      transaction: vi.fn(),
-    },
-    pool: {},
-  }
-})
+import { truncateAll } from './helpers/truncate'
+import { createUser } from './factories'
+import { db } from '../src/db'
+import { otps } from '@carehub/shared'
+import { eq } from 'drizzle-orm'
 
 // Mock email service
 vi.mock('../src/services/email', () => ({
   sendOtpEmail: vi.fn().mockResolvedValue(undefined),
 }))
 
-import { db } from '../src/db'
-
-const mockDb = db as MockDb
-
-/** Select chain that resolves directly (no .limit() needed — used for MAX aggregate). */
-function makeAggregateSelectChain(rows: unknown[]) {
-  return {
-    from: vi.fn().mockReturnThis(),
-    where: vi.fn().mockResolvedValue(rows),
-  }
-}
-
 const app = createApp()
+
+beforeAll(async () => {
+  await truncateAll()
+})
 
 describe('POST /api/auth/request-otp', () => {
   it('returns 400 when email is missing', async () => {
@@ -44,63 +26,57 @@ describe('POST /api/auth/request-otp', () => {
   })
 
   it('sends OTP and returns 200 when no prior OTP exists', async () => {
-    // Cooldown check: no prior OTP (lastSent = null)
-    mockDb.select.mockReturnValueOnce(makeAggregateSelectChain([{ lastSent: null }]))
-    mockDb.insert.mockReturnValue(makeInsertChain())
-
     const res = await request(app).post('/api/auth/request-otp').send({ email: 'test@example.com' })
     expect(res.status).toBe(200)
     expect(res.body.message).toBe('OTP sent')
+
+    // Verify OTP was created in database
+    const otpRecords = await db.select().from(otps).where(eq(otps.email, 'test@example.com'))
+    expect(otpRecords.length).toBeGreaterThan(0)
   })
 
   it('returns 429 when within 60-second cooldown', async () => {
-    // lastSent was 10 seconds ago → 50 seconds remaining
-    const recentDate = new Date(Date.now() - 10_000)
-    mockDb.select.mockReturnValueOnce(makeAggregateSelectChain([{ lastSent: recentDate }]))
+    // Create a recent OTP directly in database to establish cooldown
+    await db.insert(otps).values({
+      email: 'cooldown@example.com',
+      code: '123456',
+      expires_at: new Date(Date.now() + 60000),
+      created_at: new Date(), // Now - within cooldown window
+    })
 
-    const res = await request(app).post('/api/auth/request-otp').send({ email: 'test@example.com' })
+    // Request should be rate-limited
+    const res = await request(app)
+      .post('/api/auth/request-otp')
+      .send({ email: 'cooldown@example.com' })
     expect(res.status).toBe(429)
     expect(res.body.retryAfter).toBeGreaterThan(0)
-    expect(res.body.retryAfter).toBeLessThanOrEqual(50)
+    expect(res.body.retryAfter).toBeLessThanOrEqual(60)
   })
 
   it('sends OTP when cooldown has expired (>60s ago)', async () => {
-    // lastSent was 61 seconds ago → cooldown expired
+    // Create an old OTP entry (manually set created_at to be 61 seconds ago)
     const oldDate = new Date(Date.now() - 61_000)
-    mockDb.select.mockReturnValueOnce(makeAggregateSelectChain([{ lastSent: oldDate }]))
-    mockDb.insert.mockReturnValue(makeInsertChain())
+    await db.insert(otps).values({
+      email: 'expired@example.com',
+      code: '000000',
+      expires_at: new Date(Date.now() + 60000),
+      created_at: oldDate,
+    })
 
-    const res = await request(app).post('/api/auth/request-otp').send({ email: 'test@example.com' })
+    // Request should succeed since cooldown expired
+    const res = await request(app).post('/api/auth/request-otp').send({ email: 'expired@example.com' })
     expect(res.status).toBe(200)
     expect(res.body.message).toBe('OTP sent')
   })
 })
 
 describe('POST /api/auth/verify-otp', () => {
-  const VALID_OTP = {
-    id: 'otp-id',
-    email: 'test@example.com',
-    code: '123456',
-    expires_at: new Date(Date.now() + 60000),
-    created_at: new Date(),
-  }
-
-  const EXISTING_USER = {
-    id: 'user-id',
-    email: 'test@example.com',
-    first_name: null,
-    last_name: null,
-    avatar_url: null,
-    created_at: new Date(),
-  }
-
   it('returns 400 when email or code missing', async () => {
     const res = await request(app).post('/api/auth/verify-otp').send({ email: 'test@example.com' })
     expect(res.status).toBe(400)
   })
 
   it('returns 401 for invalid OTP', async () => {
-    mockDb.select.mockReturnValue(makeSelectChain([]))
     const res = await request(app)
       .post('/api/auth/verify-otp')
       .send({ email: 'test@example.com', code: '000000' })
@@ -109,25 +85,23 @@ describe('POST /api/auth/verify-otp', () => {
   })
 
   it('sets token cookie and returns isNewUser=false for existing user', async () => {
-    // OTP lookup (outside transaction)
-    mockDb.select.mockReturnValue(makeSelectChain([VALID_OTP]))
+    // Create existing user
+    const user = await createUser({ email: 'existing@example.com' })
 
-    // Transaction: delete all OTPs by email, find existing user
-    mockDb.transaction.mockImplementation(async (fn: (tx: unknown) => Promise<unknown>) => {
-      const tx = {
-        delete: vi.fn().mockReturnValue({ where: vi.fn().mockResolvedValue(undefined) }),
-        select: vi.fn().mockReturnValue(makeSelectChain([EXISTING_USER])),
-        insert: vi.fn(),
-      }
-      return fn(tx)
+    // Create valid OTP
+    await db.insert(otps).values({
+      email: 'existing@example.com',
+      code: '123456',
+      expires_at: new Date(Date.now() + 60000),
     })
 
     const res = await request(app)
       .post('/api/auth/verify-otp')
-      .send({ email: 'test@example.com', code: '123456' })
+      .send({ email: 'existing@example.com', code: '123456' })
 
     expect(res.status).toBe(200)
     expect(res.body.isNewUser).toBe(false)
+
     const cookies = res.headers['set-cookie'] as string[]
     expect(cookies).toBeDefined()
     const tokenCookie = cookies.find((c: string) => c.startsWith('token='))
@@ -138,60 +112,55 @@ describe('POST /api/auth/verify-otp', () => {
     const tokenValue = tokenCookie!.split('=')[1].split(';')[0]
     const decoded = jwt.decode(tokenValue) as { userId: string; email: string }
     expect(decoded).toBeTruthy()
-    expect(decoded.userId).toBe('user-id')
-    expect(decoded.email).toBe('test@example.com')
+    expect(decoded.userId).toBe(user.id)
+    expect(decoded.email).toBe('existing@example.com')
   })
 
   it('creates new user and returns isNewUser=true', async () => {
-    // OTP lookup (outside transaction)
-    mockDb.select.mockReturnValue(makeSelectChain([VALID_OTP]))
-
-    // Transaction: delete OTP, no existing user, create new
-    mockDb.transaction.mockImplementation(async (fn: (tx: unknown) => Promise<unknown>) => {
-      const tx = {
-        delete: vi.fn().mockReturnValue({ where: vi.fn().mockResolvedValue(undefined) }),
-        select: vi.fn().mockReturnValue(makeSelectChain([])),
-        insert: vi.fn().mockReturnValue({
-          values: vi.fn().mockReturnValue({
-            returning: vi.fn().mockResolvedValue([EXISTING_USER]),
-          }),
-        }),
-      }
-      return fn(tx)
+    // Create valid OTP for new user
+    await db.insert(otps).values({
+      email: 'newuser@example.com',
+      code: '123456',
+      expires_at: new Date(Date.now() + 60000),
     })
 
     const res = await request(app)
       .post('/api/auth/verify-otp')
-      .send({ email: 'test@example.com', code: '123456' })
+      .send({ email: 'newuser@example.com', code: '123456' })
 
     expect(res.status).toBe(200)
     expect(res.body.isNewUser).toBe(true)
+
+    const cookies = res.headers['set-cookie'] as string[]
+    expect(cookies).toBeDefined()
+    const tokenCookie = cookies.find((c: string) => c.startsWith('token='))
+    expect(tokenCookie).toBeDefined()
   })
 
   it('deletes all OTP records for the email on successful verify', async () => {
-    mockDb.select.mockReturnValue(makeSelectChain([VALID_OTP]))
-
-    let deletedWhere: unknown = null
-    mockDb.transaction.mockImplementation(async (fn: (tx: unknown) => Promise<unknown>) => {
-      const whereStub = vi.fn().mockImplementation((cond) => {
-        deletedWhere = cond
-        return Promise.resolve(undefined)
-      })
-      const tx = {
-        delete: vi.fn().mockReturnValue({ where: whereStub }),
-        select: vi.fn().mockReturnValue(makeSelectChain([EXISTING_USER])),
-        insert: vi.fn(),
-      }
-      return fn(tx)
-    })
+    // Create multiple OTPs for the same email
+    await db.insert(otps).values([
+      {
+        email: 'multi@example.com',
+        code: '111111',
+        expires_at: new Date(Date.now() + 60000),
+      },
+      {
+        email: 'multi@example.com',
+        code: '222222',
+        expires_at: new Date(Date.now() + 60000),
+      },
+    ])
 
     const res = await request(app)
       .post('/api/auth/verify-otp')
-      .send({ email: 'test@example.com', code: '123456' })
+      .send({ email: 'multi@example.com', code: '111111' })
 
     expect(res.status).toBe(200)
-    // Confirm delete was called (the where condition was set)
-    expect(deletedWhere).toBeDefined()
+
+    // Verify all OTPs for this email were deleted
+    const remainingOtps = await db.select().from(otps).where(eq(otps.email, 'multi@example.com'))
+    expect(remainingOtps).toHaveLength(0)
   })
 })
 
