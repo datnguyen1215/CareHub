@@ -3,17 +3,19 @@ import request from 'supertest'
 import { createApp } from '../src/app'
 
 // Mock the DB module so the health route doesn't require a live database in CI
-vi.mock('../src/db', () => ({
-  db: {
-    execute: vi.fn().mockResolvedValue([{ '?column?': 1 }]),
-    select: vi.fn(),
-    insert: vi.fn(),
-    delete: vi.fn(),
-    update: vi.fn(),
-    transaction: vi.fn(),
-  },
-  pool: {},
-}))
+vi.mock('../src/db', () => {
+  return {
+    db: {
+      insert: vi.fn(),
+      select: vi.fn(),
+      delete: vi.fn(),
+      update: vi.fn(),
+      transaction: vi.fn(),
+      execute: vi.fn().mockResolvedValue([{ '?column?': 1 }]),
+    },
+    pool: {},
+  }
+})
 
 describe('GET /health', () => {
   const app = createApp()
