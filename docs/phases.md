@@ -11,14 +11,14 @@ Establish authentication, core data structures, and basic health tracking.
 ### Key Deliverables
 
 - **Auth system** -- Email + OTP via Nodemailer + Gmail SMTP; 6-digit code, 15-minute expiry; JWT in httpOnly cookie; first-time login prompts for first and last name
-- **Monorepo setup** -- npm workspaces with `packages/frontend`, `backend`, `shared`, `mobile`
+- **Monorepo setup** -- npm workspaces with `packages/frontend`, `shared`, `mobile`
 - **Database** -- PostgreSQL running in Docker, schema managed with Drizzle ORM
 - **Group creation** -- Create and name a group during onboarding
 - **Care profile CRUD** -- Add, edit, and remove profiles with name, photo, relationship, date of birth, and known conditions
 - **Medication management** -- Add/edit/remove medications via modal; fields: name, dosage, schedule (multi-select: morning/afternoon/evening/bedtime), status (active/discontinued); discontinued medications hidden by default with a "Show discontinued" toggle
 - **Home dashboard** -- Card grid showing all profiles; each card displays name, relationship, conditions (tags), and active medication count
 - **Profile detail view** -- Overview and Medications tabs
-- **Deployment** -- Production Docker Compose with Traefik reverse proxy, Let's Encrypt SSL, separate frontend/backend containers, PostgreSQL with persistent volume
+- **Deployment** -- Production Docker Compose with Traefik reverse proxy, Let's Encrypt SSL, single SvelteKit container with UI and API, PostgreSQL with persistent volume
 - **Mobile-responsive layout** -- Bottom navigation, card-based UI, mobile-first
 
 ### Screens Implemented
