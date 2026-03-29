@@ -4,6 +4,7 @@ import cors from 'cors'
 import { authRouter } from './routes/auth'
 import { usersRouter } from './routes/users'
 import { groupsRouter } from './routes/groups'
+import { profilesRouter } from './routes/profiles'
 import healthRouter from './routes/health'
 
 export function createApp() {
@@ -17,6 +18,7 @@ export function createApp() {
   app.use('/api/auth', authRouter)
   app.use('/api/users', usersRouter)
   app.use('/api/groups', groupsRouter)
+  app.use('/api/groups/:groupId/profiles', profilesRouter)
 
   return app
 }

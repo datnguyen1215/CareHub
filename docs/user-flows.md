@@ -20,7 +20,32 @@ Step-by-step workflows for core tasks. Wireframe references point to files in `d
 
 ---
 
-## 2. Adding a Medication
+## 2. Managing Care Profiles
+
+**Actor:** Caretaker (Admin)
+
+### Create a profile
+
+1. From the home dashboard, tap "Add Profile"
+2. A modal dialog opens over the dashboard
+3. Fill in the form: Name (required), Date of Birth (optional date picker), Relationship (optional text — e.g., grandmother, father), Conditions (optional comma-separated tags)
+4. Tap Save; the new profile card appears on the dashboard immediately
+
+### Edit a profile
+
+1. On any profile card on the home dashboard, tap "Edit"
+2. The same modal opens pre-filled with existing values
+3. Modify any field and tap Save; the card updates in place
+
+### Delete a profile
+
+1. On any profile card on the home dashboard, tap "Delete"
+2. A confirmation dialog opens: "Are you sure you want to remove [name]?"
+3. Tap the danger-red Delete button to confirm; profile card is removed from the dashboard
+
+---
+
+## 3. Adding a Medication
 
 **Actor:** Caretaker (Admin)
 
@@ -34,7 +59,7 @@ Step-by-step workflows for core tasks. Wireframe references point to files in `d
 
 ---
 
-## 3. Doctor Visit Workflow
+## 4. Doctor Visit Workflow
 
 **Actor:** Caretaker (Admin), at a doctor's office
 
@@ -56,7 +81,7 @@ Step-by-step workflows for core tasks. Wireframe references point to files in `d
 
 ---
 
-## 4. Setting Up and Pairing a Tablet
+## 5. Setting Up and Pairing a Tablet
 
 **Actor:** Caretaker (Admin), with physical access to the tablet
 
@@ -76,7 +101,7 @@ Step-by-step workflows for core tasks. Wireframe references point to files in `d
 
 ---
 
-## 5. Calling Grandparent from Portal
+## 6. Calling Grandparent from Portal
 
 **Actor:** Caretaker (Admin or Viewer)
 
@@ -91,7 +116,7 @@ Step-by-step workflows for core tasks. Wireframe references point to files in `d
 
 ---
 
-## 6. Grandparent Calling Caretaker
+## 7. Grandparent Calling Caretaker
 
 **Actor:** Elderly family member (Tablet user)
 
@@ -107,7 +132,7 @@ Step-by-step workflows for core tasks. Wireframe references point to files in `d
 
 ---
 
-## 7. Pushing Content to Tablet
+## 8. Pushing Content to Tablet
 
 **Actor:** Caretaker (Admin)
 
@@ -122,7 +147,7 @@ Step-by-step workflows for core tasks. Wireframe references point to files in `d
 
 ---
 
-## 8. Inviting a New Viewer
+## 9. Inviting a New Viewer
 
 **Actor:** Caretaker (Admin)
 
@@ -137,7 +162,7 @@ Step-by-step workflows for core tasks. Wireframe references point to files in `d
 
 ---
 
-## 9. Searching Documents
+## 10. Searching Documents
 
 **Actor:** Caretaker (Admin or Viewer)
 
