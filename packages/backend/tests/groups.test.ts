@@ -1,32 +1,18 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, beforeAll } from 'vitest'
 import request from 'supertest'
 import { createApp } from '../src/app'
-import {
-  makeAuthCookie,
-  makeSelectChain,
-  makeSelectChainResolvesOnWhere,
-  makeUpdateChain,
-  type MockDb,
-} from './utils'
-
-// Mock drizzle db
-vi.mock('../src/db', () => {
-  return {
-    db: {
-      insert: vi.fn(),
-      select: vi.fn(),
-      delete: vi.fn(),
-      update: vi.fn(),
-      transaction: vi.fn(),
-    },
-    pool: {},
-  }
-})
-
+import { makeAuthCookie } from './utils'
+import { truncateAll } from './helpers/truncate'
+import { createUser, createGroup, createGroupMember } from './factories'
 import { db } from '../src/db'
+import { groups, groupMembers } from '@carehub/shared'
+import { eq, and } from 'drizzle-orm'
 
-const mockDb = db as MockDb
 const app = createApp()
+
+beforeAll(async () => {
+  await truncateAll()
+})
 
 describe('POST /api/groups', () => {
   it('returns 401 without auth', async () => {
@@ -35,38 +21,39 @@ describe('POST /api/groups', () => {
   })
 
   it('returns 400 when name is missing', async () => {
-    const res = await request(app).post('/api/groups').set('Cookie', makeAuthCookie()).send({})
+    const user = await createUser({ email: 'user@example.com' })
+    const res = await request(app)
+      .post('/api/groups')
+      .set('Cookie', makeAuthCookie(user.id, user.email))
+      .send({})
     expect(res.status).toBe(400)
     expect(res.body.error).toBe('name is required')
   })
 
   it('creates a group and assigns creator as admin', async () => {
-    const createdGroup = { id: 'group-1', name: 'My Family', created_at: new Date() }
-
-    mockDb.transaction.mockImplementation(async (fn: (tx: unknown) => Promise<unknown>) => {
-      const tx = {
-        insert: vi.fn().mockImplementation(() => ({
-          values: vi.fn().mockReturnValue({
-            returning: vi.fn().mockResolvedValue([createdGroup]),
-            then: vi
-              .fn()
-              .mockImplementation((resolve: (v: undefined) => void) => resolve(undefined)),
-          }),
-        })),
-      }
-      return fn(tx)
-    })
+    const user = await createUser({ email: 'creator@example.com' })
 
     const res = await request(app)
       .post('/api/groups')
-      .set('Cookie', makeAuthCookie())
+      .set('Cookie', makeAuthCookie(user.id, user.email))
       .send({ name: 'My Family' })
 
     expect(res.status).toBe(201)
-    expect(res.body.id).toBe('group-1')
+    expect(res.body.id).toBeDefined()
     expect(res.body.name).toBe('My Family')
-    // Verify transaction was used (group + member inserted together)
-    expect(mockDb.transaction).toHaveBeenCalledOnce()
+
+    // Verify group was created
+    const [group] = await db.select().from(groups).where(eq(groups.id, res.body.id))
+    expect(group).toBeDefined()
+    expect(group.name).toBe('My Family')
+
+    // Verify membership was created with admin role
+    const [membership] = await db
+      .select()
+      .from(groupMembers)
+      .where(and(eq(groupMembers.user_id, user.id), eq(groupMembers.group_id, res.body.id)))
+    expect(membership).toBeDefined()
+    expect(membership.role).toBe('admin')
   })
 })
 
@@ -77,61 +64,55 @@ describe('PATCH /api/groups/:id', () => {
   })
 
   it('returns 400 when name is missing', async () => {
+    const user = await createUser({ email: 'patch-user@example.com' })
+    const group = await createGroup({ name: 'Test Group' })
+    await createGroupMember({ user_id: user.id, group_id: group.id, role: 'admin' })
+
     const res = await request(app)
-      .patch('/api/groups/group-1')
-      .set('Cookie', makeAuthCookie())
+      .patch(`/api/groups/${group.id}`)
+      .set('Cookie', makeAuthCookie(user.id, user.email))
       .send({})
     expect(res.status).toBe(400)
   })
 
   it('renames the group for an admin member', async () => {
-    const membership = {
-      user_id: 'user-1',
-      group_id: 'group-1',
-      role: 'admin',
-      created_at: new Date(),
-    }
-    const updatedGroup = { id: 'group-1', name: 'New Name', created_at: new Date() }
-
-    // membership lookup
-    mockDb.select.mockReturnValueOnce(makeSelectChain([membership]))
-    // update
-    mockDb.update.mockReturnValueOnce(makeUpdateChain([updatedGroup]))
+    const user = await createUser({ email: 'admin-rename@example.com' })
+    const group = await createGroup({ name: 'Old Name' })
+    await createGroupMember({ user_id: user.id, group_id: group.id, role: 'admin' })
 
     const res = await request(app)
-      .patch('/api/groups/group-1')
-      .set('Cookie', makeAuthCookie())
+      .patch(`/api/groups/${group.id}`)
+      .set('Cookie', makeAuthCookie(user.id, user.email))
       .send({ name: 'New Name' })
 
     expect(res.status).toBe(200)
     expect(res.body.name).toBe('New Name')
+
+    // Verify name was updated in database
+    const [updated] = await db.select().from(groups).where(eq(groups.id, group.id))
+    expect(updated.name).toBe('New Name')
   })
 
   it('returns 403 for a non-member', async () => {
-    // No membership found
-    mockDb.select.mockReturnValueOnce(makeSelectChain([]))
+    const user = await createUser({ email: 'non-member@example.com' })
+    const group = await createGroup({ name: 'Private Group' })
 
     const res = await request(app)
-      .patch('/api/groups/group-1')
-      .set('Cookie', makeAuthCookie('other-user'))
+      .patch(`/api/groups/${group.id}`)
+      .set('Cookie', makeAuthCookie(user.id, user.email))
       .send({ name: 'Hacked Name' })
 
     expect(res.status).toBe(403)
   })
 
   it('returns 403 for a viewer (non-admin) member', async () => {
-    const membership = {
-      user_id: 'user-2',
-      group_id: 'group-1',
-      role: 'viewer',
-      created_at: new Date(),
-    }
-
-    mockDb.select.mockReturnValueOnce(makeSelectChain([membership]))
+    const user = await createUser({ email: 'viewer@example.com' })
+    const group = await createGroup({ name: 'Viewer Group' })
+    await createGroupMember({ user_id: user.id, group_id: group.id, role: 'viewer' })
 
     const res = await request(app)
-      .patch('/api/groups/group-1')
-      .set('Cookie', makeAuthCookie('user-2'))
+      .patch(`/api/groups/${group.id}`)
+      .set('Cookie', makeAuthCookie(user.id, user.email))
       .send({ name: 'New Name' })
 
     expect(res.status).toBe(403)
@@ -145,25 +126,26 @@ describe('GET /api/groups', () => {
   })
 
   it('returns only groups the user belongs to', async () => {
-    const rows = [
-      { group: { id: 'group-1', name: 'My Family', created_at: new Date() } },
-      { group: { id: 'group-2', name: 'Work Team', created_at: new Date() } },
-    ]
+    const user = await createUser({ email: 'list-user@example.com' })
+    const group1 = await createGroup({ name: 'My Family' })
+    const group2 = await createGroup({ name: 'Work Team' })
+    const group3 = await createGroup({ name: 'Other Group' })
 
-    mockDb.select.mockReturnValueOnce(makeSelectChainResolvesOnWhere(rows))
+    // User is member of group1 and group2, but not group3
+    await createGroupMember({ user_id: user.id, group_id: group1.id, role: 'admin' })
+    await createGroupMember({ user_id: user.id, group_id: group2.id, role: 'viewer' })
 
-    const res = await request(app).get('/api/groups').set('Cookie', makeAuthCookie())
+    const res = await request(app).get('/api/groups').set('Cookie', makeAuthCookie(user.id, user.email))
 
     expect(res.status).toBe(200)
     expect(res.body).toHaveLength(2)
-    expect(res.body[0].id).toBe('group-1')
-    expect(res.body[1].id).toBe('group-2')
+    expect(res.body.map((g: { id: string }) => g.id).sort()).toEqual([group1.id, group2.id].sort())
   })
 
   it('returns empty array when user has no groups', async () => {
-    mockDb.select.mockReturnValueOnce(makeSelectChainResolvesOnWhere([]))
+    const user = await createUser({ email: 'no-groups@example.com' })
 
-    const res = await request(app).get('/api/groups').set('Cookie', makeAuthCookie())
+    const res = await request(app).get('/api/groups').set('Cookie', makeAuthCookie(user.id, user.email))
 
     expect(res.status).toBe(200)
     expect(res.body).toEqual([])

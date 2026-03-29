@@ -1,59 +1,18 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, beforeAll } from 'vitest'
 import request from 'supertest'
 import { createApp } from '../src/app'
-import {
-  makeAuthCookie,
-  makeSelectChain,
-  makeSelectChainResolvesOnWhere,
-  makeInsertChain,
-  makeUpdateChain,
-  makeDeleteChain,
-  type MockDb,
-} from './utils'
-
-// Mock drizzle db
-vi.mock('../src/db', () => {
-  return {
-    db: {
-      insert: vi.fn(),
-      select: vi.fn(),
-      delete: vi.fn(),
-      update: vi.fn(),
-      transaction: vi.fn(),
-    },
-    pool: {},
-  }
-})
-
+import { makeAuthCookie } from './utils'
+import { truncateAll } from './helpers/truncate'
+import { createUser, createGroup, createGroupMember, createProfile } from './factories'
 import { db } from '../src/db'
+import { careProfiles } from '@carehub/shared'
+import { eq } from 'drizzle-orm'
 
-const mockDb = db as MockDb
 const app = createApp()
 
-const adminMembership = {
-  user_id: 'user-1',
-  group_id: 'group-1',
-  role: 'admin',
-  created_at: new Date(),
-}
-const viewerMembership = {
-  user_id: 'user-2',
-  group_id: 'group-1',
-  role: 'viewer',
-  created_at: new Date(),
-}
-
-const sampleProfile = {
-  id: 'profile-1',
-  group_id: 'group-1',
-  name: 'Grandma Rose',
-  avatar_url: null,
-  date_of_birth: null,
-  relationship: null,
-  conditions: [],
-  created_at: new Date(),
-  updated_at: new Date(),
-}
+beforeAll(async () => {
+  await truncateAll()
+})
 
 describe('POST /api/groups/:groupId/profiles', () => {
   it('returns 401 without auth', async () => {
@@ -64,11 +23,13 @@ describe('POST /api/groups/:groupId/profiles', () => {
   })
 
   it('returns 400 when name is missing', async () => {
-    mockDb.select.mockReturnValueOnce(makeSelectChain([adminMembership]))
+    const user = await createUser({ email: 'profile-user@example.com' })
+    const group = await createGroup({ name: 'Test Group' })
+    await createGroupMember({ user_id: user.id, group_id: group.id, role: 'admin' })
 
     const res = await request(app)
-      .post('/api/groups/group-1/profiles')
-      .set('Cookie', makeAuthCookie())
+      .post(`/api/groups/${group.id}/profiles`)
+      .set('Cookie', makeAuthCookie(user.id, user.email))
       .send({})
 
     expect(res.status).toBe(400)
@@ -76,32 +37,34 @@ describe('POST /api/groups/:groupId/profiles', () => {
   })
 
   it('creates a profile with name only', async () => {
-    mockDb.select.mockReturnValueOnce(makeSelectChain([adminMembership]))
-    mockDb.insert.mockReturnValueOnce(makeInsertChain([sampleProfile]))
+    const user = await createUser({ email: 'create-profile@example.com' })
+    const group = await createGroup({ name: 'Family' })
+    await createGroupMember({ user_id: user.id, group_id: group.id, role: 'admin' })
 
     const res = await request(app)
-      .post('/api/groups/group-1/profiles')
-      .set('Cookie', makeAuthCookie())
+      .post(`/api/groups/${group.id}/profiles`)
+      .set('Cookie', makeAuthCookie(user.id, user.email))
       .send({ name: 'Grandma Rose' })
 
     expect(res.status).toBe(201)
-    expect(res.body.id).toBe('profile-1')
+    expect(res.body.id).toBeDefined()
     expect(res.body.name).toBe('Grandma Rose')
+
+    // Verify profile was created in database
+    const [profile] = await db.select().from(careProfiles).where(eq(careProfiles.id, res.body.id))
+    expect(profile).toBeDefined()
+    expect(profile.name).toBe('Grandma Rose')
+    expect(profile.group_id).toBe(group.id)
   })
 
   it('creates a profile with all fields', async () => {
-    const fullProfile = {
-      ...sampleProfile,
-      date_of_birth: '1940-05-12',
-      relationship: 'grandmother',
-      conditions: ['diabetes', 'hypertension'],
-    }
-    mockDb.select.mockReturnValueOnce(makeSelectChain([adminMembership]))
-    mockDb.insert.mockReturnValueOnce(makeInsertChain([fullProfile]))
+    const user = await createUser({ email: 'full-profile@example.com' })
+    const group = await createGroup({ name: 'Family' })
+    await createGroupMember({ user_id: user.id, group_id: group.id, role: 'admin' })
 
     const res = await request(app)
-      .post('/api/groups/group-1/profiles')
-      .set('Cookie', makeAuthCookie())
+      .post(`/api/groups/${group.id}/profiles`)
+      .set('Cookie', makeAuthCookie(user.id, user.email))
       .send({
         name: 'Grandma Rose',
         date_of_birth: '1940-05-12',
@@ -112,25 +75,33 @@ describe('POST /api/groups/:groupId/profiles', () => {
     expect(res.status).toBe(201)
     expect(res.body.relationship).toBe('grandmother')
     expect(res.body.conditions).toEqual(['diabetes', 'hypertension'])
+
+    // Verify all fields in database
+    const [profile] = await db.select().from(careProfiles).where(eq(careProfiles.id, res.body.id))
+    expect(profile.relationship).toBe('grandmother')
+    expect(profile.conditions).toEqual(['diabetes', 'hypertension'])
   })
 
   it('returns 403 for a non-member', async () => {
-    mockDb.select.mockReturnValueOnce(makeSelectChain([]))
+    const user = await createUser({ email: 'non-member-profile@example.com' })
+    const group = await createGroup({ name: 'Private' })
 
     const res = await request(app)
-      .post('/api/groups/group-1/profiles')
-      .set('Cookie', makeAuthCookie('other-user'))
+      .post(`/api/groups/${group.id}/profiles`)
+      .set('Cookie', makeAuthCookie(user.id, user.email))
       .send({ name: 'Grandma Rose' })
 
     expect(res.status).toBe(403)
   })
 
   it('returns 403 for a viewer (non-admin)', async () => {
-    mockDb.select.mockReturnValueOnce(makeSelectChain([viewerMembership]))
+    const user = await createUser({ email: 'viewer-profile@example.com' })
+    const group = await createGroup({ name: 'Family' })
+    await createGroupMember({ user_id: user.id, group_id: group.id, role: 'viewer' })
 
     const res = await request(app)
-      .post('/api/groups/group-1/profiles')
-      .set('Cookie', makeAuthCookie('user-2'))
+      .post(`/api/groups/${group.id}/profiles`)
+      .set('Cookie', makeAuthCookie(user.id, user.email))
       .send({ name: 'Grandma Rose' })
 
     expect(res.status).toBe(403)
@@ -144,27 +115,29 @@ describe('GET /api/groups/:groupId/profiles', () => {
   })
 
   it('returns list of profiles in the group', async () => {
-    const profiles = [sampleProfile, { ...sampleProfile, id: 'profile-2', name: 'Uncle Bob' }]
-    mockDb.select
-      .mockReturnValueOnce(makeSelectChain([adminMembership]))
-      .mockReturnValueOnce(makeSelectChainResolvesOnWhere(profiles))
+    const user = await createUser({ email: 'list-profiles@example.com' })
+    const group = await createGroup({ name: 'Family' })
+    await createGroupMember({ user_id: user.id, group_id: group.id, role: 'admin' })
+
+    const profile1 = await createProfile({ group_id: group.id, name: 'Grandma Rose' })
+    const profile2 = await createProfile({ group_id: group.id, name: 'Uncle Bob' })
 
     const res = await request(app)
-      .get('/api/groups/group-1/profiles')
-      .set('Cookie', makeAuthCookie())
+      .get(`/api/groups/${group.id}/profiles`)
+      .set('Cookie', makeAuthCookie(user.id, user.email))
 
     expect(res.status).toBe(200)
     expect(res.body).toHaveLength(2)
-    expect(res.body[0].id).toBe('profile-1')
-    expect(res.body[1].name).toBe('Uncle Bob')
+    expect(res.body.map((p: { id: string }) => p.id).sort()).toEqual([profile1.id, profile2.id].sort())
   })
 
   it("returns only profiles in the user's group (non-member gets 403)", async () => {
-    mockDb.select.mockReturnValueOnce(makeSelectChain([]))
+    const user = await createUser({ email: 'other-list@example.com' })
+    const group = await createGroup({ name: 'Private' })
 
     const res = await request(app)
-      .get('/api/groups/group-1/profiles')
-      .set('Cookie', makeAuthCookie('other-user'))
+      .get(`/api/groups/${group.id}/profiles`)
+      .set('Cookie', makeAuthCookie(user.id, user.email))
 
     expect(res.status).toBe(403)
   })
@@ -177,27 +150,30 @@ describe('GET /api/groups/:groupId/profiles/:id', () => {
   })
 
   it('returns a single profile', async () => {
-    mockDb.select
-      .mockReturnValueOnce(makeSelectChain([adminMembership]))
-      .mockReturnValueOnce(makeSelectChain([sampleProfile]))
+    const user = await createUser({ email: 'get-profile@example.com' })
+    const group = await createGroup({ name: 'Family' })
+    await createGroupMember({ user_id: user.id, group_id: group.id, role: 'admin' })
+    const profile = await createProfile({ group_id: group.id, name: 'Grandma Rose' })
 
     const res = await request(app)
-      .get('/api/groups/group-1/profiles/profile-1')
-      .set('Cookie', makeAuthCookie())
+      .get(`/api/groups/${group.id}/profiles/${profile.id}`)
+      .set('Cookie', makeAuthCookie(user.id, user.email))
 
     expect(res.status).toBe(200)
-    expect(res.body.id).toBe('profile-1')
+    expect(res.body.id).toBe(profile.id)
     expect(res.body.name).toBe('Grandma Rose')
   })
 
   it('returns 404 when profile not found', async () => {
-    mockDb.select
-      .mockReturnValueOnce(makeSelectChain([adminMembership]))
-      .mockReturnValueOnce(makeSelectChain([]))
+    const user = await createUser({ email: 'not-found@example.com' })
+    const group = await createGroup({ name: 'Family' })
+    await createGroupMember({ user_id: user.id, group_id: group.id, role: 'admin' })
 
+    // Use a valid UUID that doesn't exist
+    const fakeUuid = '00000000-0000-0000-0000-000000000000'
     const res = await request(app)
-      .get('/api/groups/group-1/profiles/nonexistent')
-      .set('Cookie', makeAuthCookie())
+      .get(`/api/groups/${group.id}/profiles/${fakeUuid}`)
+      .set('Cookie', makeAuthCookie(user.id, user.email))
 
     expect(res.status).toBe(404)
   })
@@ -212,37 +188,48 @@ describe('PATCH /api/groups/:groupId/profiles/:id', () => {
   })
 
   it('updates a profile', async () => {
-    const updatedProfile = { ...sampleProfile, name: 'Rose Updated', relationship: 'grandmother' }
-    mockDb.select.mockReturnValueOnce(makeSelectChain([adminMembership]))
-    mockDb.update.mockReturnValueOnce(makeUpdateChain([updatedProfile]))
+    const user = await createUser({ email: 'update-profile@example.com' })
+    const group = await createGroup({ name: 'Family' })
+    await createGroupMember({ user_id: user.id, group_id: group.id, role: 'admin' })
+    const profile = await createProfile({ group_id: group.id, name: 'Rose' })
 
     const res = await request(app)
-      .patch('/api/groups/group-1/profiles/profile-1')
-      .set('Cookie', makeAuthCookie())
+      .patch(`/api/groups/${group.id}/profiles/${profile.id}`)
+      .set('Cookie', makeAuthCookie(user.id, user.email))
       .send({ name: 'Rose Updated', relationship: 'grandmother' })
 
     expect(res.status).toBe(200)
     expect(res.body.name).toBe('Rose Updated')
     expect(res.body.relationship).toBe('grandmother')
+
+    // Verify update in database
+    const [updated] = await db.select().from(careProfiles).where(eq(careProfiles.id, profile.id))
+    expect(updated.name).toBe('Rose Updated')
+    expect(updated.relationship).toBe('grandmother')
   })
 
   it('returns 400 when name is empty string', async () => {
-    mockDb.select.mockReturnValueOnce(makeSelectChain([adminMembership]))
+    const user = await createUser({ email: 'empty-name@example.com' })
+    const group = await createGroup({ name: 'Family' })
+    await createGroupMember({ user_id: user.id, group_id: group.id, role: 'admin' })
+    const profile = await createProfile({ group_id: group.id, name: 'Rose' })
 
     const res = await request(app)
-      .patch('/api/groups/group-1/profiles/profile-1')
-      .set('Cookie', makeAuthCookie())
+      .patch(`/api/groups/${group.id}/profiles/${profile.id}`)
+      .set('Cookie', makeAuthCookie(user.id, user.email))
       .send({ name: '   ' })
 
     expect(res.status).toBe(400)
   })
 
   it('returns 403 for a non-member', async () => {
-    mockDb.select.mockReturnValueOnce(makeSelectChain([]))
+    const user = await createUser({ email: 'non-member-update@example.com' })
+    const group = await createGroup({ name: 'Private' })
+    const profile = await createProfile({ group_id: group.id, name: 'Rose' })
 
     const res = await request(app)
-      .patch('/api/groups/group-1/profiles/profile-1')
-      .set('Cookie', makeAuthCookie('other-user'))
+      .patch(`/api/groups/${group.id}/profiles/${profile.id}`)
+      .set('Cookie', makeAuthCookie(user.id, user.email))
       .send({ name: 'Updated' })
 
     expect(res.status).toBe(403)
@@ -256,43 +243,57 @@ describe('DELETE /api/groups/:groupId/profiles/:id', () => {
   })
 
   it('deletes a profile and returns 204', async () => {
-    mockDb.select.mockReturnValueOnce(makeSelectChain([adminMembership]))
-    mockDb.delete.mockReturnValueOnce(makeDeleteChain([sampleProfile]))
+    const user = await createUser({ email: 'delete-profile@example.com' })
+    const group = await createGroup({ name: 'Family' })
+    await createGroupMember({ user_id: user.id, group_id: group.id, role: 'admin' })
+    const profile = await createProfile({ group_id: group.id, name: 'Rose' })
 
     const res = await request(app)
-      .delete('/api/groups/group-1/profiles/profile-1')
-      .set('Cookie', makeAuthCookie())
+      .delete(`/api/groups/${group.id}/profiles/${profile.id}`)
+      .set('Cookie', makeAuthCookie(user.id, user.email))
 
     expect(res.status).toBe(204)
+
+    // Verify deletion in database
+    const [deleted] = await db.select().from(careProfiles).where(eq(careProfiles.id, profile.id))
+    expect(deleted).toBeUndefined()
   })
 
   it('returns 404 when profile not found', async () => {
-    mockDb.select.mockReturnValueOnce(makeSelectChain([adminMembership]))
-    mockDb.delete.mockReturnValueOnce(makeDeleteChain([]))
+    const user = await createUser({ email: 'delete-not-found@example.com' })
+    const group = await createGroup({ name: 'Family' })
+    await createGroupMember({ user_id: user.id, group_id: group.id, role: 'admin' })
 
+    // Use a valid UUID that doesn't exist
+    const fakeUuid = '00000000-0000-0000-0000-000000000000'
     const res = await request(app)
-      .delete('/api/groups/group-1/profiles/profile-1')
-      .set('Cookie', makeAuthCookie())
+      .delete(`/api/groups/${group.id}/profiles/${fakeUuid}`)
+      .set('Cookie', makeAuthCookie(user.id, user.email))
 
     expect(res.status).toBe(404)
   })
 
   it('returns 403 for a non-member', async () => {
-    mockDb.select.mockReturnValueOnce(makeSelectChain([]))
+    const user = await createUser({ email: 'non-member-delete@example.com' })
+    const group = await createGroup({ name: 'Private' })
+    const profile = await createProfile({ group_id: group.id, name: 'Rose' })
 
     const res = await request(app)
-      .delete('/api/groups/group-1/profiles/profile-1')
-      .set('Cookie', makeAuthCookie('other-user'))
+      .delete(`/api/groups/${group.id}/profiles/${profile.id}`)
+      .set('Cookie', makeAuthCookie(user.id, user.email))
 
     expect(res.status).toBe(403)
   })
 
   it('returns 403 for a viewer (non-admin)', async () => {
-    mockDb.select.mockReturnValueOnce(makeSelectChain([viewerMembership]))
+    const user = await createUser({ email: 'viewer-delete@example.com' })
+    const group = await createGroup({ name: 'Family' })
+    await createGroupMember({ user_id: user.id, group_id: group.id, role: 'viewer' })
+    const profile = await createProfile({ group_id: group.id, name: 'Rose' })
 
     const res = await request(app)
-      .delete('/api/groups/group-1/profiles/profile-1')
-      .set('Cookie', makeAuthCookie('user-2'))
+      .delete(`/api/groups/${group.id}/profiles/${profile.id}`)
+      .set('Cookie', makeAuthCookie(user.id, user.email))
 
     expect(res.status).toBe(403)
   })

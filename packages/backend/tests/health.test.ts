@@ -1,20 +1,10 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, beforeAll } from 'vitest'
 import request from 'supertest'
 import { createApp } from '../src/app'
+import { truncateAll } from './helpers/truncate'
 
-// Mock the DB module so the health route doesn't require a live database in CI
-vi.mock('../src/db', () => {
-  return {
-    db: {
-      insert: vi.fn(),
-      select: vi.fn(),
-      delete: vi.fn(),
-      update: vi.fn(),
-      transaction: vi.fn(),
-      execute: vi.fn().mockResolvedValue([{ '?column?': 1 }]),
-    },
-    pool: {},
-  }
+beforeAll(async () => {
+  await truncateAll()
 })
 
 describe('GET /health', () => {
