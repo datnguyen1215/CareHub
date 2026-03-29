@@ -47,3 +47,6 @@ export interface Task {
   createdAt: string
   updatedAt: string
 }
+
+// Re-export Drizzle schema
+export * from './schema'
