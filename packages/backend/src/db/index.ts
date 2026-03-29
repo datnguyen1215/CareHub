@@ -1,26 +1,11 @@
-import { drizzle } from 'drizzle-orm/postgres-js'
-import postgres from 'postgres'
-import { env } from '../config/env.js'
-import * as schema from './schema/index.js'
+import { drizzle } from 'drizzle-orm/node-postgres'
+import { Pool } from 'pg'
+import * as schema from '@carehub/shared'
 
-/**
- * Creates a Drizzle database client connected to the given URL.
- */
-export function createDb(url: string = env.DATABASE_URL) {
-  const client = postgres(url)
-  return drizzle(client, { schema })
-}
+const pool = new Pool({
+  connectionString:
+    process.env.DATABASE_URL ?? 'postgresql://carehub:carehub_dev@localhost:5432/carehub',
+})
 
-/**
- * Shared database instance for the application.
- *
- * NOTE: This opens a postgres connection pool at import time.
- * In tests, either:
- *   - mock this module with `vi.mock('../db/index.js')`, or
- *   - ensure `DATABASE_URL` is set and points to the test DB.
- * Failure to do one of these will cause live connection attempts in every
- * test that transitively imports this module.
- */
-export const db = createDb()
-
-export type Db = ReturnType<typeof createDb>
+export const db = drizzle(pool, { schema })
+export { pool }

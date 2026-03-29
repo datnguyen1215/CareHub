@@ -1,13 +1,18 @@
 import { describe, it, expect, vi } from 'vitest'
 import request from 'supertest'
-import { createApp } from '../src/index.js'
+import { createApp } from '../src/app'
 
 // Mock the DB module so the health route doesn't require a live database in CI
-vi.mock('../src/db/index.js', () => ({
+vi.mock('../src/db', () => ({
   db: {
     execute: vi.fn().mockResolvedValue([{ '?column?': 1 }]),
+    select: vi.fn(),
+    insert: vi.fn(),
+    delete: vi.fn(),
+    update: vi.fn(),
+    transaction: vi.fn(),
   },
-  createDb: vi.fn(),
+  pool: {},
 }))
 
 describe('GET /health', () => {
