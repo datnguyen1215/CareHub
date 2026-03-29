@@ -3,9 +3,6 @@
     <filter id="shadow" x="-2%" y="-2%" width="104%" height="104%">
       <feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="#000" flood-opacity="0.08"/>
     </filter>
-    <filter id="fabShadow" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#4A90D9" flood-opacity="0.3"/>
-    </filter>
   </defs>
 
   <!-- Background -->
@@ -22,68 +19,58 @@
   <text x="24" y="132" font-family="system-ui, sans-serif" font-size="14" font-weight="600" fill="#888" letter-spacing="0.5">CARE PROFILES</text>
 
   <!-- Profile card: Grandpa -->
-  <rect x="16" y="150" width="167" height="160" rx="12" fill="#FFFFFF" filter="url(#shadow)"/>
-  <circle cx="60" cy="195" r="24" fill="#E8F0FE"/>
-  <text x="60" y="201" font-family="system-ui, sans-serif" font-size="20" text-anchor="middle">👴</text>
-  <!-- Green status dot -->
-  <circle cx="78" cy="178" r="6" fill="#5CB85C"/>
-  <circle cx="78" cy="178" r="6" fill="#5CB85C" stroke="#FFFFFF" stroke-width="2"/>
-  <text x="96" y="190" font-family="system-ui, sans-serif" font-size="16" font-weight="600" fill="#333">Grandpa</text>
-  <text x="96" y="207" font-family="system-ui, sans-serif" font-size="12" fill="#888">Updated 5m ago</text>
-  <line x1="32" y1="226" x2="167" y2="226" stroke="#F0F0F0" stroke-width="1"/>
-  <text x="32" y="248" font-family="system-ui, sans-serif" font-size="12" fill="#888">BP: 128/82</text>
-  <text x="32" y="266" font-family="system-ui, sans-serif" font-size="12" fill="#888">Meds: 3 active</text>
-  <text x="32" y="284" font-family="system-ui, sans-serif" font-size="12" fill="#4A90D9">Next: Dr. Nguyen 2PM</text>
+  <rect x="16" y="150" width="167" height="148" rx="12" fill="#FFFFFF" filter="url(#shadow)"/>
+  <circle cx="60" cy="191" r="24" fill="#E8F0FE"/>
+  <text x="60" y="197" font-family="system-ui, sans-serif" font-size="20" text-anchor="middle">👴</text>
+  <text x="96" y="186" font-family="system-ui, sans-serif" font-size="15" font-weight="600" fill="#333">Grandpa</text>
+  <text x="96" y="202" font-family="system-ui, sans-serif" font-size="12" fill="#666">Grandfather</text>
+  <!-- Condition tags -->
+  <rect x="28" y="224" width="52" height="18" rx="9" fill="#E8F0FE"/>
+  <text x="54" y="236" font-family="system-ui, sans-serif" font-size="10" fill="#4A90D9" text-anchor="middle">Diabetes</text>
+  <rect x="86" y="224" width="50" height="18" rx="9" fill="#E8F0FE"/>
+  <text x="111" y="236" font-family="system-ui, sans-serif" font-size="10" fill="#4A90D9" text-anchor="middle">Hypert.</text>
+  <!-- Medication count -->
+  <text x="28" y="277" font-family="system-ui, sans-serif" font-size="12" fill="#666">3 medications</text>
 
   <!-- Profile card: Grandma -->
-  <rect x="192" y="150" width="167" height="160" rx="12" fill="#FFFFFF" filter="url(#shadow)"/>
-  <circle cx="236" cy="195" r="24" fill="#FDE8F0"/>
-  <text x="236" y="201" font-family="system-ui, sans-serif" font-size="20" text-anchor="middle">👵</text>
-  <circle cx="254" cy="178" r="6" fill="#5CB85C" stroke="#FFFFFF" stroke-width="2"/>
-  <text x="272" y="190" font-family="system-ui, sans-serif" font-size="16" font-weight="600" fill="#333">Grandma</text>
-  <text x="272" y="207" font-family="system-ui, sans-serif" font-size="12" fill="#888">Updated 1h ago</text>
-  <line x1="208" y1="226" x2="343" y2="226" stroke="#F0F0F0" stroke-width="1"/>
-  <text x="208" y="248" font-family="system-ui, sans-serif" font-size="12" fill="#888">BP: 120/78</text>
-  <text x="208" y="266" font-family="system-ui, sans-serif" font-size="12" fill="#888">Meds: 2 active</text>
-  <text x="208" y="284" font-family="system-ui, sans-serif" font-size="12" fill="#5CB85C">All good today</text>
+  <rect x="192" y="150" width="167" height="148" rx="12" fill="#FFFFFF" filter="url(#shadow)"/>
+  <circle cx="236" cy="191" r="24" fill="#FDE8F0"/>
+  <text x="236" y="197" font-family="system-ui, sans-serif" font-size="20" text-anchor="middle">👵</text>
+  <text x="272" y="186" font-family="system-ui, sans-serif" font-size="15" font-weight="600" fill="#333">Grandma</text>
+  <text x="272" y="202" font-family="system-ui, sans-serif" font-size="12" fill="#666">Grandmother</text>
+  <!-- Condition tag -->
+  <rect x="204" y="224" width="60" height="18" rx="9" fill="#E8F0FE"/>
+  <text x="234" y="236" font-family="system-ui, sans-serif" font-size="10" fill="#4A90D9" text-anchor="middle">Arthritis</text>
+  <!-- Medication count -->
+  <text x="204" y="277" font-family="system-ui, sans-serif" font-size="12" fill="#666">2 medications</text>
 
   <!-- Profile card: Mom -->
-  <rect x="16" y="326" width="167" height="160" rx="12" fill="#FFFFFF" filter="url(#shadow)"/>
-  <circle cx="60" cy="371" r="24" fill="#E8F0FE"/>
-  <text x="60" y="377" font-family="system-ui, sans-serif" font-size="20" text-anchor="middle">👩</text>
-  <circle cx="78" cy="354" r="6" fill="#5CB85C" stroke="#FFFFFF" stroke-width="2"/>
-  <text x="96" y="366" font-family="system-ui, sans-serif" font-size="16" font-weight="600" fill="#333">Mom</text>
-  <text x="96" y="383" font-family="system-ui, sans-serif" font-size="12" fill="#888">Updated 3h ago</text>
-  <line x1="32" y1="402" x2="167" y2="402" stroke="#F0F0F0" stroke-width="1"/>
-  <text x="32" y="424" font-family="system-ui, sans-serif" font-size="12" fill="#888">BP: 118/75</text>
-  <text x="32" y="442" font-family="system-ui, sans-serif" font-size="12" fill="#888">Meds: 1 active</text>
-  <text x="32" y="460" font-family="system-ui, sans-serif" font-size="12" fill="#5CB85C">All good today</text>
+  <rect x="16" y="314" width="167" height="130" rx="12" fill="#FFFFFF" filter="url(#shadow)"/>
+  <circle cx="60" cy="351" r="24" fill="#E8F0FE"/>
+  <text x="60" y="357" font-family="system-ui, sans-serif" font-size="20" text-anchor="middle">👩</text>
+  <text x="96" y="346" font-family="system-ui, sans-serif" font-size="15" font-weight="600" fill="#333">Mom</text>
+  <text x="96" y="362" font-family="system-ui, sans-serif" font-size="12" fill="#666">Mother</text>
+  <!-- No conditions -->
+  <!-- Medication count -->
+  <text x="28" y="424" font-family="system-ui, sans-serif" font-size="12" fill="#666">1 medication</text>
 
   <!-- Profile card: Dad -->
-  <rect x="192" y="326" width="167" height="160" rx="12" fill="#FFFFFF" filter="url(#shadow)"/>
-  <circle cx="236" cy="371" r="24" fill="#E8F4E8"/>
-  <text x="236" y="377" font-family="system-ui, sans-serif" font-size="20" text-anchor="middle">👨</text>
-  <circle cx="254" cy="354" r="6" fill="#F0AD4E" stroke="#FFFFFF" stroke-width="2"/>
-  <text x="272" y="366" font-family="system-ui, sans-serif" font-size="16" font-weight="600" fill="#333">Dad</text>
-  <text x="272" y="383" font-family="system-ui, sans-serif" font-size="12" fill="#888">Updated 6h ago</text>
-  <line x1="208" y1="402" x2="343" y2="402" stroke="#F0F0F0" stroke-width="1"/>
-  <text x="208" y="424" font-family="system-ui, sans-serif" font-size="12" fill="#888">BP: 135/88</text>
-  <text x="208" y="442" font-family="system-ui, sans-serif" font-size="12" fill="#F0AD4E">Meds: needs refill</text>
-  <text x="208" y="460" font-family="system-ui, sans-serif" font-size="12" fill="#888">No upcoming appt</text>
+  <rect x="192" y="314" width="167" height="130" rx="12" fill="#FFFFFF" filter="url(#shadow)"/>
+  <circle cx="236" cy="351" r="24" fill="#E8F4E8"/>
+  <text x="236" y="357" font-family="system-ui, sans-serif" font-size="20" text-anchor="middle">👨</text>
+  <text x="272" y="346" font-family="system-ui, sans-serif" font-size="15" font-weight="600" fill="#333">Dad</text>
+  <text x="272" y="362" font-family="system-ui, sans-serif" font-size="12" fill="#666">Father</text>
+  <!-- Condition tag -->
+  <rect x="204" y="384" width="62" height="18" rx="9" fill="#E8F0FE"/>
+  <text x="235" y="396" font-family="system-ui, sans-serif" font-size="10" fill="#4A90D9" text-anchor="middle">Hypert.</text>
+  <!-- Medication count -->
+  <text x="204" y="424" font-family="system-ui, sans-serif" font-size="12" fill="#666">2 medications</text>
 
-  <!-- Quick actions section -->
-  <text x="24" y="524" font-family="system-ui, sans-serif" font-size="14" font-weight="600" fill="#888" letter-spacing="0.5">QUICK ACTIONS</text>
-  <rect x="16" y="540" width="343" height="72" rx="12" fill="#FFFFFF" filter="url(#shadow)"/>
-  <rect x="32" y="556" width="92" height="40" rx="8" fill="#E8F0FE"/>
-  <text x="78" y="581" font-family="system-ui, sans-serif" font-size="13" font-weight="500" fill="#4A90D9" text-anchor="middle">Call Tablet</text>
-  <rect x="140" y="556" width="92" height="40" rx="8" fill="#E8F4E8"/>
-  <text x="186" y="581" font-family="system-ui, sans-serif" font-size="13" font-weight="500" fill="#5CB85C" text-anchor="middle">Push Photo</text>
-  <rect x="248" y="556" width="92" height="40" rx="8" fill="#FFF3E0"/>
-  <text x="294" y="581" font-family="system-ui, sans-serif" font-size="13" font-weight="500" fill="#F0AD4E" text-anchor="middle">Add Note</text>
-
-  <!-- FAB -->
-  <circle cx="335" cy="670" r="28" fill="#4A90D9" filter="url(#fabShadow)"/>
-  <text x="335" y="678" font-family="system-ui, sans-serif" font-size="28" font-weight="300" fill="#FFFFFF" text-anchor="middle">+</text>
+  <!-- Add Profile card -->
+  <rect x="16" y="460" width="167" height="130" rx="12" fill="#FFFFFF" filter="url(#shadow)" stroke="#4A90D9" stroke-width="1.5" stroke-dasharray="6 3"/>
+  <circle cx="99" cy="512" r="22" fill="#E8F0FE"/>
+  <text x="99" y="520" font-family="system-ui, sans-serif" font-size="26" font-weight="300" fill="#4A90D9" text-anchor="middle">+</text>
+  <text x="99" y="560" font-family="system-ui, sans-serif" font-size="13" font-weight="500" fill="#4A90D9" text-anchor="middle">Add Profile</text>
 
   <!-- Bottom nav -->
   <rect x="0" y="732" width="375" height="80" fill="#FFFFFF" filter="url(#shadow)"/>
