@@ -31,11 +31,18 @@ services:
       dockerfile: packages/frontend/Dockerfile
     restart: unless-stopped
     environment:
-      BACKEND_URL: http://backend:9391
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      JWT_SECRET: ${JWT_SECRET}
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_PORT: ${SMTP_PORT}
+      SMTP_USER: ${SMTP_USER}
+      SMTP_PASS: ${SMTP_PASS}
+      SMTP_FROM_NAME: ${SMTP_FROM_NAME}
       ORIGIN: https://${APP_DOMAIN}
       PORT: 9390
     depends_on:
-      - backend
+      postgres:
+        condition: service_healthy
     labels:
       - traefik.enable=true
       - traefik.http.routers.frontend.rule=Host(`${APP_DOMAIN}`)
@@ -46,37 +53,6 @@ services:
       - traefik.http.services.frontend.loadbalancer.healthcheck.path=/
     healthcheck:
       test: ['CMD', 'wget', '--quiet', '--spider', 'http://localhost:9390/']
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
-  backend:
-    build:
-      context: .
-      dockerfile: packages/backend/Dockerfile
-    restart: unless-stopped
-    environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
-      JWT_SECRET: ${JWT_SECRET}
-      SMTP_HOST: ${SMTP_HOST}
-      SMTP_PORT: ${SMTP_PORT}
-      SMTP_USER: ${SMTP_USER}
-      SMTP_PASS: ${SMTP_PASS}
-      SMTP_FROM_NAME: ${SMTP_FROM_NAME}
-      PORT: 9391
-    depends_on:
-      postgres:
-        condition: service_healthy
-    labels:
-      - traefik.enable=true
-      - traefik.http.routers.backend.rule=Host(`${APP_DOMAIN}`) && PathPrefix(`/api`)
-      - traefik.http.routers.backend.entrypoints=websecure
-      - traefik.http.routers.backend.tls=true
-      - traefik.http.routers.backend.tls.certresolver=letsencrypt
-      - traefik.http.services.backend.loadbalancer.server.port=9391
-      - traefik.http.services.backend.loadbalancer.healthcheck.path=/api/health
-    healthcheck:
-      test: ['CMD', 'wget', '--quiet', '--spider', 'http://localhost:9391/api/health']
       interval: 30s
       timeout: 10s
       retries: 3

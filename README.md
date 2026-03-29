@@ -5,9 +5,11 @@ A healthcare management platform for managing profiles, medications, and care co
 ## Overview
 
 CareHub is a monorepo application built with:
-- **Backend**: Express + TypeScript + PostgreSQL + Drizzle ORM
-- **Frontend**: SvelteKit 5 + Svelte 5 runes + Tailwind CSS
+- **Frontend**: SvelteKit 5 + Svelte 5 runes + TypeScript + Tailwind CSS
+- **Database**: PostgreSQL + Drizzle ORM
 - **Authentication**: JWT via httpOnly cookies with OTP email login
+
+The application uses SvelteKit for both the frontend UI and backend API routes (full-stack framework).
 
 ## Prerequisites
 
@@ -58,8 +60,7 @@ CareHub is a monorepo application built with:
    ```
 
 The application will be available at:
-- **Frontend**: http://localhost:9390
-- **Backend API**: http://localhost:9391
+- **Frontend & API**: http://localhost:9390
 - **Database**: localhost:9392
 
 ## Environment Configuration
@@ -76,37 +77,32 @@ Copy `.env.example` to `.env` and configure the following:
 - `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB` - Docker PostgreSQL credentials
 
 ### App Configuration
-- `PORT` - Backend port (default: 9391)
-- `FRONTEND_URL` - Frontend URL for CORS (default: http://localhost:9390)
+- `PORT` - Application port (default: 9390)
 - `NODE_ENV` - Environment mode (development/production)
 
 ## Port Configuration
 
-| Service  | Port | URL                      |
-|----------|------|--------------------------|
-| Frontend | 9390 | http://localhost:9390    |
-| Backend  | 9391 | http://localhost:9391    |
-| Database | 9392 | localhost:9392           |
+| Service         | Port | URL                      |
+|-----------------|------|--------------------------|
+| Frontend & API  | 9390 | http://localhost:9390    |
+| Database        | 9392 | localhost:9392           |
 
 ## Available Commands
 
 ### Root Level
-- `npm run dev` - Start all services concurrently (frontend, backend, shared)
+- `npm run dev` - Start all services concurrently (frontend and shared)
 - `npm run db:up` - Start PostgreSQL database container
 - `npm run db:down` - Stop PostgreSQL database container
 
 ### Package-Specific
-See individual package READMEs:
-- [Backend README](./packages/backend/README.md)
-- [Frontend README](./packages/frontend/README.md)
+See [Frontend README](./packages/frontend/README.md) for package-specific commands.
 
 ## Project Structure
 
 ```
 carehub/
 ├── packages/
-│   ├── backend/      # Express REST API
-│   ├── frontend/     # SvelteKit application
+│   ├── frontend/     # SvelteKit full-stack application
 │   ├── shared/       # Drizzle schema and shared types
 │   └── mobile/       # (placeholder)
 ├── docs/             # Project documentation
@@ -114,16 +110,12 @@ carehub/
 └── docker-compose.yml # PostgreSQL database
 ```
 
-### Backend Structure
-- `src/routes/` - API endpoints
-- `src/middleware/` - Express middleware (auth)
-- `src/services/` - Business logic (email)
-- `src/db/` - Database connection
-
 ### Frontend Structure
 - `src/routes/(app)/` - Protected application routes
+- `src/routes/api/` - API endpoints (SvelteKit server routes)
 - `src/routes/login/` - Authentication flow
-- `src/lib/` - Reusable components and API client
+- `src/lib/` - Reusable components and utilities
+- `src/lib/server/` - Server-side code (database, auth, services)
 
 ## Troubleshooting
 
@@ -141,21 +133,9 @@ kill -9 <PID>
 
 Or use different ports by updating `.env`:
 ```
-PORT=3001  # Backend port
+PORT=3000  # Application port
 ```
-And `packages/frontend/vite.config.ts` for frontend.
-
-### JWT_SECRET Not Loading
-
-The backend loads environment variables from the **working directory**, not the package directory.
-
-**Solution**: Create a symlink in the backend package:
-```bash
-cd packages/backend
-ln -s ../../.env .env
-```
-
-Or always run from the project root using workspace commands.
+And `packages/frontend/vite.config.ts` for frontend dev server.
 
 ### Database Connection Issues
 
@@ -177,15 +157,6 @@ Or always run from the project root using workspace commands.
    ```
 
 4. **Check DATABASE_URL** matches Docker port (9392)
-
-### ts-node vs tsx for Workspace Module Resolution
-
-The backend uses `tsx` instead of `ts-node` to properly resolve npm workspace packages (`@carehub/shared`).
-
-- ✅ `tsx` - Supports workspace dependencies
-- ❌ `ts-node` - Has issues with workspace module resolution
-
-The `dev` script uses: `nodemon --exec tsx src/index.ts`
 
 ## Getting Help
 
