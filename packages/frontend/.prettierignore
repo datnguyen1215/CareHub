@@ -1,0 +1,8 @@
+# Defaults
+.DS_Store
+node_modules
+
+# Build artifacts
+/build
+/.svelte-kit
+/package
