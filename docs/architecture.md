@@ -43,8 +43,8 @@ packages/
 ### Entity Relationship Overview
 
 ```
-Household
-  |-- has many --> User (via HouseholdMember)
+Group
+  |-- has many --> User (via GroupMember)
   |-- has many --> CareProfile
                       |-- has many --> Medication
                       |-- has many --> CalendarEvent
@@ -53,7 +53,7 @@ Household
                       |-- assigned to --> Device (many-to-many)
 
 User
-  |-- belongs to --> Household (via HouseholdMember)
+  |-- belongs to --> Group (via GroupMember)
   |-- has many --> DeviceAccess
 
 Device
@@ -69,35 +69,33 @@ All entities are defined as Drizzle ORM schemas in `packages/shared`.
 
 - `id` (UUID, primary key)
 - `email` (unique)
-- `name`
+- `first_name`
+- `last_name`
 - `avatar_url`
 - `created_at`
 
-**Household**
+**Group**
 
 - `id` (UUID, primary key)
 - `name`
 - `created_at`
 
-**HouseholdMember** (join table)
+**GroupMember** (join table)
 
 - `user_id` (FK -> User)
-- `household_id` (FK -> Household)
+- `group_id` (FK -> Group)
 - `role` (enum: admin, viewer)
-- `invited_at`
-- `accepted_at`
+- `created_at`
 
 **CareProfile**
 
 - `id` (UUID, primary key)
-- `household_id` (FK -> Household)
+- `group_id` (FK -> Group)
 - `name`
 - `avatar_url`
 - `date_of_birth`
 - `relationship` (e.g., grandmother, father)
-- `health_notes` (text)
 - `conditions` (text array)
-- `status` (enum: stable, needs_attention, recent_visit)
 - `created_at`, `updated_at`
 
 **Medication**
@@ -106,12 +104,17 @@ All entities are defined as Drizzle ORM schemas in `packages/shared`.
 - `care_profile_id` (FK -> CareProfile)
 - `name`
 - `dosage`
-- `frequency`
-- `schedule` (time-of-day: morning, afternoon, evening, bedtime)
-- `prescribing_doctor` (optional)
+- `schedule` (text array: morning, afternoon, evening, bedtime)
 - `status` (enum: active, discontinued)
-- `notes`
 - `created_at`, `updated_at`
+
+**Otp**
+
+- `id` (UUID, primary key)
+- `email`
+- `code` (6 digits)
+- `expires_at` (15 minutes from creation)
+- `created_at`
 
 **CalendarEvent**
 
@@ -243,9 +246,30 @@ Documents are processed through OCR immediately on upload. The extracted text is
 
 Tablet pairing uses a one-time token with a 5-minute expiry. The tablet displays the token as a QR code. The caretaker scans it with their phone camera from the portal. This avoids manual code entry and prevents stale pairing sessions.
 
+### Authentication
+
+Email + OTP passwordless login via Nodemailer + Gmail SMTP.
+
+- User submits their email address
+- Server generates a 6-digit OTP, stores it in the `Otp` table with a 15-minute expiry, and sends it via email
+- User submits the OTP; server verifies it and issues a JWT stored in an httpOnly cookie (no expiration)
+- First-time login creates a new `User` record and prompts the user to enter their `first_name` and `last_name`
+
+**SMTP configuration via environment variables:**
+
+| Variable         | Description                   |
+| ---------------- | ----------------------------- |
+| `SMTP_HOST`      | SMTP server hostname          |
+| `SMTP_PORT`      | SMTP server port              |
+| `SMTP_USER`      | SMTP username / email address |
+| `SMTP_PASS`      | SMTP password or app password |
+| `SMTP_FROM_NAME` | Display name for sent emails  |
+
+A dedicated Gmail account is recommended for sending OTP emails.
+
 ### Application-Level Access Control
 
-Data access is enforced at the application layer in the Express backend. Users can only access data within their household. Viewers are restricted to read operations.
+Data access is enforced at the application layer in the Express backend. Users can only access data within their group. Viewers are restricted to read operations.
 
 ### Testing Strategy
 
