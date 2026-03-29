@@ -44,6 +44,6 @@ COPY --from=build /app/packages/backend/dist ./packages/backend/dist
 RUN chown -R carehub:carehub /app
 USER carehub
 
-EXPOSE 3000
+EXPOSE 9391
 
 CMD ["node", "packages/backend/dist/index.js"]

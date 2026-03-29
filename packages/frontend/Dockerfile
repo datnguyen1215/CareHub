@@ -39,6 +39,6 @@ RUN npm install --omit=dev 2>/dev/null || true
 RUN chown -R carehub:carehub /app
 USER carehub
 
-EXPOSE 3000
+EXPOSE 9390
 
 CMD ["node", "build"]

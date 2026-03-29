@@ -10,7 +10,11 @@
     "rootDir": "./src",
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "resolveJsonModule": true
+    "resolveJsonModule": true,
+    "baseUrl": ".",
+    "paths": {
+      "@carehub/shared": ["../shared/dist"]
+    }
   },
   "include": ["src/**/*"],
   "exclude": ["dist", "node_modules", "tests"]
