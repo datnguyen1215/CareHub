@@ -26,10 +26,9 @@ Step-by-step workflows for core tasks. Wireframe references point to files in `d
 2. Profile detail opens (`designs/03-profile-detail.svg`)
 3. Tap the Medications tab (`designs/04-medications.svg`)
 4. Tap "Add Medication" button
-5. Fill form: medication name, dosage, frequency, time-of-day schedule
-6. Optionally add prescribing doctor and notes
-7. Tap Save
-8. Medication appears in the active list with time-of-day badge
+5. Modal opens; fill form: name, dosage, schedule (multi-select: morning/afternoon/evening/bedtime), status (active/discontinued)
+6. Tap Save
+7. Medication appears in the active list with inline dosage and schedule badges
 
 ---
 

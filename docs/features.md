@@ -53,9 +53,12 @@ Detailed feature breakdown organized by area. See [phases.md](phases.md) for imp
 
 ### Medication List
 
-- Per-profile medication list
-- Fields: name, dosage, schedule (morning, afternoon, evening, bedtime)
-- Active vs. discontinued status toggle
+- Per-profile flat medication list
+- Fields: name, dosage, schedule (multi-select: morning/afternoon/evening/bedtime), status (active/discontinued)
+- Inline dosage and schedule badges on each row
+- Active medications shown by default; discontinued medications hidden behind a "Show discontinued" toggle
+- Tap any medication to edit or delete via modal
+- Add new medication via modal
 
 ### Future: Medication Reminders
 
