@@ -44,6 +44,7 @@ Detailed feature breakdown organized by area. See [phases.md](phases.md) for imp
 ### Home Dashboard
 
 - All profiles visible from home screen as cards
+- Each card shows: name, relationship, conditions (tags), active medication count
 - Tap to enter full profile detail
 
 ---

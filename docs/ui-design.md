@@ -91,19 +91,19 @@ Styles are implemented with Tailwind CSS within the SvelteKit frontend package. 
 
 All wireframes are in the `designs/` directory.
 
-| File                          | Screen               | Description                                                         |
-| ----------------------------- | -------------------- | ------------------------------------------------------------------- |
-| `01-login.svg`                | Login                | Authentication screen with email + OTP login                        |
-| `02-home-dashboard.svg`       | Home Dashboard       | Grid of care profile cards with status indicators                   |
-| `03-profile-detail.svg`       | Profile Detail       | Profile header with health summary and tab navigation               |
-| `04-medications.svg`          | Medications          | List of active and discontinued medications with time-of-day badges |
-| `05-calendar.svg`             | Calendar             | Monthly calendar view with event dots and upcoming appointments     |
-| `06-journal-entry.svg`        | Journal Entry        | Entry form with content field, key takeaways, and linked event      |
-| `07-documents.svg`            | Documents            | Document grid with categories, search bar, and upload button        |
-| `08-document-detail.svg`      | Document Detail      | Original image alongside extracted OCR text and metadata            |
-| `09-devices.svg`              | Devices              | List of paired tablets with status, battery, and last seen          |
-| `10-pair-tablet.svg`          | Pair Tablet          | QR scanning interface for pairing a new tablet                      |
-| `11-tablet-home.svg`          | Tablet Home (Kiosk)  | Large caretaker cards, today's schedule, greeting                   |
-| `12-tablet-incoming-call.svg` | Tablet Incoming Call | Full-screen caller info with large Accept/Decline buttons           |
-| `13-tablet-qr-pairing.svg`    | Tablet QR Pairing    | QR code display on tablet during pairing flow                       |
-| `14-flow-diagram.svg`         | Flow Diagram         | Overall system flow showing user journeys between screens           |
+| File                          | Screen               | Description                                                                             |
+| ----------------------------- | -------------------- | --------------------------------------------------------------------------------------- |
+| `01-login.svg`                | Login                | Authentication screen with email + OTP login                                            |
+| `02-home-dashboard.svg`       | Home Dashboard       | Grid of care profile cards showing name, relationship, conditions, and medication count |
+| `03-profile-detail.svg`       | Profile Detail       | Profile header with health summary and tab navigation                                   |
+| `04-medications.svg`          | Medications          | List of active and discontinued medications with time-of-day badges                     |
+| `05-calendar.svg`             | Calendar             | Monthly calendar view with event dots and upcoming appointments                         |
+| `06-journal-entry.svg`        | Journal Entry        | Entry form with content field, key takeaways, and linked event                          |
+| `07-documents.svg`            | Documents            | Document grid with categories, search bar, and upload button                            |
+| `08-document-detail.svg`      | Document Detail      | Original image alongside extracted OCR text and metadata                                |
+| `09-devices.svg`              | Devices              | List of paired tablets with status, battery, and last seen                              |
+| `10-pair-tablet.svg`          | Pair Tablet          | QR scanning interface for pairing a new tablet                                          |
+| `11-tablet-home.svg`          | Tablet Home (Kiosk)  | Large caretaker cards, today's schedule, greeting                                       |
+| `12-tablet-incoming-call.svg` | Tablet Incoming Call | Full-screen caller info with large Accept/Decline buttons                               |
+| `13-tablet-qr-pairing.svg`    | Tablet QR Pairing    | QR code display on tablet during pairing flow                                           |
+| `14-flow-diagram.svg`         | Flow Diagram         | Overall system flow showing user journeys between screens                               |
