@@ -261,14 +261,19 @@ Email + OTP passwordless login via Nodemailer + Gmail SMTP.
 
 **API Endpoints**
 
-| Method  | Path               | Auth     | Description                                         |
-| ------- | ------------------ | -------- | --------------------------------------------------- |
-| `POST`  | `/api/auth/email`  | Public   | Send OTP to email address                           |
-| `POST`  | `/api/auth/verify` | Public   | Verify OTP; issues JWT httpOnly cookie              |
-| `PATCH` | `/api/users/me`    | Required | Update authenticated user's first and last name     |
-| `POST`  | `/api/groups`      | Required | Create a group; creator is added as admin           |
-| `PATCH` | `/api/groups/:id`  | Required | Rename a group (admin only)                         |
-| `GET`   | `/api/groups`      | Required | Return all groups the authenticated user belongs to |
+| Method   | Path                                | Auth        | Description                                         |
+| -------- | ----------------------------------- | ----------- | --------------------------------------------------- |
+| `POST`   | `/api/auth/email`                   | Public      | Send OTP to email address                           |
+| `POST`   | `/api/auth/verify`                  | Public      | Verify OTP; issues JWT httpOnly cookie              |
+| `PATCH`  | `/api/users/me`                     | Required    | Update authenticated user's first and last name     |
+| `POST`   | `/api/groups`                       | Required    | Create a group; creator is added as admin           |
+| `PATCH`  | `/api/groups/:id`                   | Required    | Rename a group (admin only)                         |
+| `GET`    | `/api/groups`                       | Required    | Return all groups the authenticated user belongs to |
+| `POST`   | `/api/groups/:groupId/profiles`     | Admin only  | Create a care profile; `name` required              |
+| `GET`    | `/api/groups/:groupId/profiles`     | Member only | List all care profiles in the group                 |
+| `GET`    | `/api/groups/:groupId/profiles/:id` | Member only | Get a single care profile                           |
+| `PATCH`  | `/api/groups/:groupId/profiles/:id` | Admin only  | Partial update of any care profile field            |
+| `DELETE` | `/api/groups/:groupId/profiles/:id` | Admin only  | Delete a care profile                               |
 
 **SMTP configuration via environment variables:**
 
