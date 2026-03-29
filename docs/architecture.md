@@ -45,19 +45,23 @@ The SvelteKit frontend uses a route group `(app)` to wrap all authenticated main
 ```
 src/
   lib/
-    TopBar.svelte       # Fixed top bar — "CareHub" branding left, user avatar right
-    BottomNav.svelte    # Fixed bottom navigation — Home, Devices, Settings tabs
-    ProfileModal.svelte # Create/edit care profile modal
-    api.ts              # API client with auth cookie handling
+    TopBar.svelte          # Fixed top bar — "CareHub" branding left, user avatar right
+    BottomNav.svelte       # Fixed bottom navigation — Home, Devices, Settings tabs
+    ProfileModal.svelte    # Create/edit care profile modal
+    MedicationModal.svelte # Create/edit medication modal — name, dosage, schedule chips, status toggle (edit only)
+    api.ts                 # API client with auth cookie handling
   routes/
-    login/              # Public auth pages (email entry, OTP verify, account setup)
+    login/                 # Public auth pages (email entry, OTP verify, account setup)
     (app)/
-      +layout.svelte    # Shared layout: TopBar + main content area + BottomNav
-      +page.svelte      # Home dashboard — profile card grid
+      +layout.svelte       # Shared layout: TopBar + main content area + BottomNav
+      +page.svelte         # Home dashboard — profile card grid
+      profiles/
+        [id]/
+          +page.svelte     # Profile detail — Overview and Medications tabs
       devices/
-        +page.svelte    # Devices placeholder (Phase 3)
+        +page.svelte       # Devices placeholder (Phase 3)
       settings/
-        +page.svelte    # Settings — group rename, member management
+        +page.svelte       # Settings — group rename, member management
 ```
 
 ### Shared Layout (`(app)` route group)
@@ -297,19 +301,23 @@ Email + OTP passwordless login via Nodemailer + Gmail SMTP.
 
 **API Endpoints**
 
-| Method   | Path                                | Auth        | Description                                         |
-| -------- | ----------------------------------- | ----------- | --------------------------------------------------- |
-| `POST`   | `/api/auth/email`                   | Public      | Send OTP to email address                           |
-| `POST`   | `/api/auth/verify`                  | Public      | Verify OTP; issues JWT httpOnly cookie              |
-| `PATCH`  | `/api/users/me`                     | Required    | Update authenticated user's first and last name     |
-| `POST`   | `/api/groups`                       | Required    | Create a group; creator is added as admin           |
-| `PATCH`  | `/api/groups/:id`                   | Required    | Rename a group (admin only)                         |
-| `GET`    | `/api/groups`                       | Required    | Return all groups the authenticated user belongs to |
-| `POST`   | `/api/groups/:groupId/profiles`     | Admin only  | Create a care profile; `name` required              |
-| `GET`    | `/api/groups/:groupId/profiles`     | Member only | List all care profiles in the group                 |
-| `GET`    | `/api/groups/:groupId/profiles/:id` | Member only | Get a single care profile                           |
-| `PATCH`  | `/api/groups/:groupId/profiles/:id` | Admin only  | Partial update of any care profile field            |
-| `DELETE` | `/api/groups/:groupId/profiles/:id` | Admin only  | Delete a care profile                               |
+| Method   | Path                                                       | Auth        | Description                                                                                             |
+| -------- | ---------------------------------------------------------- | ----------- | ------------------------------------------------------------------------------------------------------- |
+| `POST`   | `/api/auth/email`                                          | Public      | Send OTP to email address                                                                               |
+| `POST`   | `/api/auth/verify`                                         | Public      | Verify OTP; issues JWT httpOnly cookie                                                                  |
+| `PATCH`  | `/api/users/me`                                            | Required    | Update authenticated user's first and last name                                                         |
+| `POST`   | `/api/groups`                                              | Required    | Create a group; creator is added as admin                                                               |
+| `PATCH`  | `/api/groups/:id`                                          | Required    | Rename a group (admin only)                                                                             |
+| `GET`    | `/api/groups`                                              | Required    | Return all groups the authenticated user belongs to                                                     |
+| `POST`   | `/api/groups/:groupId/profiles`                            | Admin only  | Create a care profile; `name` required                                                                  |
+| `GET`    | `/api/groups/:groupId/profiles`                            | Member only | List all care profiles in the group                                                                     |
+| `GET`    | `/api/groups/:groupId/profiles/:id`                        | Member only | Get a single care profile                                                                               |
+| `PATCH`  | `/api/groups/:groupId/profiles/:id`                        | Admin only  | Partial update of any care profile field                                                                |
+| `DELETE` | `/api/groups/:groupId/profiles/:id`                        | Admin only  | Delete a care profile                                                                                   |
+| `POST`   | `/api/groups/:groupId/profiles/:profileId/medications`     | Member only | Create a medication; `name` required; optional: `dosage`, `schedule`, `status`                          |
+| `GET`    | `/api/groups/:groupId/profiles/:profileId/medications`     | Member only | List medications; active only by default; add `?include_discontinued=true` to include discontinued ones |
+| `PATCH`  | `/api/groups/:groupId/profiles/:profileId/medications/:id` | Member only | Partial update of any medication field; use `status: "discontinued"` to discontinue                     |
+| `DELETE` | `/api/groups/:groupId/profiles/:profileId/medications/:id` | Member only | Hard delete a medication                                                                                |
 
 **SMTP configuration via environment variables:**
 
