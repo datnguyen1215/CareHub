@@ -9,13 +9,13 @@ const LOGIN_ROUTES = ['/login'];
  * - Unauthenticated requests to protected routes → redirect to /login
  * - Authenticated requests to /login/* → redirect to /
  *
- * Auth state is determined by the presence of the `auth_token` cookie.
+ * Auth state is determined by the presence of the `token` cookie.
  * Full token validation happens on the backend; the frontend just checks
  * whether the cookie exists to avoid unnecessary redirects.
  */
 export const handle: Handle = async ({ event, resolve }) => {
 	const { pathname } = event.url;
-	const hasToken = !!event.cookies.get('auth_token');
+	const hasToken = !!event.cookies.get('token');
 
 	const isLoginRoute = LOGIN_ROUTES.some((r) => pathname === r || pathname.startsWith(r + '/'));
 
@@ -24,7 +24,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 		throw redirect(302, '/');
 	}
 
-	if (!isLoginRoute && pathname !== '/' && !hasToken) {
+	if (!isLoginRoute && !hasToken) {
 		// Protected route but not authenticated
 		throw redirect(302, '/login');
 	}
