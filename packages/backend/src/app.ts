@@ -1,15 +1,27 @@
 import express from 'express'
 import cookieParser from 'cookie-parser'
 import cors from 'cors'
+import pinoHttp from 'pino-http'
 import { authRouter } from './routes/auth'
 import { usersRouter } from './routes/users'
 import { groupsRouter } from './routes/groups'
 import { profilesRouter } from './routes/profiles'
 import { medicationsRouter } from './routes/medications'
 import healthRouter from './routes/health'
+import { logger } from './services/logger'
 
 export function createApp() {
   const app = express()
+
+  // Request logging middleware (skip health checks to reduce noise)
+  app.use(
+    pinoHttp({
+      logger,
+      autoLogging: {
+        ignore: (req) => req.url === '/health' || req.url === '/api/health',
+      },
+    })
+  )
 
   app.use(cors({ origin: process.env.FRONTEND_URL ?? 'http://localhost:5173', credentials: true }))
   app.use(express.json())

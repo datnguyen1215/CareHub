@@ -35,6 +35,14 @@ export const env = {
   SMTP_USER: optionalEnv('SMTP_USER', ''),
   SMTP_PASSWORD: optionalEnv('SMTP_PASSWORD', ''),
   SMTP_FROM: optionalEnv('SMTP_FROM', 'noreply@carehub.local'),
+
+  // Logging
+  LOG_LEVEL: optionalEnv('LOG_LEVEL', 'info'),
+  LOG_FILE: optionalEnv('LOG_FILE', ''),
+  LOG_FORMAT: optionalEnv(
+    'LOG_FORMAT',
+    optionalEnv('NODE_ENV', 'development') === 'development' ? 'pretty' : 'json'
+  ),
 } as const
 
 export type Env = typeof env
