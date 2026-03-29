@@ -15,7 +15,24 @@
 		loading = true;
 
 		try {
+			// Step 1: Update user profile
 			await updateMe({ first_name: firstName.trim(), last_name: lastName.trim() });
+
+			// Step 2: Auto-create default group
+			const groupRes = await fetch('/api/groups', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				credentials: 'include',
+				body: JSON.stringify({ name: 'My Family' })
+			});
+
+			if (!groupRes.ok) {
+				const data = await groupRes.json();
+				error = data.error ?? 'Failed to create group';
+				return;
+			}
+
+			// Step 3: Redirect to dashboard
 			await goto('/');
 		} catch (err: unknown) {
 			const apiErr = err as { message?: string };
