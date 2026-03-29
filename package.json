@@ -1,0 +1,16 @@
+{
+  "name": "carehub",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev --workspace=packages/frontend\" \"npm run dev --workspace=packages/backend\"",
+    "db:up": "docker compose up -d",
+    "db:down": "docker compose down"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
