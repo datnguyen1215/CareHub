@@ -77,6 +77,14 @@ export function listGroups() {
 	return request<Group[]>('GET', '/groups');
 }
 
+export function createGroup(name: string) {
+	return request<Group>('POST', '/groups', { name });
+}
+
+export function updateGroup(id: string, name: string) {
+	return request<Group>('PATCH', `/groups/${id}`, { name });
+}
+
 // Care Profiles
 
 export interface CareProfile {

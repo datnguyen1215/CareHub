@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import { updateMe } from '$lib/api';
+	import { updateMe, createGroup } from '$lib/api';
 
 	let firstName = $state('');
 	let lastName = $state('');
@@ -19,18 +19,7 @@
 			await updateMe({ first_name: firstName.trim(), last_name: lastName.trim() });
 
 			// Step 2: Auto-create default group
-			const groupRes = await fetch('/api/groups', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				credentials: 'include',
-				body: JSON.stringify({ name: 'My Family' })
-			});
-
-			if (!groupRes.ok) {
-				const data = await groupRes.json();
-				error = data.error ?? 'Failed to create group';
-				return;
-			}
+			await createGroup('My Family');
 
 			// Step 3: Redirect to dashboard
 			await goto('/');
