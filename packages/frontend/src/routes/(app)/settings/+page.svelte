@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { goto } from '$app/navigation';
 	import { listGroups } from '$lib/api';
 
 	const API_BASE = import.meta.env.VITE_API_URL ?? '';
@@ -25,7 +26,12 @@
 				activeGroupId = groups[0].id;
 				groupName = groups[0].name;
 			}
-		} catch {
+		} catch (err: unknown) {
+			const apiErr = err as { status?: number };
+			if (apiErr?.status === 401) {
+				goto('/login');
+				return;
+			}
 			loadError = 'Failed to load groups';
 		}
 	});
@@ -53,7 +59,12 @@
 			const updated: Group = await res.json();
 			groups = groups.map((g) => (g.id === updated.id ? updated : g));
 			saveSuccess = true;
-		} catch {
+		} catch (err: unknown) {
+			const apiErr = err as { status?: number };
+			if (apiErr?.status === 401) {
+				goto('/login');
+				return;
+			}
 			saveError = 'Something went wrong. Please try again.';
 		} finally {
 			loading = false;
