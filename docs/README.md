@@ -14,7 +14,7 @@ Managing health care for multiple elderly family members involves tracking medic
 
 ## High-Level Features
 
-- Authentication via magic link and Google OAuth
+- Authentication via email + OTP (Nodemailer + Gmail SMTP)
 - Household-based care profiles with health dashboards
 - Medication tracking with schedules and status
 - Calendar for appointments and doctor visits
@@ -31,13 +31,13 @@ Managing health care for multiple elderly family members involves tracking medic
 
 ## Documentation
 
-| Document | Description |
-|---|---|
-| [Features](features.md) | Detailed feature specifications by area |
-| [Architecture](architecture.md) | Technical stack, data model, and key decisions |
-| [User Flows](user-flows.md) | Step-by-step workflows for core tasks |
-| [UI/UX Design](ui-design.md) | Design guidelines, colors, typography, wireframes |
-| [Implementation Phases](phases.md) | Phased delivery plan with key deliverables |
+| Document                           | Description                                       |
+| ---------------------------------- | ------------------------------------------------- |
+| [Features](features.md)            | Detailed feature specifications by area           |
+| [Architecture](architecture.md)    | Technical stack, data model, and key decisions    |
+| [User Flows](user-flows.md)        | Step-by-step workflows for core tasks             |
+| [UI/UX Design](ui-design.md)       | Design guidelines, colors, typography, wireframes |
+| [Implementation Phases](phases.md) | Phased delivery plan with key deliverables        |
 
 ## Wireframes
 

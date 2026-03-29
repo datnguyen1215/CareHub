@@ -1,23 +1,40 @@
 # Technical Architecture
 
-## Recommended Stack
+## Stack
 
-| Layer | Technology | Rationale |
-|---|---|---|
-| Frontend | SvelteKit | SSR + SPA hybrid, mobile-first responsive, fast builds |
-| Backend/API | SvelteKit API routes | Unified codebase, server-side logic co-located with frontend |
-| Database | PostgreSQL via Supabase | Relational data, row-level security, managed hosting |
-| Auth | Supabase Auth | Magic link + Google OAuth built-in, JWT sessions |
-| File Storage | Supabase Storage | S3-compatible, integrated with auth policies |
-| Real-time | Supabase Realtime / WebSockets | Tablet push, device status, call signaling |
-| Video Calling | WebRTC (PeerJS or LiveKit) | Peer-to-peer video, minimal server cost |
-| Push Notifications | Firebase Cloud Messaging (FCM) | High-priority data messages for call notifications; reliable delivery even when app is closed |
-| Native App Shell | Capacitor | Wraps SvelteKit web app in native Android shell for both caretaker phones and elderly tablets; enables native push, full-screen call intent, foreground services, lock task mode |
-| OTA Updates | Capgo (self-hosted) | Over-the-air web bundle updates for all Capacitor apps; no manual APK reinstall for UI/logic changes |
-| OCR/AI | Google Vision API or AWS Textract | Document text extraction; Tesseract as self-hosted alternative |
-| Search | PostgreSQL full-text search | Search over OCR-extracted text, no extra infrastructure |
-| Hosting | Vercel or Cloudflare Pages | Edge deployment, serverless functions |
-| Tablet Runtime | Capacitor APK with Android Lock Task Mode | Native app shell prevents exit, auto-restarts on boot, receives FCM push even if backgrounded |
+| Layer              | Technology                                | Rationale                                                                                                                                                                        |
+| ------------------ | ----------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Package Manager    | npm with workspaces                       | Monorepo support, standard tooling                                                                                                                                               |
+| Frontend           | SvelteKit + Tailwind CSS                  | SSR + SPA hybrid, mobile-first responsive, fast builds                                                                                                                           |
+| Backend/API        | Express + nodemon                         | Separate service, clear API boundary, fast dev iteration                                                                                                                         |
+| Database           | PostgreSQL via Docker (self-hosted)       | Relational data, full control, no external dependency                                                                                                                            |
+| ORM / Migrations   | Drizzle ORM                               | Type-safe queries, SQL-first migrations                                                                                                                                          |
+| Auth               | Email + OTP (Nodemailer + Gmail SMTP)     | Passwordless email login without third-party auth service                                                                                                                        |
+| File Storage       | TBD                                       | To be decided in a future phase                                                                                                                                                  |
+| Real-time          | WebSockets (custom)                       | Tablet push, device status, call signaling                                                                                                                                       |
+| Video Calling      | WebRTC (PeerJS or LiveKit)                | Peer-to-peer video, minimal server cost                                                                                                                                          |
+| Push Notifications | Firebase Cloud Messaging (FCM)            | High-priority data messages for call notifications; reliable delivery even when app is closed                                                                                    |
+| Native App Shell   | Capacitor                                 | Wraps SvelteKit web app in native Android shell for both caretaker phones and elderly tablets; enables native push, full-screen call intent, foreground services, lock task mode |
+| OTA Updates        | Capgo (self-hosted)                       | Over-the-air web bundle updates for all Capacitor apps; no manual APK reinstall for UI/logic changes                                                                             |
+| OCR/AI             | Google Vision API or AWS Textract         | Document text extraction; Tesseract as self-hosted alternative                                                                                                                   |
+| Search             | PostgreSQL full-text search               | Search over OCR-extracted text, no extra infrastructure                                                                                                                          |
+| Hosting            | Self-hosted via Docker                    | Full control, no cloud vendor dependency                                                                                                                                         |
+| Testing            | Vitest + Supertest                        | Integration tests only; no unit or frontend tests                                                                                                                                |
+| TypeScript         | Default SvelteKit config                  | Standard configuration, no custom overrides                                                                                                                                      |
+| Linting            | ESLint + Prettier (SvelteKit defaults)    | Consistent code style with minimal setup                                                                                                                                         |
+| Tablet Runtime     | Capacitor APK with Android Lock Task Mode | Native app shell prevents exit, auto-restarts on boot, receives FCM push even if backgrounded                                                                                    |
+
+---
+
+## Monorepo Structure
+
+```
+packages/
+  frontend/    # SvelteKit + Tailwind CSS web app
+  backend/     # Express API server
+  shared/      # Shared types, utilities, and Drizzle schema
+  mobile/      # Capacitor mobile wrapper (Phase 3 placeholder)
+```
 
 ---
 
@@ -46,7 +63,10 @@ Device
 
 ### Entities
 
+All entities are defined as Drizzle ORM schemas in `packages/shared`.
+
 **User**
+
 - `id` (UUID, primary key)
 - `email` (unique)
 - `name`
@@ -54,11 +74,13 @@ Device
 - `created_at`
 
 **Household**
+
 - `id` (UUID, primary key)
 - `name`
 - `created_at`
 
 **HouseholdMember** (join table)
+
 - `user_id` (FK -> User)
 - `household_id` (FK -> Household)
 - `role` (enum: admin, viewer)
@@ -66,6 +88,7 @@ Device
 - `accepted_at`
 
 **CareProfile**
+
 - `id` (UUID, primary key)
 - `household_id` (FK -> Household)
 - `name`
@@ -78,6 +101,7 @@ Device
 - `created_at`, `updated_at`
 
 **Medication**
+
 - `id` (UUID, primary key)
 - `care_profile_id` (FK -> CareProfile)
 - `name`
@@ -90,6 +114,7 @@ Device
 - `created_at`, `updated_at`
 
 **CalendarEvent**
+
 - `id` (UUID, primary key)
 - `care_profile_id` (FK -> CareProfile)
 - `title`
@@ -101,6 +126,7 @@ Device
 - `created_at`, `updated_at`
 
 **JournalEntry**
+
 - `id` (UUID, primary key)
 - `care_profile_id` (FK -> CareProfile)
 - `calendar_event_id` (FK -> CalendarEvent, optional)
@@ -110,6 +136,7 @@ Device
 - `created_at`, `updated_at`
 
 **Document**
+
 - `id` (UUID, primary key)
 - `care_profile_id` (FK -> CareProfile)
 - `calendar_event_id` (FK -> CalendarEvent, optional)
@@ -123,6 +150,7 @@ Device
 - `created_at`
 
 **Device**
+
 - `id` (UUID, primary key)
 - `device_identifier` (unique hardware/browser ID)
 - `name`
@@ -133,10 +161,12 @@ Device
 - `created_at`
 
 **DeviceCareProfile** (join table)
+
 - `device_id` (FK -> Device)
 - `care_profile_id` (FK -> CareProfile)
 
 **DeviceAccess**
+
 - `id` (UUID, primary key)
 - `device_id` (FK -> Device)
 - `user_id` (FK -> User)
@@ -155,9 +185,13 @@ All interfaces are built with SvelteKit as web applications. Both the caretaker 
 
 The caretaker portal is designed mobile-first since most interactions (photo capture at doctor visits, quick medication checks) happen on phones. Desktop layout adapts from the mobile base.
 
+### Separate Frontend and Backend Services
+
+The frontend (SvelteKit) and backend (Express) are separate packages in the monorepo. The Express backend exposes a REST API consumed by the frontend. This separation allows independent deployment, clearer API boundaries, and straightforward integration testing with Supertest.
+
 ### Real-Time via WebSockets
 
-Tablet push notifications, device status monitoring, and video call signaling all use persistent WebSocket connections. Supabase Realtime handles database change subscriptions; a lightweight signaling server handles WebRTC negotiation.
+Tablet push notifications, device status monitoring, and video call signaling all use persistent WebSocket connections managed by the Express backend.
 
 ### Peer-to-Peer Video
 
@@ -209,6 +243,10 @@ Documents are processed through OCR immediately on upload. The extracted text is
 
 Tablet pairing uses a one-time token with a 5-minute expiry. The tablet displays the token as a QR code. The caretaker scans it with their phone camera from the portal. This avoids manual code entry and prevents stale pairing sessions.
 
-### Row-Level Security
+### Application-Level Access Control
 
-Supabase RLS policies enforce data access at the database level. Users can only access data within their household. Viewers are restricted to read operations. This provides defense-in-depth beyond application-level checks.
+Data access is enforced at the application layer in the Express backend. Users can only access data within their household. Viewers are restricted to read operations.
+
+### Testing Strategy
+
+Integration tests only, using Vitest + Supertest against the Express API. No unit tests or frontend component tests. This keeps the test suite lean while covering the critical API surface.
