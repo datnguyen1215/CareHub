@@ -1,5 +1,6 @@
 /** Auth utilities — JWT verification and signing for SvelteKit. */
 import jwt from 'jsonwebtoken';
+import { json, type RequestEvent } from '@sveltejs/kit';
 
 export interface JwtPayload {
 	userId: string;
@@ -62,4 +63,25 @@ export function getUserFromRequest(request: Request): JwtPayload | null {
 	if (!token) return null;
 
 	return verifyToken(token);
+}
+
+/**
+ * Requires authentication for a SvelteKit route handler.
+ * Returns user payload if authenticated, throws 401 error if not.
+ * @param {RequestEvent} event - SvelteKit request event
+ * @returns {JwtPayload} User payload
+ * @throws {Response} 401 Unauthorized if not authenticated
+ */
+export function requireAuth(event: RequestEvent): JwtPayload {
+	const token = event.cookies.get('token');
+	if (!token) {
+		throw json({ error: 'Unauthorized' }, { status: 401 });
+	}
+
+	const user = verifyToken(token);
+	if (!user) {
+		throw json({ error: 'Invalid token' }, { status: 401 });
+	}
+
+	return user;
 }
