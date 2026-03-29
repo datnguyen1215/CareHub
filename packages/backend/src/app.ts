@@ -5,6 +5,7 @@ import { authRouter } from './routes/auth'
 import { usersRouter } from './routes/users'
 import { groupsRouter } from './routes/groups'
 import { profilesRouter } from './routes/profiles'
+import { medicationsRouter } from './routes/medications'
 import healthRouter from './routes/health'
 
 export function createApp() {
@@ -19,6 +20,7 @@ export function createApp() {
   app.use('/api/users', usersRouter)
   app.use('/api/groups', groupsRouter)
   app.use('/api/groups/:groupId/profiles', profilesRouter)
+  app.use('/api/groups/:groupId/profiles/:profileId/medications', medicationsRouter)
 
   return app
 }
