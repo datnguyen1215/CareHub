@@ -7,6 +7,7 @@ import { attachments, careProfiles, profileShares, events, journalEntries } from
 import { requireAuth } from '../middleware/auth'
 import { getStorageService } from '../services/storage'
 import { logger } from '../services/logger'
+import { queueAttachmentProcessing } from '../services/attachment-processor'
 
 export const attachmentsRouter = Router({ mergeParams: true })
 
@@ -188,6 +189,9 @@ attachmentsRouter.post(
             category: category as AttachmentCategory,
           })
           .returning()
+
+        // Queue OCR and AI processing in background — doesn't block response
+        queueAttachmentProcessing(attachment.id)
 
         res.status(201).json(attachment)
       } catch (uploadErr: unknown) {
