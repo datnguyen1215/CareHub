@@ -84,6 +84,10 @@ export function listGroups() {
 	return request<Group[]>('GET', '/groups');
 }
 
+export function updateGroup(groupId: string, data: { name: string }) {
+	return request<Group>('PATCH', `/groups/${groupId}`, data);
+}
+
 // Care Profiles
 
 export interface CareProfile {

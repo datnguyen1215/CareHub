@@ -1,10 +1,8 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
-	import { listGroups, logout } from '$lib/api';
+	import { listGroups, updateGroup, logout } from '$lib/api';
 	import { getErrorMessage, isRetryable } from '$lib/error-utils';
-
-	const API_BASE = import.meta.env.VITE_API_URL ?? '';
 
 	interface Group {
 		id: string;
@@ -55,20 +53,7 @@
 		loading = true;
 
 		try {
-			const res = await fetch(`${API_BASE}/api/groups/${activeGroupId}`, {
-				method: 'PATCH',
-				headers: { 'Content-Type': 'application/json' },
-				credentials: 'include',
-				body: JSON.stringify({ name: groupName })
-			});
-
-			if (!res.ok) {
-				const data = await res.json();
-				saveError = data.error ?? 'Failed to save';
-				return;
-			}
-
-			const updated: Group = await res.json();
+			const updated = await updateGroup(activeGroupId, { name: groupName });
 			groups = groups.map((g) => (g.id === updated.id ? updated : g));
 			saveSuccess = true;
 		} catch (err: unknown) {

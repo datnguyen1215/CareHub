@@ -2,10 +2,7 @@
  * Utility functions for handling and displaying user-friendly error messages.
  */
 
-export interface ApiError {
-	message: string;
-	status: number;
-}
+import type { ApiError } from './api';
 
 /**
  * Converts an API error into a user-friendly message with actionable guidance.
@@ -28,6 +25,11 @@ export function getErrorMessage(err: unknown, context: string): string {
 		return `Could not find the requested ${context}. It may have been deleted.`;
 	}
 
+	// Handle client errors with custom message (before generic 5xx check)
+	if (apiErr?.message && apiErr?.status && apiErr.status >= 400 && apiErr.status < 500) {
+		return `Could not ${context}: ${apiErr.message}`;
+	}
+
 	// Handle server errors
 	if (apiErr?.status && apiErr.status >= 500) {
 		return `Server error while trying to ${context}. Please try again in a few moments.`;
@@ -36,11 +38,6 @@ export function getErrorMessage(err: unknown, context: string): string {
 	// Handle network/connection errors (no status code)
 	if (!apiErr?.status) {
 		return `Could not ${context}. Check your internet connection and try again.`;
-	}
-
-	// Handle client errors with custom message
-	if (apiErr?.message) {
-		return `Could not ${context}: ${apiErr.message}`;
 	}
 
 	// Fallback
