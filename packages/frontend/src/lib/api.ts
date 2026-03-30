@@ -82,6 +82,7 @@ export interface CareProfile {
 	date_of_birth: string | null;
 	relationship: string | null;
 	conditions: string[];
+	medication_count?: number;
 	created_at: string;
 	updated_at: string;
 }

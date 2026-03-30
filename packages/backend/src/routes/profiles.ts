@@ -1,8 +1,8 @@
 /** Care Profile routes — CRUD for profiles owned by users. */
 import { Router, Request, Response } from 'express'
-import { eq, and } from 'drizzle-orm'
+import { eq, and, sql } from 'drizzle-orm'
 import { db } from '../db'
-import { careProfiles, profileShares } from '@carehub/shared'
+import { careProfiles, profileShares, medications } from '@carehub/shared'
 import { requireAuth } from '../middleware/auth'
 import { logger } from '../services/logger'
 
@@ -96,17 +96,58 @@ profilesRouter.get('/', requireAuth, async (req: Request, res: Response): Promis
   try {
     const userId = req.user!.userId
 
-    // Get profiles user owns
+    // Subquery for medication count (only active medications)
+    const medicationCountSubquery = db
+      .select({
+        care_profile_id: medications.care_profile_id,
+        count: sql<number>`count(*)::int`.as('count'),
+      })
+      .from(medications)
+      .where(eq(medications.status, 'active'))
+      .groupBy(medications.care_profile_id)
+      .as('med_counts')
+
+    // Get profiles user owns with medication count
     const ownedProfiles = await db
-      .select()
+      .select({
+        id: careProfiles.id,
+        user_id: careProfiles.user_id,
+        name: careProfiles.name,
+        avatar_url: careProfiles.avatar_url,
+        date_of_birth: careProfiles.date_of_birth,
+        relationship: careProfiles.relationship,
+        conditions: careProfiles.conditions,
+        created_at: careProfiles.created_at,
+        updated_at: careProfiles.updated_at,
+        medication_count: sql<number>`coalesce(${medicationCountSubquery.count}, 0)`.as(
+          'medication_count'
+        ),
+      })
       .from(careProfiles)
+      .leftJoin(medicationCountSubquery, eq(careProfiles.id, medicationCountSubquery.care_profile_id))
       .where(eq(careProfiles.user_id, userId))
 
-    // Get profiles shared with user
+    // Get profiles shared with user with medication count
     const sharedRows = await db
-      .select({ profile: careProfiles })
+      .select({
+        profile: {
+          id: careProfiles.id,
+          user_id: careProfiles.user_id,
+          name: careProfiles.name,
+          avatar_url: careProfiles.avatar_url,
+          date_of_birth: careProfiles.date_of_birth,
+          relationship: careProfiles.relationship,
+          conditions: careProfiles.conditions,
+          created_at: careProfiles.created_at,
+          updated_at: careProfiles.updated_at,
+          medication_count: sql<number>`coalesce(${medicationCountSubquery.count}, 0)`.as(
+            'medication_count'
+          ),
+        },
+      })
       .from(profileShares)
       .innerJoin(careProfiles, eq(profileShares.profile_id, careProfiles.id))
+      .leftJoin(medicationCountSubquery, eq(careProfiles.id, medicationCountSubquery.care_profile_id))
       .where(eq(profileShares.user_id, userId))
 
     const sharedProfiles = sharedRows.map((r) => r.profile)
