@@ -566,7 +566,7 @@
 		if (!profile) return;
 		await deleteProfile(profile.id);
 		toast.destructive('Profile deleted');
-		goto('/');
+		goto('/profiles');
 	}
 </script>
 
@@ -575,9 +575,9 @@
 	<div class="max-w-2xl mx-auto flex items-center justify-between px-unit-2 h-14">
 		<!-- Back arrow -->
 		<button
-			onclick={() => goto('/')}
+			onclick={() => goto('/profiles')}
 			class="w-11 h-11 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors"
-			aria-label="Back to dashboard"
+			aria-label="Back to profiles"
 		>
 			<svg
 				xmlns="http://www.w3.org/2000/svg"

@@ -13,10 +13,10 @@ Step-by-step workflows for core tasks. Wireframe references point to files in `d
 3. Receive 6-digit OTP via email (`designs/01b-otp-verify.svg`)
 4. Enter OTP to verify; JWT cookie is set on success
 5. Prompted to enter first and last name (`designs/01c-account-setup.svg`)
-6. On submit: profile is saved, a default group named "My Family" is created automatically (no user prompt), welcome toast displays "Welcome to CareHub!", and the user is redirected to `/`
-7. Add first care profile: enter name, relationship, date of birth, photo
+6. On submit: profile is saved, a default group named "My Family" is created automatically (no user prompt), welcome toast displays "Welcome to CareHub!", and the user is redirected to `/` (calendar view)
+7. Navigate to Profiles tab to add first care profile: enter name, relationship, date of birth, photo
 8. Fill in initial health info: known conditions, current medications, notes
-9. Land on home dashboard with the new profile card (`designs/02-home-dashboard.svg`)
+9. Profile card appears on the profiles page (`designs/02-home-dashboard.svg`)
 
 ---
 
@@ -26,15 +26,15 @@ Step-by-step workflows for core tasks. Wireframe references point to files in `d
 
 ### Create a profile
 
-1. From the home dashboard, tap "Add Profile"
-2. A modal dialog opens over the dashboard
+1. From the profiles page (`/profiles`), tap "Add Profile"
+2. A modal dialog opens over the profiles page
 3. Fill in the form: Name (required), Date of Birth (optional date picker), Relationship (optional text — e.g., grandmother, father), Conditions (optional comma-separated tags)
-4. Tap Save; the new profile card appears on the dashboard immediately
+4. Tap Save; the new profile card appears on the profiles page immediately
 5. Success toast displays: "[Name] created"
 
 ### Edit a profile
 
-From the home dashboard:
+From the profiles page:
 
 1. On any profile card, tap "Edit"
 2. The same modal opens pre-filled with existing values
@@ -50,9 +50,9 @@ From the profile detail page (`/profiles/:id`):
 
 ### Delete a profile
 
-1. On any profile card on the home dashboard, tap "Delete"
+1. On any profile card on the profiles page, tap "Delete"
 2. A confirmation dialog opens: "Are you sure you want to remove [name]?"
-3. Tap the danger-red Delete button to confirm; profile card is removed from the dashboard
+3. Tap the danger-red Delete button to confirm; profile card is removed from the profiles page
 4. Destructive toast displays: "Profile deleted"
 
 ---
@@ -61,7 +61,7 @@ From the profile detail page (`/profiles/:id`):
 
 **Actor:** Caretaker (Admin)
 
-1. From home dashboard, tap a profile card (`designs/02-home-dashboard.svg`)
+1. From the profiles page, tap a profile card (`designs/02-home-dashboard.svg`)
 2. Profile detail opens (`designs/03-profile-detail.svg`)
 3. Tap the Medications tab (`designs/04-medications.svg`)
 4. Tap "Add Medication" button
@@ -118,7 +118,7 @@ From the profile detail page (`/profiles/:id`):
 
 **Actor:** Caretaker (Admin or Viewer)
 
-1. From home dashboard, tap the grandparent's profile card
+1. From the profiles page, tap the grandparent's profile card
 2. On profile detail page, tap "Call Tablet" button
 3. Portal requests microphone and camera permissions (first time only)
 4. WebRTC signaling initiates; call request sent to tablet via WebSocket (or FCM if WebSocket is disconnected)
@@ -170,8 +170,8 @@ From the profile detail page (`/profiles/:id`):
 4. Select role: Viewer (read-only access)
 5. Tap Send Invite
 6. System sends email invitation with a login link
-7. New user navigates to login, enters email, completes OTP verification, and lands on the home dashboard
-8. Viewer sees all household profiles in read-only mode
+7. New user navigates to login, enters email, completes OTP verification, and lands on the calendar view
+8. Viewer can navigate to Profiles tab to see all household profiles in read-only mode
 
 ---
 
@@ -193,7 +193,7 @@ From the profile detail page (`/profiles/:id`):
 
 **Actor:** Caretaker (Admin)
 
-1. From home dashboard, tap a profile card (`designs/02-home-dashboard.svg`)
+1. From the profiles page, tap a profile card (`designs/02-home-dashboard.svg`)
 2. Profile detail opens with 4 tabs: Overview, Meds, Calendar, Journal (`designs/03-profile-detail.svg`)
 3. Tap the Journal tab (`designs/06-journal-entry.svg`)
 4. Tap "+ Add" button

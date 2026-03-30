@@ -2,8 +2,8 @@
 	import { page } from '$app/stores';
 
 	const tabs = [
-		{ href: '/', label: 'Home', icon: 'home' },
-		{ href: '/calendar', label: 'Calendar', icon: 'calendar' },
+		{ href: '/', label: 'Calendar', icon: 'calendar' },
+		{ href: '/profiles', label: 'Profiles', icon: 'profiles' },
 		{ href: '/devices', label: 'Devices', icon: 'devices' },
 		{ href: '/settings', label: 'Settings', icon: 'settings' }
 	] as const;
@@ -23,22 +23,7 @@
 					{isActive(tab.href) ? 'text-primary' : 'text-text-secondary hover:text-text-primary'}"
 				aria-current={isActive(tab.href) ? 'page' : undefined}
 			>
-				{#if tab.icon === 'home'}
-					<svg
-						xmlns="http://www.w3.org/2000/svg"
-						viewBox="0 0 24 24"
-						fill="currentColor"
-						class="w-6 h-6"
-						aria-hidden="true"
-					>
-						<path
-							d="M11.47 3.841a.75.75 0 0 1 1.06 0l8.69 8.69a.75.75 0 1 0 1.06-1.061l-8.689-8.69a2.25 2.25 0 0 0-3.182 0l-8.69 8.69a.75.75 0 1 0 1.061 1.06l8.69-8.689Z"
-						/>
-						<path
-							d="m12 5.432 8.159 8.159c.03.03.06.058.091.086v6.198c0 1.035-.84 1.875-1.875 1.875H15a.75.75 0 0 1-.75-.75v-4.5a.75.75 0 0 0-.75-.75h-3a.75.75 0 0 0-.75.75V21a.75.75 0 0 1-.75.75H5.625a1.875 1.875 0 0 1-1.875-1.875v-6.198a2.29 2.29 0 0 0 .091-.086L12 5.432Z"
-						/>
-					</svg>
-				{:else if tab.icon === 'calendar'}
+				{#if tab.icon === 'calendar'}
 					<svg
 						xmlns="http://www.w3.org/2000/svg"
 						viewBox="0 0 24 24"
@@ -55,7 +40,7 @@
 							clip-rule="evenodd"
 						/>
 					</svg>
-				{:else if tab.icon === 'devices'}
+				{:else if tab.icon === 'profiles'}
 					<svg
 						xmlns="http://www.w3.org/2000/svg"
 						viewBox="0 0 24 24"
@@ -64,8 +49,20 @@
 						aria-hidden="true"
 					>
 						<path
-							d="M10.5 18.75a.75.75 0 0 0 0 1.5h3a.75.75 0 0 0 0-1.5h-3Z"
+							fill-rule="evenodd"
+							d="M8.25 6.75a3.75 3.75 0 1 1 7.5 0 3.75 3.75 0 0 1-7.5 0ZM15.75 9.75a3 3 0 1 1 6 0 3 3 0 0 1-6 0ZM2.25 9.75a3 3 0 1 1 6 0 3 3 0 0 1-6 0ZM6.31 15.117A6.745 6.745 0 0 1 12 12a6.745 6.745 0 0 1 6.709 7.498.75.75 0 0 1-1.49-.156 5.25 5.25 0 0 0-10.438 0 .75.75 0 0 1-1.49.157 6.745 6.745 0 0 1 .019-.482ZM19.5 13.875a.75.75 0 0 1 .75.75v1.875h1.875a.75.75 0 0 1 0 1.5H20.25v1.875a.75.75 0 0 1-1.5 0V18h-1.875a.75.75 0 0 1 0-1.5h1.875v-1.875a.75.75 0 0 1 .75-.75Z"
+							clip-rule="evenodd"
 						/>
+					</svg>
+				{:else if tab.icon === 'devices'}
+					<svg
+						xmlns="http://www.w3.org/2000/svg"
+						viewBox="0 0 24 24"
+						fill="currentColor"
+						class="w-6 h-6"
+						aria-hidden="true"
+					>
+						<path d="M10.5 18.75a.75.75 0 0 0 0 1.5h3a.75.75 0 0 0 0-1.5h-3Z" />
 						<path
 							fill-rule="evenodd"
 							d="M6.75 2.25A.75.75 0 0 1 7.5 3v1.5h9V3A.75.75 0 0 1 18 3v1.5h.75a3 3 0 0 1 3 3v11.25a3 3 0 0 1-3 3H5.25a3 3 0 0 1-3-3V7.5a3 3 0 0 1 3-3H6V3a.75.75 0 0 1 .75-.75Zm13.5 9a1.5 1.5 0 0 0-1.5-1.5H5.25a1.5 1.5 0 0 0-1.5 1.5v7.5a1.5 1.5 0 0 0 1.5 1.5h13.5a1.5 1.5 0 0 0 1.5-1.5v-7.5Z"
