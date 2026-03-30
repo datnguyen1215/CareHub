@@ -67,8 +67,9 @@
 
 	async function handleDeleteConfirm() {
 		if (!groupId || !deleteModalProfile) return;
-		await deleteProfile(groupId, deleteModalProfile.id);
-		profiles = profiles.filter((p) => p.id !== deleteModalProfile?.id);
+		const profileId = deleteModalProfile.id;
+		await deleteProfile(groupId, profileId);
+		profiles = profiles.filter((p) => p.id !== profileId);
 		closeDeleteModal();
 	}
 
@@ -152,7 +153,9 @@
 									</span>
 								{/each}
 								{#if profile.conditions.length > 3}
-									<span class="text-xs text-text-secondary">+{profile.conditions.length - 3} more</span>
+									<span class="text-xs text-text-secondary"
+										>+{profile.conditions.length - 3} more</span
+									>
 								{/if}
 							</div>
 						{/if}
