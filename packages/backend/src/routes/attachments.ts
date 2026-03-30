@@ -1,7 +1,7 @@
 /** Attachment routes — CRUD for file attachments linked to events or journal entries. */
 import { Router, Request, Response, NextFunction } from 'express'
 import multer, { MulterError } from 'multer'
-import { eq, and, desc } from 'drizzle-orm'
+import { eq, and, desc, or, sql } from 'drizzle-orm'
 import { db } from '../db'
 import { attachments, careProfiles, profileShares, events, journalEntries } from '@carehub/shared'
 import { requireAuth } from '../middleware/auth'
@@ -203,7 +203,7 @@ attachmentsRouter.post(
 )
 
 // GET /api/profiles/:profileId/attachments
-// List attachments with optional filters
+// List attachments with optional filters and search
 attachmentsRouter.get('/', requireAuth, async (req: Request, res: Response): Promise<void> => {
   try {
     const profileId = req.params['profileId'] as string
@@ -211,6 +211,8 @@ attachmentsRouter.get('/', requireAuth, async (req: Request, res: Response): Pro
     const journalId = req.query['journal_id'] as string | undefined
     const category = req.query['category'] as string | undefined
     const limit = req.query['limit'] ? parseInt(req.query['limit'] as string, 10) : undefined
+    const offset = req.query['offset'] ? parseInt(req.query['offset'] as string, 10) : undefined
+    const search = req.query['search'] as string | undefined
 
     const profile = await canAccessProfile(req.user!.userId, profileId)
     if (!profile) {
@@ -233,6 +235,17 @@ attachmentsRouter.get('/', requireAuth, async (req: Request, res: Response): Pro
       conditions.push(eq(attachments.category, category as AttachmentCategory))
     }
 
+    // Add search filter for description and ocr_text
+    if (search && search.trim()) {
+      const searchQuery = search.trim()
+      conditions.push(
+        or(
+          sql`to_tsvector('english', coalesce(${attachments.description}, '')) @@ plainto_tsquery('english', ${searchQuery})`,
+          sql`to_tsvector('english', coalesce(${attachments.ocr_text}, '')) @@ plainto_tsquery('english', ${searchQuery})`
+        )!
+      )
+    }
+
     let query = db
       .select()
       .from(attachments)
@@ -241,6 +254,10 @@ attachmentsRouter.get('/', requireAuth, async (req: Request, res: Response): Pro
 
     if (limit && limit > 0) {
       query = query.limit(limit) as typeof query
+    }
+
+    if (offset && offset > 0) {
+      query = query.offset(offset) as typeof query
     }
 
     const rows = await query
