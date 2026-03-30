@@ -427,6 +427,7 @@
 		// Re-fetch all events to properly update overview upcoming events (not limited to calendar window)
 		await refreshUpcomingEvents();
 
+		toast.success(editingEvent ? 'Event updated' : 'Event added');
 		closeEventModal();
 	}
 
@@ -890,7 +891,10 @@
 			{:else if medications.length === 0 && !showDiscontinued}
 				<!-- Empty state -->
 				<div class="card text-center py-unit-4">
-					<p class="text-text-secondary mb-unit-2">Track daily medications, dosages, and schedules. Add the first medication to get started.</p>
+					<p class="text-text-secondary mb-unit-2">
+						Track daily medications, dosages, and schedules. Add the first medication to get
+						started.
+					</p>
 					<button
 						onclick={openCreateMed}
 						class="bg-primary text-white rounded-card px-unit-3 py-2 font-semibold text-base
