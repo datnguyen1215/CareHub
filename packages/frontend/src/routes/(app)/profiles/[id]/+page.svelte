@@ -316,6 +316,22 @@
 		}
 	}
 
+	// Re-fetch all events (without date range) to update overview's upcoming events
+	async function refreshUpcomingEvents() {
+		if (!groupId) return;
+		try {
+			const allEvents = await listEvents(groupId, profileId);
+			const now = new Date();
+			now.setHours(0, 0, 0, 0);
+			upcomingEvents = allEvents
+				.filter((e) => new Date(e.event_date) >= now)
+				.sort((a, b) => new Date(a.event_date).getTime() - new Date(b.event_date).getTime())
+				.slice(0, 3);
+		} catch (err) {
+			console.error('Failed to refresh upcoming events', err);
+		}
+	}
+
 	function prevMonth() {
 		currentDate = new Date(currentYear, currentMonth - 1, 1);
 		loadCalendarEvents();
@@ -359,13 +375,8 @@
 			calendarEvents = [...calendarEvents, created];
 		}
 
-		// Also refresh the overview upcoming events
-		const now = new Date();
-		now.setHours(0, 0, 0, 0);
-		upcomingEvents = calendarEvents
-			.filter((e) => new Date(e.event_date) >= now)
-			.sort((a, b) => new Date(a.event_date).getTime() - new Date(b.event_date).getTime())
-			.slice(0, 3);
+		// Re-fetch all events to properly update overview upcoming events (not limited to calendar window)
+		await refreshUpcomingEvents();
 
 		closeEventModal();
 	}
@@ -385,13 +396,8 @@
 			await deleteEvent(groupId, profileId, eventToDelete.id);
 			calendarEvents = calendarEvents.filter((e) => e.id !== eventToDelete.id);
 
-			// Refresh overview upcoming events
-			const now = new Date();
-			now.setHours(0, 0, 0, 0);
-			upcomingEvents = calendarEvents
-				.filter((e) => new Date(e.event_date) >= now)
-				.sort((a, b) => new Date(a.event_date).getTime() - new Date(b.event_date).getTime())
-				.slice(0, 3);
+			// Re-fetch all events to properly update overview upcoming events (not limited to calendar window)
+			await refreshUpcomingEvents();
 
 			closeDeleteEventModal();
 		} catch (err) {
@@ -841,7 +847,8 @@
 						{#each calendarDays as { date, isCurrentMonth }}
 							{@const dayEvents = getEventsForDate(date)}
 							{@const isToday = date.toDateString() === new Date().toDateString() && isCurrentMonth}
-							{@const isSelected = selectedDate && date.toDateString() === selectedDate.toDateString()}
+							{@const isSelected =
+								selectedDate && date.toDateString() === selectedDate.toDateString()}
 							<button
 								onclick={() => selectCalendarDate(date)}
 								class="aspect-square p-1 rounded-card text-sm transition-colors relative
@@ -892,7 +899,9 @@
 														{getEventTypeLabel(event.event_type)}
 													</span>
 												</div>
-												<p class="text-sm text-text-secondary">{formatEventTime(event.event_date)}</p>
+												<p class="text-sm text-text-secondary">
+													{formatEventTime(event.event_date)}
+												</p>
 												{#if event.location}
 													<p class="text-sm text-text-secondary">{event.location}</p>
 												{/if}
