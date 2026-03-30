@@ -886,7 +886,7 @@
 			{:else if medications.length === 0 && !showDiscontinued}
 				<!-- Empty state -->
 				<div class="card text-center py-unit-4">
-					<p class="text-text-secondary mb-unit-2">No medications added yet</p>
+					<p class="text-text-secondary mb-unit-2">Track daily medications, dosages, and schedules. Add the first medication to get started.</p>
 					<button
 						onclick={openCreateMed}
 						class="bg-primary text-white rounded-card px-unit-3 py-2 font-semibold text-base

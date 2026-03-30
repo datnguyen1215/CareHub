@@ -140,7 +140,7 @@
 			{#if searchQuery.trim()}
 				<p class="text-text-secondary mb-unit-2">No entries match your search</p>
 			{:else}
-				<p class="text-text-secondary mb-unit-2">No journal entries yet</p>
+				<p class="text-text-secondary mb-unit-2">Record doctor visit notes, symptoms, or observations. Entries can link to calendar events.</p>
 				<button
 					onclick={onAddClick}
 					class="bg-primary text-white rounded-card px-unit-3 py-2 font-semibold text-base
