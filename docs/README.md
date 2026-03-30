@@ -19,7 +19,7 @@ Managing health care for multiple elderly family members involves tracking medic
 - Medication tracking with schedules and status
 - Calendar for appointments and doctor visits
 - Journal entries and visit notes
-- Document storage with AI-powered OCR and search
+- Attachment storage with AI-powered OCR and search
 - Android tablet kiosk app (Capacitor) with elderly-friendly UI and lock task mode
 - QR-based tablet pairing
 - WebRTC video calling with native phone-style incoming call experience

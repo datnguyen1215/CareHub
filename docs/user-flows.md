@@ -168,17 +168,17 @@ From the profile detail page (`/profiles/:id`):
 
 ---
 
-## 10. Searching Documents
+## 10. Searching Attachments
 
 **Actor:** Caretaker (Admin or Viewer)
 
 1. Navigate to a profile's Documents tab (`designs/07-documents.svg`)
 2. Tap the search bar
 3. Type a search term (e.g., "cholesterol")
-4. PostgreSQL full-text search queries the OCR-extracted text across all documents for this profile
-5. Results display matching documents with highlighted excerpts
-6. Tap a result to view the full document (`designs/08-document-detail.svg`)
-7. Original image and extracted text displayed side by side
+4. PostgreSQL full-text search queries the OCR-extracted text across all attachments for this profile
+5. Results display matching attachments with highlighted excerpts and parent context (linked journal or event, if any)
+6. Tap a result to view the full attachment detail (`designs/08-document-detail.svg`)
+7. Original image and extracted text displayed side by side, with link to parent journal entry or event if applicable
 
 ---
 

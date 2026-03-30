@@ -103,8 +103,8 @@ All wireframes are in the `designs/` directory.
 | `06-journal-entry.svg`        | Journal Tab           | Journal entries list with search, sort, and starred entries                             |
 | `06b-journal-detail.svg`      | Journal Entry Detail  | Full entry view with key takeaways section and linked event navigation                  |
 | `06c-journal-modal.svg`       | Journal Entry Modal   | Add/edit modal with title, date, event linking, key takeaways, and notes                |
-| `07-documents.svg`            | Documents             | Document grid with categories, search bar, and upload button                            |
-| `08-document-detail.svg`      | Document Detail       | Original image alongside extracted OCR text and metadata                                |
+| `07-documents.svg`            | Documents Tab         | Search/browse view across all profile attachments with categories and filters           |
+| `08-document-detail.svg`      | Attachment Detail     | Original image alongside extracted OCR text, description, and parent context link       |
 | `09-devices.svg`              | Devices               | List of paired tablets with status, battery, and last seen                              |
 | `10-pair-tablet.svg`          | Pair Tablet           | QR scanning interface for pairing a new tablet                                          |
 | `11-tablet-home.svg`          | Tablet Home (Kiosk)   | Large caretaker cards, today's schedule, greeting                                       |
