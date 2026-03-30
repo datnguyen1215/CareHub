@@ -1,5 +1,7 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import type { CareProfile, CreateProfileInput } from './api';
+	import { createFocusTrap } from './focusTrap';
 
 	interface Props {
 		groupId: string;
@@ -16,6 +18,7 @@
 	let conditionsRaw = $state('');
 	let error = $state('');
 	let loading = $state(false);
+	let modalElement: HTMLElement;
 
 	const isEdit = $derived(!!profile);
 
@@ -24,6 +27,11 @@
 		dateOfBirth = profile?.date_of_birth ?? '';
 		relationship = profile?.relationship ?? '';
 		conditionsRaw = (profile?.conditions ?? []).join(', ');
+	});
+
+	onMount(() => {
+		const cleanup = createFocusTrap(modalElement, onClose);
+		return cleanup;
 	});
 
 	async function handleSubmit(e: SubmitEvent) {
@@ -63,11 +71,11 @@
 
 <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 <div
+	bind:this={modalElement}
 	class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-unit-2"
 	role="dialog"
 	aria-modal="true"
 	aria-labelledby="modal-title"
-	tabindex="-1"
 	onmousedown={handleBackdropClick}
 >
 	<div class="card w-full max-w-md">

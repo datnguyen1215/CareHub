@@ -1,5 +1,7 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import type { Medication, CreateMedicationInput } from './api';
+	import { createFocusTrap } from './focusTrap';
 
 	interface Props {
 		medication?: Medication | null;
@@ -20,8 +22,14 @@
 	let status = $state<'active' | 'discontinued'>(medication?.status ?? 'active');
 	let error = $state('');
 	let loading = $state(false);
+	let modalElement: HTMLElement;
 
 	const isEdit = $derived(!!medication);
+
+	onMount(() => {
+		const cleanup = createFocusTrap(modalElement, onClose);
+		return cleanup;
+	});
 
 	function toggleSchedule(option: ScheduleOption) {
 		const next = new Set(selectedSchedule);
@@ -70,6 +78,7 @@
 
 <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 <div
+	bind:this={modalElement}
 	class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-unit-2"
 	role="dialog"
 	aria-modal="true"
