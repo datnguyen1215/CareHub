@@ -1,9 +1,8 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
-	import { listGroups, logout } from '$lib/api';
-
-	const API_BASE = import.meta.env.VITE_API_URL ?? '';
+	import { listGroups, updateGroup, logout } from '$lib/api';
+	import { getErrorMessage, isRetryable } from '$lib/error-utils';
 
 	interface Group {
 		id: string;
@@ -20,8 +19,12 @@
 	let loading = $state(false);
 	let logoutLoading = $state(false);
 	let logoutError = $state('');
+	let canRetry = $state(false);
 
-	onMount(async () => {
+	async function loadData() {
+		loadError = '';
+		canRetry = false;
+
 		try {
 			groups = await listGroups();
 			if (groups.length > 0) {
@@ -34,8 +37,13 @@
 				goto('/login');
 				return;
 			}
-			loadError = 'Failed to load groups';
+			loadError = getErrorMessage(err, 'load settings');
+			canRetry = isRetryable(err);
 		}
+	}
+
+	onMount(() => {
+		loadData();
 	});
 
 	async function handleSave(e: SubmitEvent) {
@@ -45,20 +53,7 @@
 		loading = true;
 
 		try {
-			const res = await fetch(`${API_BASE}/api/groups/${activeGroupId}`, {
-				method: 'PATCH',
-				headers: { 'Content-Type': 'application/json' },
-				credentials: 'include',
-				body: JSON.stringify({ name: groupName })
-			});
-
-			if (!res.ok) {
-				const data = await res.json();
-				saveError = data.error ?? 'Failed to save';
-				return;
-			}
-
-			const updated: Group = await res.json();
+			const updated = await updateGroup(activeGroupId, { name: groupName });
 			groups = groups.map((g) => (g.id === updated.id ? updated : g));
 			saveSuccess = true;
 		} catch (err: unknown) {
@@ -67,7 +62,7 @@
 				goto('/login');
 				return;
 			}
-			saveError = 'Something went wrong. Please try again.';
+			saveError = getErrorMessage(err, 'save group name');
 		} finally {
 			loading = false;
 		}
@@ -81,7 +76,7 @@
 			await logout();
 			goto('/login');
 		} catch (err: unknown) {
-			logoutError = 'Failed to logout. Please try again.';
+			logoutError = getErrorMessage(err, 'log out');
 		} finally {
 			logoutLoading = false;
 		}
@@ -93,7 +88,15 @@
 
 	{#if loadError}
 		<div class="card">
-			<p class="text-danger">{loadError}</p>
+			<p class="text-danger text-sm mb-unit-2">{loadError}</p>
+			{#if canRetry}
+				<button
+					onclick={loadData}
+					class="bg-primary text-white rounded-card px-unit-3 py-1.5 text-sm font-semibold hover:bg-blue-600 transition-colors"
+				>
+					Retry
+				</button>
+			{/if}
 		</div>
 	{:else if groups.length === 0}
 		<div class="card">

@@ -14,6 +14,7 @@
 		type CreateProfileInput,
 		type CreateMedicationInput
 	} from '$lib/api';
+	import { getErrorMessage, isRetryable } from '$lib/error-utils';
 	import ProfileModal from '$lib/ProfileModal.svelte';
 	import MedicationModal from '$lib/MedicationModal.svelte';
 
@@ -27,17 +28,23 @@
 	let loading = $state(true);
 	let showDiscontinued = $state(false);
 	let loadingMeds = $state(false);
+	let canRetry = $state(false);
+	let medError = $state('');
 
 	let activeTab = $state<'overview' | 'meds'>('overview');
 	let showEditModal = $state(false);
 	let showMedModal = $state(false);
 	let editingMedication = $state<Medication | null>(null);
 
-	onMount(async () => {
+	async function loadData() {
+		loading = true;
+		loadError = '';
+		canRetry = false;
+
 		try {
 			const groups = await listGroups();
 			if (groups.length === 0) {
-				loadError = 'No group found.';
+				loadError = 'No group found. Please complete setup first.';
 				return;
 			}
 			groupId = groups[0].id;
@@ -54,10 +61,15 @@
 				goto('/login');
 				return;
 			}
-			loadError = 'Failed to load profile.';
+			loadError = getErrorMessage(err, 'load profile');
+			canRetry = isRetryable(err);
 		} finally {
 			loading = false;
 		}
+	}
+
+	onMount(() => {
+		loadData();
 	});
 
 	function formatDate(iso: string): string {
@@ -76,6 +88,7 @@
 		if (!groupId) return;
 		showDiscontinued = !showDiscontinued;
 		loadingMeds = true;
+		medError = '';
 		try {
 			medications = await listMedications(groupId, profileId, showDiscontinued);
 		} catch (err: unknown) {
@@ -84,7 +97,9 @@
 				goto('/login');
 				return;
 			}
-			// keep current list on error
+			medError = getErrorMessage(err, 'load medications');
+			// Revert toggle state on error
+			showDiscontinued = !showDiscontinued;
 		} finally {
 			loadingMeds = false;
 		}
@@ -222,7 +237,15 @@
 		<p class="text-text-secondary text-sm">Loading…</p>
 	{:else if loadError}
 		<div class="card">
-			<p class="text-danger text-sm">{loadError}</p>
+			<p class="text-danger text-sm mb-unit-2">{loadError}</p>
+			{#if canRetry}
+				<button
+					onclick={loadData}
+					class="bg-primary text-white rounded-card px-unit-3 py-1.5 text-sm font-semibold hover:bg-blue-600 transition-colors"
+				>
+					Retry
+				</button>
+			{/if}
 		</div>
 	{:else if activeTab === 'overview' && profile}
 		<!-- Overview Tab -->
@@ -300,6 +323,12 @@
 					+ Add Medication
 				</button>
 			</div>
+
+			{#if medError}
+				<div class="card mb-unit-2">
+					<p class="text-danger text-sm">{medError}</p>
+				</div>
+			{/if}
 
 			{#if loadingMeds}
 				<p class="text-text-secondary text-sm">Loading medications…</p>

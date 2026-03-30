@@ -9,6 +9,7 @@
 		type CareProfile,
 		type CreateProfileInput
 	} from '$lib/api';
+	import { getErrorMessage, isRetryable } from '$lib/error-utils';
 	import ProfileModal from '$lib/ProfileModal.svelte';
 	import DeleteConfirmModal from '$lib/DeleteConfirmModal.svelte';
 
@@ -16,11 +17,16 @@
 	let profiles = $state<CareProfile[]>([]);
 	let loadError = $state('');
 	let loading = $state(true);
+	let canRetry = $state(false);
 
 	let showProfileModal = $state(false);
 	let deleteModalProfile = $state<CareProfile | null>(null);
 
-	onMount(async () => {
+	async function loadData() {
+		loading = true;
+		loadError = '';
+		canRetry = false;
+
 		try {
 			const groups = await listGroups();
 			if (groups.length === 0) {
@@ -35,10 +41,15 @@
 				goto('/login');
 				return;
 			}
-			loadError = 'Failed to load profiles.';
+			loadError = getErrorMessage(err, 'load profiles');
+			canRetry = isRetryable(err);
 		} finally {
 			loading = false;
 		}
+	}
+
+	onMount(() => {
+		loadData();
 	});
 
 	function openCreate() {
@@ -96,7 +107,15 @@
 		<p class="text-text-secondary text-sm">Loading…</p>
 	{:else if loadError}
 		<div class="card">
-			<p class="text-danger text-sm">{loadError}</p>
+			<p class="text-danger text-sm mb-unit-2">{loadError}</p>
+			{#if canRetry}
+				<button
+					onclick={loadData}
+					class="bg-primary text-white rounded-card px-unit-3 py-1.5 text-sm font-semibold hover:bg-blue-600 transition-colors"
+				>
+					Retry
+				</button>
+			{/if}
 		</div>
 	{:else if profiles.length === 0}
 		<div class="card text-center py-unit-4">
