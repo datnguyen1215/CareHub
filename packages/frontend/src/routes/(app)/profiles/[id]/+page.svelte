@@ -15,6 +15,7 @@
 		createJournalEntry,
 		updateJournalEntry,
 		uploadFile,
+		listAttachments,
 		type CareProfile,
 		type Medication,
 		type Event as ApiEvent,
@@ -32,6 +33,7 @@
 	import JournalTab from '$lib/JournalTab.svelte';
 	import JournalEntryModal from '$lib/JournalEntryModal.svelte';
 	import JournalEntryDetail from '$lib/JournalEntryDetail.svelte';
+	import EventDetail from '$lib/EventDetail.svelte';
 
 	const profileId = $derived($page.params.id ?? '');
 
@@ -65,6 +67,10 @@
 	let editingEvent = $state<ApiEvent | null>(null);
 	let deleteModalEvent = $state<ApiEvent | null>(null);
 	let calendarLoading = $state(false);
+	let viewingEventId = $state<string | null>(null);
+
+	// Track which events have attachments (event_id -> count)
+	let eventAttachmentCounts = $state<Record<string, number>>({});
 
 	// Calendar computed values
 	const currentYear = $derived(currentDate.getFullYear());
@@ -290,11 +296,40 @@
 
 		try {
 			calendarEvents = await listEvents(profileId, start.toISOString(), end.toISOString());
+			// Fetch attachment counts for all loaded events
+			await loadEventAttachmentCounts(calendarEvents.map((e) => e.id));
 		} catch (err) {
 			console.error('Failed to load calendar events', err);
 		} finally {
 			calendarLoading = false;
 		}
+	}
+
+	async function loadEventAttachmentCounts(eventIds: string[]) {
+		// Fetch all attachments for this profile and count by event_id
+		try {
+			const attachments = await listAttachments(profileId);
+			const counts: Record<string, number> = {};
+			for (const attachment of attachments) {
+				if (attachment.event_id && eventIds.includes(attachment.event_id)) {
+					counts[attachment.event_id] = (counts[attachment.event_id] ?? 0) + 1;
+				}
+			}
+			// Merge new counts with existing, preserving counts for events not in eventIds
+			eventAttachmentCounts = { ...eventAttachmentCounts, ...counts };
+			// Set count to 0 for requested events that have no attachments
+			for (const id of eventIds) {
+				if (!(id in counts)) {
+					eventAttachmentCounts[id] = 0;
+				}
+			}
+		} catch (err) {
+			console.error('Failed to load attachment counts', err);
+		}
+	}
+
+	function hasAttachments(eventId: string): boolean {
+		return (eventAttachmentCounts[eventId] ?? 0) > 0;
 	}
 
 	// Re-fetch all events (without date range) to update overview's upcoming events
@@ -336,12 +371,35 @@
 
 	function openEditEvent(event: ApiEvent) {
 		editingEvent = event;
+		viewingEventId = null;
 		showEventModal = true;
+	}
+
+	function openEventDetail(event: ApiEvent) {
+		viewingEventId = event.id;
 	}
 
 	function closeEventModal() {
 		showEventModal = false;
 		editingEvent = null;
+	}
+
+	function handleEventEditFromDetail(event: ApiEvent) {
+		viewingEventId = null;
+		openEditEvent(event);
+	}
+
+	async function handleEventDeleted() {
+		if (!viewingEventId) return;
+		// Remove from calendar events
+		calendarEvents = calendarEvents.filter((e) => e.id !== viewingEventId);
+		// Also remove from attachment counts
+		const newCounts = { ...eventAttachmentCounts };
+		delete newCounts[viewingEventId];
+		eventAttachmentCounts = newCounts;
+		viewingEventId = null;
+		// Refresh upcoming events for overview
+		await refreshUpcomingEvents();
 	}
 
 	async function handleEventSave(data: CreateEventInput) {
@@ -987,16 +1045,22 @@
 						{:else}
 							<div class="flex flex-col gap-2">
 								{#each selectedDateEvents as event}
-									<div class="border border-gray-200 rounded-card p-3">
+									<button
+										onclick={() => openEventDetail(event)}
+										class="border border-gray-200 rounded-card p-3 text-left hover:bg-gray-50 transition-colors w-full"
+									>
 										<div class="flex items-start justify-between">
 											<div class="flex-1">
-												<div class="flex items-center gap-2 mb-1">
+												<div class="flex items-center gap-2 mb-1 flex-wrap">
 													<h5 class="font-semibold text-text-primary">{event.title}</h5>
 													<span
 														class="text-xs bg-blue-50 text-primary rounded-full px-2 py-0.5 border border-blue-100"
 													>
 														{getEventTypeLabel(event.event_type)}
 													</span>
+													{#if hasAttachments(event.id)}
+														<span class="text-gray-400" title="Has attachments">📎</span>
+													{/if}
 												</div>
 												<p class="text-sm text-text-secondary">
 													{formatEventTime(event.event_date)}
@@ -1005,50 +1069,23 @@
 													<p class="text-sm text-text-secondary">{event.location}</p>
 												{/if}
 												{#if event.notes}
-													<p class="text-sm text-text-secondary mt-1">{event.notes}</p>
+													<p class="text-sm text-text-secondary mt-1 line-clamp-2">{event.notes}</p>
 												{/if}
 											</div>
-											<div class="flex gap-1">
-												<button
-													onclick={() => openEditEvent(event)}
-													class="p-1.5 hover:bg-gray-100 rounded transition-colors"
-													aria-label="Edit event"
-												>
-													<svg
-														xmlns="http://www.w3.org/2000/svg"
-														viewBox="0 0 20 20"
-														fill="currentColor"
-														class="w-4 h-4 text-gray-600"
-													>
-														<path
-															d="m5.433 13.917 1.262-3.155A4 4 0 0 1 7.58 9.42l6.92-6.918a2.121 2.121 0 0 1 3 3l-6.92 6.918c-.383.383-.84.685-1.343.886l-3.154 1.262a.5.5 0 0 1-.65-.65Z"
-														/>
-														<path
-															d="M3.5 5.75c0-.69.56-1.25 1.25-1.25H10A.75.75 0 0 0 10 3H4.75A2.75 2.75 0 0 0 2 5.75v9.5A2.75 2.75 0 0 0 4.75 18h9.5A2.75 2.75 0 0 0 17 15.25V10a.75.75 0 0 0-1.5 0v5.25c0 .69-.56 1.25-1.25 1.25h-9.5c-.69 0-1.25-.56-1.25-1.25v-9.5Z"
-														/>
-													</svg>
-												</button>
-												<button
-													onclick={() => openDeleteEventModal(event)}
-													class="p-1.5 hover:bg-gray-100 rounded transition-colors"
-													aria-label="Delete event"
-												>
-													<svg
-														xmlns="http://www.w3.org/2000/svg"
-														viewBox="0 0 20 20"
-														fill="currentColor"
-														class="w-4 h-4 text-gray-600"
-													>
-														<path
-															fill-rule="evenodd"
-															d="M8.75 1A2.75 2.75 0 0 0 6 3.75v.443c-.795.077-1.584.176-2.365.298a.75.75 0 1 0 .23 1.482l.149-.022.841 10.518A2.75 2.75 0 0 0 7.596 19h4.807a2.75 2.75 0 0 0 2.742-2.53l.841-10.52.149.023a.75.75 0 0 0 .23-1.482A41.03 41.03 0 0 0 14 4.193V3.75A2.75 2.75 0 0 0 11.25 1h-2.5ZM10 4c.84 0 1.673.025 2.5.075V3.75c0-.69-.56-1.25-1.25-1.25h-2.5c-.69 0-1.25.56-1.25 1.25v.325C8.327 4.025 9.16 4 10 4ZM8.58 7.72a.75.75 0 0 0-1.5.06l.3 7.5a.75.75 0 1 0 1.5-.06l-.3-7.5Zm4.34.06a.75.75 0 1 0-1.5-.06l-.3 7.5a.75.75 0 1 0 1.5.06l.3-7.5Z"
-															clip-rule="evenodd"
-														/>
-													</svg>
-												</button>
-											</div>
+											<svg
+												xmlns="http://www.w3.org/2000/svg"
+												viewBox="0 0 20 20"
+												fill="currentColor"
+												class="w-5 h-5 text-gray-400 flex-shrink-0"
+											>
+												<path
+													fill-rule="evenodd"
+													d="M8.22 5.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.75.75 0 0 1-1.06-1.06L11.94 10 8.22 6.28a.75.75 0 0 1 0-1.06Z"
+													clip-rule="evenodd"
+												/>
+											</svg>
 										</div>
-									</div>
+									</button>
 								{/each}
 							</div>
 						{/if}
@@ -1066,19 +1103,22 @@
 								<button
 									onclick={() => {
 										selectedDate = new Date(event.event_date);
-										openEditEvent(event);
+										openEventDetail(event);
 									}}
 									class="border border-gray-200 rounded-card p-3 text-left hover:bg-gray-50 transition-colors"
 								>
 									<div class="flex items-start justify-between">
 										<div class="flex-1">
-											<div class="flex items-center gap-2 mb-1">
+											<div class="flex items-center gap-2 mb-1 flex-wrap">
 												<h5 class="font-semibold text-text-primary">{event.title}</h5>
 												<span
 													class="text-xs bg-blue-50 text-primary rounded-full px-2 py-0.5 border border-blue-100"
 												>
 													{getEventTypeLabel(event.event_type)}
 												</span>
+												{#if hasAttachments(event.id)}
+													<span class="text-gray-400" title="Has attachments">📎</span>
+												{/if}
 											</div>
 											<p class="text-sm text-text-secondary">
 												{formatEventDate(event.event_date)} at {formatEventTime(event.event_date)}
@@ -1147,5 +1187,20 @@
 		name={deleteModalEvent.title}
 		onConfirm={handleDeleteEventConfirm}
 		onClose={closeDeleteEventModal}
+	/>
+{/if}
+
+{#if viewingEventId}
+	<EventDetail
+		{profileId}
+		eventId={viewingEventId}
+		onClose={async () => {
+			if (viewingEventId) {
+				await loadEventAttachmentCounts([viewingEventId]);
+			}
+			viewingEventId = null;
+		}}
+		onEdit={handleEventEditFromDetail}
+		onDeleted={handleEventDeleted}
 	/>
 {/if}
