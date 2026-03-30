@@ -12,7 +12,7 @@ import { fileURLToPath } from 'url'
 import { env } from '../src/config/env.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
-const migrationsFolder = path.join(__dirname, '../src/db/migrations')
+const migrationsFolder = path.join(__dirname, '../../shared/migrations')
 
 let migrationPool: Pool | null = null
 

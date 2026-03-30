@@ -291,3 +291,104 @@ export async function uploadFile(file: File): Promise<string> {
 	const data = (await res.json()) as UploadResponse;
 	return data.url;
 }
+
+// Attachments
+
+export type AttachmentCategory =
+	| 'lab_result'
+	| 'prescription'
+	| 'insurance'
+	| 'billing'
+	| 'imaging'
+	| 'other';
+
+export interface Attachment {
+	id: string;
+	profile_id: string;
+	event_id: string | null;
+	journal_id: string | null;
+	file_url: string;
+	description: string | null;
+	ocr_text: string | null;
+	category: AttachmentCategory;
+	created_at: string;
+	updated_at: string;
+}
+
+export interface AttachmentFilters {
+	event_id?: string;
+	journal_id?: string;
+	category?: AttachmentCategory;
+	limit?: number;
+}
+
+export interface UpdateAttachmentInput {
+	description?: string | null;
+	category?: AttachmentCategory;
+}
+
+/** Uploads a file and creates an attachment linked to an event or journal entry */
+export async function uploadAttachment(
+	profileId: string,
+	file: File,
+	category: AttachmentCategory,
+	options: { event_id?: string; journal_id?: string; description?: string }
+): Promise<Attachment> {
+	const formData = new FormData();
+	formData.append('file', file);
+	formData.append('category', category);
+	if (options.event_id) formData.append('event_id', options.event_id);
+	if (options.journal_id) formData.append('journal_id', options.journal_id);
+	if (options.description) formData.append('description', options.description);
+
+	const res = await fetch(`/api/profiles/${profileId}/attachments`, {
+		method: 'POST',
+		body: formData,
+		credentials: 'include'
+	});
+
+	if (!res.ok) {
+		let message = `Upload failed (${res.status})`;
+		try {
+			const data = await res.json();
+			if (data?.message) message = data.message;
+			else if (data?.error) message = data.error;
+		} catch {
+			// ignore parse errors
+		}
+		const err: ApiError = { message, status: res.status };
+		throw err;
+	}
+
+	return res.json() as Promise<Attachment>;
+}
+
+/** Lists attachments for a profile with optional filters */
+export function listAttachments(profileId: string, filters?: AttachmentFilters) {
+	const params = [];
+	if (filters?.event_id) params.push(`event_id=${encodeURIComponent(filters.event_id)}`);
+	if (filters?.journal_id) params.push(`journal_id=${encodeURIComponent(filters.journal_id)}`);
+	if (filters?.category) params.push(`category=${encodeURIComponent(filters.category)}`);
+	if (filters?.limit) params.push(`limit=${filters.limit}`);
+	const qs = params.length > 0 ? `?${params.join('&')}` : '';
+	return request<Attachment[]>('GET', `/profiles/${profileId}/attachments${qs}`);
+}
+
+/** Gets a single attachment by ID */
+export function getAttachment(profileId: string, attachmentId: string) {
+	return request<Attachment>('GET', `/profiles/${profileId}/attachments/${attachmentId}`);
+}
+
+/** Updates attachment metadata (description, category) */
+export function updateAttachment(
+	profileId: string,
+	attachmentId: string,
+	data: UpdateAttachmentInput
+) {
+	return request<Attachment>('PATCH', `/profiles/${profileId}/attachments/${attachmentId}`, data);
+}
+
+/** Deletes an attachment and its file */
+export function deleteAttachment(profileId: string, attachmentId: string) {
+	return request<void>('DELETE', `/profiles/${profileId}/attachments/${attachmentId}`);
+}

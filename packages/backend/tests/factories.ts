@@ -3,7 +3,15 @@
  * These replace the mock chain helpers with real database inserts.
  */
 import { db } from '../src/db'
-import { users, careProfiles, profileShares, medications } from '@carehub/shared'
+import {
+  users,
+  careProfiles,
+  profileShares,
+  medications,
+  events,
+  journalEntries,
+  attachments,
+} from '@carehub/shared'
 
 /**
  * Create a user in the test database.
@@ -60,4 +68,54 @@ export async function createMedication(data: {
 }) {
   const [medication] = await db.insert(medications).values(data).returning()
   return medication
+}
+
+/**
+ * Create an event in the test database.
+ */
+export async function createEvent(data: {
+  id?: string
+  care_profile_id: string
+  title: string
+  event_type: 'doctor_visit' | 'lab_work' | 'therapy' | 'general'
+  event_date: Date | string
+  location?: string | null
+  notes?: string | null
+}) {
+  const [event] = await db.insert(events).values(data).returning()
+  return event
+}
+
+/**
+ * Create a journal entry in the test database.
+ */
+export async function createJournalEntry(data: {
+  id?: string
+  care_profile_id: string
+  title: string
+  content: string
+  entry_date: string
+  key_takeaways?: string | null
+  linked_event_id?: string | null
+  starred?: boolean
+}) {
+  const [entry] = await db.insert(journalEntries).values(data).returning()
+  return entry
+}
+
+/**
+ * Create an attachment in the test database.
+ */
+export async function createAttachment(data: {
+  id?: string
+  profile_id: string
+  event_id?: string | null
+  journal_id?: string | null
+  file_url: string
+  description?: string | null
+  ocr_text?: string | null
+  category: 'lab_result' | 'prescription' | 'insurance' | 'billing' | 'imaging' | 'other'
+}) {
+  const [attachment] = await db.insert(attachments).values(data).returning()
+  return attachment
 }
