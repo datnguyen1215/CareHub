@@ -1,6 +1,6 @@
 /** File upload routes — handles avatar and other image uploads. */
-import { Router, Request, Response } from 'express'
-import multer from 'multer'
+import { Router, Request, Response, NextFunction } from 'express'
+import multer, { MulterError } from 'multer'
 import { requireAuth } from '../middleware/auth'
 import { getStorageService } from '../services/storage'
 import { logger } from '../services/logger'
@@ -24,33 +24,44 @@ const upload = multer({
 })
 
 // POST /api/upload
-uploadRouter.post(
-  '/',
-  requireAuth,
-  upload.single('file'),
-  async (req: Request, res: Response): Promise<void> => {
-    try {
-      if (!req.file) {
-        res.status(400).json({ error: 'No file provided' })
+// Use callback-style multer invocation to properly catch multer errors
+uploadRouter.post('/', requireAuth, (req: Request, res: Response, next: NextFunction): void => {
+  upload.single('file')(req, res, async (err: unknown) => {
+    // Handle multer errors (file size, file type, etc.)
+    if (err) {
+      if (err instanceof MulterError) {
+        if (err.code === 'LIMIT_FILE_SIZE') {
+          res.status(400).json({ error: 'File too large. Maximum size is 5MB.' })
+          return
+        }
+        res.status(400).json({ error: err.message })
         return
       }
+      // Handle custom errors from fileFilter
+      const filterErr = err as Error
+      if (filterErr.message?.includes('Invalid file type')) {
+        res.status(400).json({ error: filterErr.message })
+        return
+      }
+      logger.error({ err }, 'POST /upload multer error')
+      res.status(500).json({ error: 'Failed to process file upload' })
+      return
+    }
 
+    // Handle missing file
+    if (!req.file) {
+      res.status(400).json({ error: 'No file provided' })
+      return
+    }
+
+    // Upload to storage service
+    try {
       const storage = getStorageService()
       const url = await storage.upload(req.file.buffer, req.file.originalname, req.file.mimetype)
-
       res.json({ url })
-    } catch (err: unknown) {
-      const multerErr = err as { message?: string; code?: string }
-      if (multerErr.code === 'LIMIT_FILE_SIZE') {
-        res.status(400).json({ error: 'File too large. Maximum size is 5MB.' })
-        return
-      }
-      if (multerErr.message?.includes('Invalid file type')) {
-        res.status(400).json({ error: multerErr.message })
-        return
-      }
-      logger.error({ err }, 'POST /upload error')
+    } catch (uploadErr: unknown) {
+      logger.error({ err: uploadErr }, 'POST /upload storage error')
       res.status(500).json({ error: 'Failed to upload file' })
     }
-  }
-)
+  })
+})

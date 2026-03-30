@@ -228,6 +228,7 @@
 
 	// Avatar upload state
 	let avatarUploading = $state(false);
+	let avatarError = $state('');
 	let avatarFileInput: HTMLInputElement;
 
 	function getInitial(name: string): string {
@@ -236,6 +237,7 @@
 
 	function handleAvatarClick() {
 		if (!avatarUploading) {
+			avatarError = '';
 			avatarFileInput?.click();
 		}
 	}
@@ -245,14 +247,20 @@
 		const file = input.files?.[0];
 		if (!file || !groupId || !profile) return;
 
+		avatarError = '';
+
 		// Validate file type
 		const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
 		if (!allowedTypes.includes(file.type)) {
+			avatarError = 'Invalid file type. Only JPEG, PNG, GIF, and WebP are allowed.';
+			input.value = '';
 			return;
 		}
 
 		// Validate file size (5MB)
 		if (file.size > 5 * 1024 * 1024) {
+			avatarError = 'File too large. Maximum size is 5MB.';
+			input.value = '';
 			return;
 		}
 
@@ -261,8 +269,8 @@
 			const url = await uploadFile(file);
 			const updated = await updateProfile(groupId, profile.id, { avatar_url: url });
 			profile = updated;
-		} catch {
-			// Silently fail - user can try again
+		} catch (err: unknown) {
+			avatarError = getErrorMessage(err, 'upload photo');
 		} finally {
 			avatarUploading = false;
 			input.value = '';
@@ -448,6 +456,9 @@
 					{/if}
 				</div>
 			</button>
+			{#if avatarError}
+				<p class="text-danger text-sm mt-unit-1 text-center">{avatarError}</p>
+			{/if}
 			<h2 class="text-h2 font-semibold text-text-primary mt-unit-2">{profile.name}</h2>
 			{#if profile.relationship}
 				<p class="text-text-secondary capitalize">{profile.relationship}</p>
