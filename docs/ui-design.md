@@ -53,7 +53,7 @@ Styles are implemented with Tailwind CSS within the SvelteKit frontend package. 
 
 ### Navigation -- Portal
 
-- **Bottom navigation bar** with three items: Home, Devices, Settings
+- **Bottom navigation bar** with four items: Calendar, Profiles, Devices, Settings
 - Active tab highlighted with primary color
 - Icons with labels below
 
