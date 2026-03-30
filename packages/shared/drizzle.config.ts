@@ -5,6 +5,6 @@ export default {
   out: './migrations',
   dialect: 'postgresql',
   dbCredentials: {
-    url: process.env.DATABASE_URL ?? 'postgresql://carehub:carehub_dev@localhost:5432/carehub',
+    url: process.env.DATABASE_URL ?? 'postgresql://carehub:carehub_dev@localhost:9392/carehub',
   },
 } satisfies Config
