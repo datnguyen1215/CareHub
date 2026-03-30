@@ -315,6 +315,29 @@ export interface Attachment {
 	updated_at: string;
 }
 
+/** Checks if an attachment is still processing (OCR/AI not complete) */
+export function isAttachmentProcessing(attachment: Attachment): boolean {
+	// Processing is considered complete when ocr_text has been set (even if null on failure)
+	// or if the file type doesn't support OCR (non-image/pdf)
+	const isImage = /\.(jpg|jpeg|png|gif|webp|pdf)$/i.test(attachment.file_url);
+	if (!isImage) return false;
+
+	// If created recently (within 5 minutes) and no ocr_text, likely still processing
+	const createdAt = new Date(attachment.created_at);
+	const now = new Date();
+	const ageMs = now.getTime() - createdAt.getTime();
+	const fiveMinutes = 5 * 60 * 1000;
+
+	// If older than 5 minutes without OCR, assume processing failed silently
+	if (ageMs > fiveMinutes) return false;
+
+	// Check if updated after creation (indicates processing complete)
+	const updatedAt = new Date(attachment.updated_at);
+	const processedAfterCreation = updatedAt.getTime() > createdAt.getTime() + 1000; // 1s buffer
+
+	return !processedAfterCreation;
+}
+
 export interface AttachmentFilters {
 	event_id?: string;
 	journal_id?: string;

@@ -43,6 +43,15 @@ export const env = {
     'LOG_FORMAT',
     optionalEnv('NODE_ENV', 'development') === 'development' ? 'pretty' : 'json'
   ),
+
+  // OCR Configuration
+  OCR_PROVIDER: optionalEnv('OCR_PROVIDER', 'tesseract'), // 'google' or 'tesseract'
+  // GOOGLE_APPLICATION_CREDENTIALS is read directly by @google-cloud/vision
+
+  // AI Configuration
+  AI_PROVIDER: optionalEnv('AI_PROVIDER', 'fallback'), // 'openai', 'anthropic', or 'fallback'
+  OPENAI_API_KEY: optionalEnv('OPENAI_API_KEY', ''),
+  ANTHROPIC_API_KEY: optionalEnv('ANTHROPIC_API_KEY', ''),
 } as const
 
 export type Env = typeof env
