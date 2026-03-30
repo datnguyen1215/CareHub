@@ -67,8 +67,12 @@
 	let showEventModal = $state(false);
 	let editingEvent = $state<ApiEvent | null>(null);
 	let deleteModalEvent = $state<ApiEvent | null>(null);
-	let calendarLoading = $state(false);
+	let calendarState = $state<'idle' | 'loading' | 'loaded'>('idle');
+	let loadedMonthKey = $state<string | null>(null);
 	let viewingEventId = $state<string | null>(null);
+
+	// Derive calendarLoading for UI display
+	const calendarLoading = $derived(calendarState === 'loading');
 
 	// Track which events have attachments (event_id -> count)
 	let eventAttachmentCounts = $state<Record<string, number>>({});
@@ -76,6 +80,7 @@
 	// Calendar computed values
 	const currentYear = $derived(currentDate.getFullYear());
 	const currentMonth = $derived(currentDate.getMonth());
+	const currentMonthKey = $derived(`${currentYear}-${currentMonth}`);
 
 	const monthName = $derived(
 		new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric' }).format(currentDate)
@@ -290,7 +295,10 @@
 
 	// Calendar functions
 	async function loadCalendarEvents() {
-		calendarLoading = true;
+		// Guard: prevent concurrent fetches
+		if (calendarState === 'loading') return;
+
+		calendarState = 'loading';
 
 		const start = new Date(currentYear, currentMonth - 1, 1);
 		const end = new Date(currentYear, currentMonth + 2, 0);
@@ -299,10 +307,11 @@
 			calendarEvents = await listEvents(profileId, start.toISOString(), end.toISOString());
 			// Fetch attachment counts for all loaded events
 			await loadEventAttachmentCounts(calendarEvents.map((e) => e.id));
+			loadedMonthKey = currentMonthKey;
 		} catch (err) {
 			console.error('Failed to load calendar events', err);
 		} finally {
-			calendarLoading = false;
+			calendarState = 'loaded';
 		}
 	}
 
@@ -350,12 +359,10 @@
 
 	function prevMonth() {
 		currentDate = new Date(currentYear, currentMonth - 1, 1);
-		loadCalendarEvents();
 	}
 
 	function nextMonth() {
 		currentDate = new Date(currentYear, currentMonth + 1, 1);
-		loadCalendarEvents();
 	}
 
 	function selectCalendarDate(date: Date) {
@@ -470,9 +477,9 @@
 		return labels[type] ?? type;
 	}
 
-	// Load calendar events when switching to calendar tab
+	// Load calendar events when switching to calendar tab or changing months
 	$effect(() => {
-		if (activeTab === 'calendar' && calendarEvents.length === 0) {
+		if (activeTab === 'calendar' && loadedMonthKey !== currentMonthKey) {
 			loadCalendarEvents();
 		}
 	});
