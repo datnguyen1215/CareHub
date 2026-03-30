@@ -3,7 +3,7 @@ import request from 'supertest'
 import { createApp } from '../src/app'
 import { makeAuthCookie } from './utils'
 import { truncateAll } from './helpers/truncate'
-import { createUser, createProfile, createProfileShare } from './factories'
+import { createUser, createProfile, createProfileShare, createMedication } from './factories'
 import { db } from '../src/db'
 import { careProfiles } from '@carehub/shared'
 import { eq } from 'drizzle-orm'
@@ -129,6 +129,48 @@ describe('GET /api/profiles', () => {
     expect(res.body.map((p: { id: string }) => p.id).sort()).toEqual(
       [ownedProfile.id, sharedProfile.id].sort()
     )
+  })
+
+  it('returns medication_count for each profile', async () => {
+    const user = await createUser({ email: 'med-count@example.com' })
+    const profile1 = await createProfile({ user_id: user.id, name: 'Profile With Meds' })
+    const profile2 = await createProfile({ user_id: user.id, name: 'Profile No Meds' })
+
+    // Add active medications to profile1
+    await createMedication({ care_profile_id: profile1.id, name: 'Med A', status: 'active' })
+    await createMedication({ care_profile_id: profile1.id, name: 'Med B', status: 'active' })
+    // Add discontinued medication (should not count)
+    await createMedication({ care_profile_id: profile1.id, name: 'Med C', status: 'discontinued' })
+
+    const res = await request(app)
+      .get('/api/profiles')
+      .set('Cookie', makeAuthCookie(user.id, user.email))
+
+    expect(res.status).toBe(200)
+    expect(res.body).toHaveLength(2)
+
+    const p1 = res.body.find((p: { id: string }) => p.id === profile1.id)
+    const p2 = res.body.find((p: { id: string }) => p.id === profile2.id)
+
+    expect(p1.medication_count).toBe(2) // Only active medications
+    expect(p2.medication_count).toBe(0)
+  })
+
+  it('returns medication_count for shared profiles', async () => {
+    const owner = await createUser({ email: 'shared-med-owner@example.com' })
+    const viewer = await createUser({ email: 'shared-med-viewer@example.com' })
+
+    const sharedProfile = await createProfile({ user_id: owner.id, name: 'Shared Med Profile' })
+    await createProfileShare({ profile_id: sharedProfile.id, user_id: viewer.id, role: 'viewer' })
+    await createMedication({ care_profile_id: sharedProfile.id, name: 'Shared Med', status: 'active' })
+
+    const res = await request(app)
+      .get('/api/profiles')
+      .set('Cookie', makeAuthCookie(viewer.id, viewer.email))
+
+    expect(res.status).toBe(200)
+    const profile = res.body.find((p: { id: string }) => p.id === sharedProfile.id)
+    expect(profile.medication_count).toBe(1)
   })
 })
 

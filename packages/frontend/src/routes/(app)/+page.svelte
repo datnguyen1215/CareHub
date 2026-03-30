@@ -50,11 +50,6 @@
 		closeProfileModal();
 	}
 
-	function activeMedCount(_profile: CareProfile): number {
-		// Placeholder — medication count will be wired when medications feature is added.
-		return 0;
-	}
-
 	function getInitial(name: string): string {
 		return name.charAt(0).toUpperCase();
 	}
@@ -165,9 +160,13 @@
 
 					<!-- Medication count -->
 					<p class="text-xs text-text-secondary mt-auto pt-1">
-						{activeMedCount(profile) === 0
-							? 'No medications'
-							: `${activeMedCount(profile)} medication${activeMedCount(profile) === 1 ? '' : 's'}`}
+						{#if !profile.medication_count}
+							No medications
+						{:else if profile.medication_count === 1}
+							1 medication
+						{:else}
+							{profile.medication_count} medications
+						{/if}
 					</p>
 				</button>
 			{/each}
