@@ -315,7 +315,14 @@
 					counts[attachment.event_id] = (counts[attachment.event_id] ?? 0) + 1;
 				}
 			}
-			eventAttachmentCounts = counts;
+			// Merge new counts with existing, preserving counts for events not in eventIds
+			eventAttachmentCounts = { ...eventAttachmentCounts, ...counts };
+			// Set count to 0 for requested events that have no attachments
+			for (const id of eventIds) {
+				if (!(id in counts)) {
+					eventAttachmentCounts[id] = 0;
+				}
+			}
 		} catch (err) {
 			console.error('Failed to load attachment counts', err);
 		}
@@ -1187,7 +1194,12 @@
 	<EventDetail
 		{profileId}
 		eventId={viewingEventId}
-		onClose={() => (viewingEventId = null)}
+		onClose={async () => {
+			if (viewingEventId) {
+				await loadEventAttachmentCounts([viewingEventId]);
+			}
+			viewingEventId = null;
+		}}
 		onEdit={handleEventEditFromDetail}
 		onDeleted={handleEventDeleted}
 	/>
