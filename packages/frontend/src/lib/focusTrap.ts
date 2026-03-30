@@ -33,18 +33,31 @@ export function createFocusTrap(modalElement: HTMLElement, onClose: () => void):
 		// Tab key for focus trapping
 		if (e.key === 'Tab') {
 			const focusableElements = getFocusableElements();
-			if (focusableElements.length === 0) return;
+
+			// If no focusable elements, prevent Tab from escaping modal
+			if (focusableElements.length === 0) {
+				e.preventDefault();
+				return;
+			}
 
 			const firstElement = focusableElements[0];
 			const lastElement = focusableElements[focusableElements.length - 1];
+			const activeElement = document.activeElement;
+
+			// If focus has escaped the modal, bring it back to first element
+			if (!modalElement.contains(activeElement)) {
+				e.preventDefault();
+				firstElement.focus();
+				return;
+			}
 
 			// Shift+Tab on first element: wrap to last
-			if (e.shiftKey && document.activeElement === firstElement) {
+			if (e.shiftKey && activeElement === firstElement) {
 				e.preventDefault();
 				lastElement.focus();
 			}
 			// Tab on last element: wrap to first
-			else if (!e.shiftKey && document.activeElement === lastElement) {
+			else if (!e.shiftKey && activeElement === lastElement) {
 				e.preventDefault();
 				firstElement.focus();
 			}
