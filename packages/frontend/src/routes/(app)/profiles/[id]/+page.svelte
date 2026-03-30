@@ -34,6 +34,7 @@
 	import JournalEntryModal from '$lib/JournalEntryModal.svelte';
 	import JournalEntryDetail from '$lib/JournalEntryDetail.svelte';
 	import EventDetail from '$lib/EventDetail.svelte';
+	import DocumentsTab from '$lib/DocumentsTab.svelte';
 
 	const profileId = $derived($page.params.id ?? '');
 
@@ -48,7 +49,7 @@
 	let canRetry = $state(false);
 	let medError = $state('');
 
-	let activeTab = $state<'overview' | 'meds' | 'calendar' | 'journal'>('overview');
+	let activeTab = $state<'overview' | 'meds' | 'calendar' | 'journal' | 'documents'>('overview');
 	let showEditModal = $state(false);
 	let showMedModal = $state(false);
 	let editingMedication = $state<Medication | null>(null);
@@ -634,6 +635,15 @@
 		>
 			Journal
 		</button>
+		<button
+			onclick={() => (activeTab = 'documents')}
+			class="flex-1 py-3 min-h-[44px] text-sm font-semibold transition-colors
+				{activeTab === 'documents'
+				? 'text-primary border-b-2 border-primary'
+				: 'text-text-secondary hover:text-text-primary'}"
+		>
+			Docs
+		</button>
 	</div>
 </div>
 
@@ -1144,6 +1154,19 @@
 				onAddClick={openCreateJournal}
 			/>
 		{/key}
+	{:else if activeTab === 'documents' && profile}
+		<!-- Documents Tab -->
+		<DocumentsTab
+			{profileId}
+			onNavigateToJournal={(journalId) => {
+				viewingJournalEntryId = journalId;
+				activeTab = 'journal';
+			}}
+			onNavigateToEvent={(eventId) => {
+				viewingEventId = eventId;
+				activeTab = 'calendar';
+			}}
+		/>
 	{/if}
 </div>
 

@@ -344,6 +344,7 @@ export interface AttachmentFilters {
 	journal_id?: string;
 	category?: AttachmentCategory;
 	limit?: number;
+	search?: string;
 }
 
 export interface UpdateAttachmentInput {
@@ -394,6 +395,7 @@ export function listAttachments(profileId: string, filters?: AttachmentFilters) 
 	if (filters?.journal_id) params.push(`journal_id=${encodeURIComponent(filters.journal_id)}`);
 	if (filters?.category) params.push(`category=${encodeURIComponent(filters.category)}`);
 	if (filters?.limit) params.push(`limit=${filters.limit}`);
+	if (filters?.search) params.push(`search=${encodeURIComponent(filters.search)}`);
 	const qs = params.length > 0 ? `?${params.join('&')}` : '';
 	return request<Attachment[]>('GET', `/profiles/${profileId}/attachments${qs}`);
 }
