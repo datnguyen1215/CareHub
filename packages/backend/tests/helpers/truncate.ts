@@ -17,6 +17,9 @@ export async function truncateAll(): Promise<void> {
       care_profiles,
       profile_shares,
       medications,
+      events,
+      journal_entries,
+      attachments,
       otps
     CASCADE
   `)

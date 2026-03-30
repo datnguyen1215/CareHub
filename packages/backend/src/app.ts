@@ -9,6 +9,7 @@ import { profilesRouter } from './routes/profiles'
 import { medicationsRouter } from './routes/medications'
 import { eventsRouter } from './routes/events'
 import { journalRouter } from './routes/journal'
+import { attachmentsRouter } from './routes/attachments'
 import { uploadRouter } from './routes/upload'
 import healthRouter from './routes/health'
 import { logger } from './services/logger'
@@ -44,6 +45,7 @@ export function createApp() {
   app.use('/api/profiles/:profileId/medications', medicationsRouter)
   app.use('/api/profiles/:profileId/events', eventsRouter)
   app.use('/api/profiles/:profileId/journal', journalRouter)
+  app.use('/api/profiles/:profileId/attachments', attachmentsRouter)
 
   return app
 }

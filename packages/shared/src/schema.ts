@@ -20,6 +20,14 @@ export const eventTypeEnum = pgEnum('event_type', [
   'general',
 ])
 export const profileShareRoleEnum = pgEnum('profile_share_role', ['admin', 'viewer'])
+export const attachmentCategoryEnum = pgEnum('attachment_category', [
+  'lab_result',
+  'prescription',
+  'insurance',
+  'billing',
+  'imaging',
+  'other',
+])
 
 // Users
 export const users = pgTable('users', {
@@ -114,6 +122,30 @@ export const journalEntries = pgTable(
   (table) => ({
     profileIdx: index('journal_entries_profile_idx').on(table.care_profile_id),
     entryDateIdx: index('journal_entries_date_idx').on(table.entry_date),
+  })
+)
+
+// Attachments
+export const attachments = pgTable(
+  'attachments',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    profile_id: uuid('profile_id')
+      .notNull()
+      .references(() => careProfiles.id, { onDelete: 'cascade' }),
+    event_id: uuid('event_id').references(() => events.id, { onDelete: 'cascade' }),
+    journal_id: uuid('journal_id').references(() => journalEntries.id, { onDelete: 'cascade' }),
+    file_url: varchar('file_url').notNull(),
+    description: text('description'),
+    ocr_text: text('ocr_text'),
+    category: attachmentCategoryEnum('category').notNull(),
+    created_at: timestamp('created_at').defaultNow().notNull(),
+    updated_at: timestamp('updated_at').defaultNow().notNull(),
+  },
+  (table) => ({
+    profileIdx: index('attachments_profile_idx').on(table.profile_id),
+    eventIdx: index('attachments_event_idx').on(table.event_id),
+    journalIdx: index('attachments_journal_idx').on(table.journal_id),
   })
 )
 
