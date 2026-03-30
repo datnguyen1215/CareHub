@@ -1,7 +1,16 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { getJournalEntry, deleteJournalEntry, type JournalEntry } from './api';
+	import {
+		getJournalEntry,
+		deleteJournalEntry,
+		listAttachments,
+		deleteAttachment,
+		type JournalEntry,
+		type Attachment
+	} from './api';
 	import { createFocusTrap } from './focusTrap';
+	import AttachmentCard from './AttachmentCard.svelte';
+	import AttachmentUpload from './AttachmentUpload.svelte';
 
 	interface Props {
 		profileId: string;
@@ -20,9 +29,15 @@
 	let deleting = $state(false);
 	let modalElement: HTMLElement;
 
+	// Attachments state
+	let attachments = $state<Attachment[]>([]);
+	let attachmentsLoading = $state(false);
+	let attachmentsError = $state('');
+
 	onMount(() => {
 		const cleanup = createFocusTrap(modalElement, onClose);
 		loadEntry();
+		loadAttachments();
 		return cleanup;
 	});
 
@@ -36,6 +51,33 @@
 			error = apiErr?.message ?? 'Failed to load journal entry';
 		} finally {
 			loading = false;
+		}
+	}
+
+	async function loadAttachments() {
+		attachmentsLoading = true;
+		attachmentsError = '';
+		try {
+			attachments = await listAttachments(profileId, { journal_id: entryId });
+		} catch (err: unknown) {
+			const apiErr = err as { message?: string };
+			attachmentsError = apiErr?.message ?? 'Failed to load attachments';
+		} finally {
+			attachmentsLoading = false;
+		}
+	}
+
+	function handleAttachmentUploaded(attachment: Attachment) {
+		attachments = [...attachments, attachment];
+	}
+
+	async function handleDeleteAttachment(attachment: Attachment) {
+		try {
+			await deleteAttachment(profileId, attachment.id);
+			attachments = attachments.filter((a) => a.id !== attachment.id);
+		} catch (err: unknown) {
+			const apiErr = err as { message?: string };
+			attachmentsError = apiErr?.message ?? 'Failed to delete attachment';
 		}
 	}
 
@@ -177,6 +219,34 @@
 					Notes
 				</h3>
 				<div class="text-sm text-text-primary whitespace-pre-wrap">{entry.content}</div>
+			</div>
+
+			<!-- Attachments Section -->
+			<div class="mt-unit-3 pt-unit-3 border-t border-gray-100">
+				<div class="flex items-center justify-between mb-unit-2">
+					<h3 class="text-xs font-semibold text-text-secondary uppercase tracking-wide">
+						Attachments
+					</h3>
+					<AttachmentUpload
+						{profileId}
+						journalId={entryId}
+						onUploaded={handleAttachmentUploaded}
+					/>
+				</div>
+
+				{#if attachmentsLoading}
+					<p class="text-text-secondary text-sm">Loading attachments...</p>
+				{:else if attachmentsError}
+					<p class="text-sm text-danger">{attachmentsError}</p>
+				{:else if attachments.length === 0}
+					<p class="text-text-secondary text-sm">No attachments yet</p>
+				{:else}
+					<div class="grid grid-cols-2 gap-2">
+						{#each attachments as attachment (attachment.id)}
+							<AttachmentCard {attachment} onDelete={handleDeleteAttachment} />
+						{/each}
+					</div>
+				{/if}
 			</div>
 
 			{#if error}
