@@ -20,13 +20,17 @@ function isOCRSupported(fileUrl: string): boolean {
   return OCR_SUPPORTED_TYPES.includes(ext)
 }
 
+// Storage configuration — matches storage service
+const UPLOADS_PATH = process.env.UPLOADS_PATH ?? path.join(process.cwd(), 'uploads')
+const UPLOADS_URL_PREFIX = process.env.UPLOADS_URL_PREFIX ?? '/uploads'
+
 /** Get full file path from URL for local storage */
 function getFilePath(fileUrl: string): string {
-  // fileUrl is like /uploads/uuid.jpg
+  // fileUrl is like /uploads/uuid.jpg (or custom prefix)
   // Full path needs UPLOADS_PATH env var or default
-  const uploadsPath = process.env.UPLOADS_PATH ?? path.join(process.cwd(), 'uploads')
-  const filename = fileUrl.replace('/uploads/', '')
-  return path.join(uploadsPath, filename)
+  const prefix = UPLOADS_URL_PREFIX.endsWith('/') ? UPLOADS_URL_PREFIX : `${UPLOADS_URL_PREFIX}/`
+  const filename = fileUrl.replace(prefix, '')
+  return path.join(UPLOADS_PATH, filename)
 }
 
 /**
@@ -50,7 +54,10 @@ export async function processAttachment(attachmentId: string): Promise<void> {
 
     // Check if OCR is supported for this file type
     if (!isOCRSupported(attachment.file_url)) {
-      logger.debug({ attachmentId, fileUrl: attachment.file_url }, 'File type not supported for OCR')
+      logger.debug(
+        { attachmentId, fileUrl: attachment.file_url },
+        'File type not supported for OCR'
+      )
       return
     }
 
@@ -78,7 +85,10 @@ export async function processAttachment(attachmentId: string): Promise<void> {
         if (!attachment.description) {
           const result = await generateDescription(ocrText)
           description = result.description
-          category = result.category
+          // Only update category if user didn't provide one (default is 'other')
+          if (attachment.category === 'other') {
+            category = result.category
+          }
           logger.info({ attachmentId, category }, 'AI description generated')
         }
       } catch (aiErr) {

@@ -59,7 +59,7 @@ export class OpenAIService implements AIService {
         : 'other'
 
       return {
-        description: parsed.description.slice(0, 500),
+        description: (parsed.description ?? '').slice(0, 500),
         category,
       }
     } catch (err) {

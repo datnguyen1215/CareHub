@@ -43,8 +43,7 @@ export class AnthropicService implements AIService {
         messages: [{ role: 'user', content: `OCR Text:\n${truncatedText}` }],
       })
 
-      const content =
-        response.content[0]?.type === 'text' ? response.content[0].text.trim() : ''
+      const content = response.content[0]?.type === 'text' ? response.content[0].text.trim() : ''
       if (!content) {
         throw new Error('Empty response from Anthropic')
       }
@@ -57,7 +56,7 @@ export class AnthropicService implements AIService {
         : 'other'
 
       return {
-        description: parsed.description.slice(0, 500),
+        description: (parsed.description ?? '').slice(0, 500),
         category,
       }
     } catch (err) {
