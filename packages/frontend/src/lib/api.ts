@@ -213,6 +213,7 @@ export interface JournalEntry {
 	entry_date: string;
 	linked_event_id: string | null;
 	starred: boolean;
+	attachment_count?: number;
 	created_at: string;
 	updated_at: string;
 }

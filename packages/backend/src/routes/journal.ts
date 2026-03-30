@@ -1,8 +1,8 @@
 /** Journal routes — CRUD for journal entries within a care profile. */
 import { Router, Request, Response } from 'express'
-import { eq, and, desc, asc, sql } from 'drizzle-orm'
+import { eq, and, desc, asc, sql, count } from 'drizzle-orm'
 import { db } from '../db'
-import { journalEntries, careProfiles, profileShares, events } from '@carehub/shared'
+import { journalEntries, careProfiles, profileShares, events, attachments } from '@carehub/shared'
 import { requireAuth } from '../middleware/auth'
 import { logger } from '../services/logger'
 
@@ -158,13 +158,37 @@ journalRouter.get('/', requireAuth, async (req: Request, res: Response): Promise
     const orderBy =
       sort === 'oldest' ? asc(journalEntries.entry_date) : desc(journalEntries.entry_date)
 
+    // Use subquery to count attachments for each journal entry
+    const attachmentCountSubquery = db
+      .select({
+        journal_id: attachments.journal_id,
+        attachment_count: count(attachments.id).as('attachment_count'),
+      })
+      .from(attachments)
+      .where(eq(attachments.profile_id, profileId))
+      .groupBy(attachments.journal_id)
+      .as('attachment_counts')
+
     let rows
     if (search && search.trim()) {
       // Full-text search using PostgreSQL to_tsvector and plainto_tsquery
       const searchQuery = search.trim()
       rows = await db
-        .select()
+        .select({
+          id: journalEntries.id,
+          care_profile_id: journalEntries.care_profile_id,
+          title: journalEntries.title,
+          content: journalEntries.content,
+          key_takeaways: journalEntries.key_takeaways,
+          entry_date: journalEntries.entry_date,
+          linked_event_id: journalEntries.linked_event_id,
+          starred: journalEntries.starred,
+          created_at: journalEntries.created_at,
+          updated_at: journalEntries.updated_at,
+          attachment_count: sql<number>`coalesce(${attachmentCountSubquery.attachment_count}, 0)`.mapWith(Number),
+        })
         .from(journalEntries)
+        .leftJoin(attachmentCountSubquery, eq(journalEntries.id, attachmentCountSubquery.journal_id))
         .where(
           and(
             eq(journalEntries.care_profile_id, profileId),
@@ -178,8 +202,21 @@ journalRouter.get('/', requireAuth, async (req: Request, res: Response): Promise
         .orderBy(orderBy)
     } else {
       rows = await db
-        .select()
+        .select({
+          id: journalEntries.id,
+          care_profile_id: journalEntries.care_profile_id,
+          title: journalEntries.title,
+          content: journalEntries.content,
+          key_takeaways: journalEntries.key_takeaways,
+          entry_date: journalEntries.entry_date,
+          linked_event_id: journalEntries.linked_event_id,
+          starred: journalEntries.starred,
+          created_at: journalEntries.created_at,
+          updated_at: journalEntries.updated_at,
+          attachment_count: sql<number>`coalesce(${attachmentCountSubquery.attachment_count}, 0)`.mapWith(Number),
+        })
         .from(journalEntries)
+        .leftJoin(attachmentCountSubquery, eq(journalEntries.id, attachmentCountSubquery.journal_id))
         .where(eq(journalEntries.care_profile_id, profileId))
         .orderBy(orderBy)
     }
