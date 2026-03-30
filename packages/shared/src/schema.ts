@@ -8,6 +8,7 @@ import {
   pgEnum,
   primaryKey,
   index,
+  boolean,
 } from 'drizzle-orm/pg-core'
 
 // Enums
@@ -93,6 +94,29 @@ export const events = pgTable('events', {
   created_at: timestamp('created_at').defaultNow().notNull(),
   updated_at: timestamp('updated_at').defaultNow().notNull(),
 })
+
+// Journal Entries
+export const journalEntries = pgTable(
+  'journal_entries',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    care_profile_id: uuid('care_profile_id')
+      .notNull()
+      .references(() => careProfiles.id),
+    title: varchar('title').notNull(),
+    content: text('content').notNull(),
+    key_takeaways: text('key_takeaways'),
+    entry_date: date('entry_date').notNull(),
+    linked_event_id: uuid('linked_event_id').references(() => events.id),
+    starred: boolean('starred').default(false).notNull(),
+    created_at: timestamp('created_at').defaultNow().notNull(),
+    updated_at: timestamp('updated_at').defaultNow().notNull(),
+  },
+  (table) => ({
+    profileIdx: index('journal_entries_profile_idx').on(table.care_profile_id),
+    entryDateIdx: index('journal_entries_date_idx').on(table.entry_date),
+  })
+)
 
 // OTP
 export const otps = pgTable(

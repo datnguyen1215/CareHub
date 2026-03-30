@@ -59,7 +59,7 @@ Styles are implemented with Tailwind CSS within the SvelteKit frontend package. 
 
 ### Navigation -- Profile Detail
 
-- **Tab navigation** within each profile: Overview, Meds, Calendar, Documents
+- **Tab navigation** within each profile: Overview, Meds, Calendar, Journal
 - Horizontal scrollable tabs below profile header
 - Active tab underlined with primary color
 
@@ -100,7 +100,9 @@ All wireframes are in the `designs/` directory.
 | `03-profile-detail.svg`       | Profile Detail        | Profile header with health summary and tab navigation                                   |
 | `04-medications.svg`          | Medications           | List of active and discontinued medications with time-of-day badges                     |
 | `05-calendar.svg`             | Calendar              | Monthly calendar view with event dots and upcoming appointments                         |
-| `06-journal-entry.svg`        | Journal Entry         | Entry form with content field, key takeaways, and linked event                          |
+| `06-journal-entry.svg`        | Journal Tab           | Journal entries list with search, sort, and starred entries                             |
+| `06b-journal-detail.svg`      | Journal Entry Detail  | Full entry view with key takeaways section and linked event navigation                  |
+| `06c-journal-modal.svg`       | Journal Entry Modal   | Add/edit modal with title, date, event linking, key takeaways, and notes                |
 | `07-documents.svg`            | Documents             | Document grid with categories, search bar, and upload button                            |
 | `08-document-detail.svg`      | Document Detail       | Original image alongside extracted OCR text and metadata                                |
 | `09-devices.svg`              | Devices               | List of paired tablets with status, battery, and last seen                              |

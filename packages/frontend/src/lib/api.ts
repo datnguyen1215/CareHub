@@ -197,12 +197,7 @@ export interface CreateEventInput {
 	notes?: string | null;
 }
 
-export function listEvents(
-	groupId: string,
-	profileId: string,
-	start?: string,
-	end?: string
-) {
+export function listEvents(groupId: string, profileId: string, start?: string, end?: string) {
 	let qs = '';
 	const params = [];
 	if (start) params.push(`start=${encodeURIComponent(start)}`);
@@ -226,4 +221,81 @@ export function updateEvent(
 
 export function deleteEvent(groupId: string, profileId: string, id: string) {
 	return request<void>('DELETE', `/groups/${groupId}/profiles/${profileId}/events/${id}`);
+}
+
+export function getEvent(groupId: string, profileId: string, id: string) {
+	return request<Event>('GET', `/groups/${groupId}/profiles/${profileId}/events/${id}`);
+}
+
+// Journal Entries
+
+export interface JournalEntry {
+	id: string;
+	care_profile_id: string;
+	title: string;
+	content: string;
+	key_takeaways: string | null;
+	entry_date: string;
+	linked_event_id: string | null;
+	starred: boolean;
+	created_at: string;
+	updated_at: string;
+}
+
+export interface CreateJournalEntryInput {
+	title: string;
+	content: string;
+	entry_date: string;
+	key_takeaways?: string | null;
+	linked_event_id?: string | null;
+	starred?: boolean;
+}
+
+export function listJournalEntries(
+	groupId: string,
+	profileId: string,
+	search?: string,
+	sort?: 'recent' | 'oldest'
+) {
+	const params = [];
+	if (search) params.push(`search=${encodeURIComponent(search)}`);
+	if (sort) params.push(`sort=${encodeURIComponent(sort)}`);
+	const qs = params.length > 0 ? `?${params.join('&')}` : '';
+	return request<JournalEntry[]>('GET', `/groups/${groupId}/profiles/${profileId}/journal${qs}`);
+}
+
+export function getJournalEntry(groupId: string, profileId: string, id: string) {
+	return request<JournalEntry>('GET', `/groups/${groupId}/profiles/${profileId}/journal/${id}`);
+}
+
+export function createJournalEntry(
+	groupId: string,
+	profileId: string,
+	data: CreateJournalEntryInput
+) {
+	return request<JournalEntry>('POST', `/groups/${groupId}/profiles/${profileId}/journal`, data);
+}
+
+export function updateJournalEntry(
+	groupId: string,
+	profileId: string,
+	id: string,
+	data: Partial<CreateJournalEntryInput>
+) {
+	return request<JournalEntry>(
+		'PATCH',
+		`/groups/${groupId}/profiles/${profileId}/journal/${id}`,
+		data
+	);
+}
+
+export function deleteJournalEntry(groupId: string, profileId: string, id: string) {
+	return request<void>('DELETE', `/groups/${groupId}/profiles/${profileId}/journal/${id}`);
+}
+
+export function listJournalEntriesByEvent(groupId: string, profileId: string, eventId: string) {
+	return request<JournalEntry[]>(
+		'GET',
+		`/groups/${groupId}/profiles/${profileId}/journal/by-event/${eventId}`
+	);
 }
