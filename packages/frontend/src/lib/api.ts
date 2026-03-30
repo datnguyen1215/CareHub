@@ -163,3 +163,56 @@ export function updateMedication(
 export function deleteMedication(groupId: string, profileId: string, id: string) {
 	return request<void>('DELETE', `/groups/${groupId}/profiles/${profileId}/medications/${id}`);
 }
+
+// Events
+
+export interface Event {
+	id: string;
+	care_profile_id: string;
+	title: string;
+	event_type: 'doctor_visit' | 'lab_work' | 'therapy' | 'general';
+	event_date: string;
+	location: string | null;
+	notes: string | null;
+	created_at: string;
+	updated_at: string;
+}
+
+export interface CreateEventInput {
+	title: string;
+	event_type: 'doctor_visit' | 'lab_work' | 'therapy' | 'general';
+	event_date: string;
+	location?: string | null;
+	notes?: string | null;
+}
+
+export function listEvents(
+	groupId: string,
+	profileId: string,
+	start?: string,
+	end?: string
+) {
+	let qs = '';
+	const params = [];
+	if (start) params.push(`start=${encodeURIComponent(start)}`);
+	if (end) params.push(`end=${encodeURIComponent(end)}`);
+	if (params.length > 0) qs = `?${params.join('&')}`;
+	return request<Event[]>('GET', `/groups/${groupId}/profiles/${profileId}/events${qs}`);
+}
+
+export function createEvent(groupId: string, profileId: string, data: CreateEventInput) {
+	return request<Event>('POST', `/groups/${groupId}/profiles/${profileId}/events`, data);
+}
+
+export function updateEvent(
+	groupId: string,
+	profileId: string,
+	id: string,
+	data: Partial<CreateEventInput>
+) {
+	return request<Event>('PATCH', `/groups/${groupId}/profiles/${profileId}/events/${id}`, data);
+}
+
+export function deleteEvent(groupId: string, profileId: string, id: string) {
+	return request<void>('DELETE', `/groups/${groupId}/profiles/${profileId}/events/${id}`);
+}
