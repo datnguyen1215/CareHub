@@ -111,7 +111,15 @@ eventsRouter.get('/', requireAuth, async (req: Request, res: Response): Promise<
       return
     }
 
-    let query = db.select().from(events).where(eq(events.care_profile_id, profileId))
+    // Validate date parameters
+    if (start && isNaN(Date.parse(start))) {
+      res.status(400).json({ error: 'invalid start date' })
+      return
+    }
+    if (end && isNaN(Date.parse(end))) {
+      res.status(400).json({ error: 'invalid end date' })
+      return
+    }
 
     // Apply date range filters if provided
     const conditions = [eq(events.care_profile_id, profileId)]
@@ -122,7 +130,10 @@ eventsRouter.get('/', requireAuth, async (req: Request, res: Response): Promise<
       conditions.push(lte(events.event_date, new Date(end)))
     }
 
-    const rows = await db.select().from(events).where(and(...conditions))
+    const rows = await db
+      .select()
+      .from(events)
+      .where(and(...conditions))
 
     res.json(rows)
   } catch (err) {

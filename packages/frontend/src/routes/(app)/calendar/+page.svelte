@@ -30,6 +30,8 @@
 	let showEventModal = $state(false);
 	let editingEvent = $state<Event | null>(null);
 	let deleteModalEvent = $state<Event | null>(null);
+	let showProfileSelector = $state(false);
+	let pendingEventData = $state<CreateEventInput | null>(null);
 
 	// Computed values
 	const currentYear = $derived(currentDate.getFullYear());
@@ -173,6 +175,9 @@
 
 	function openCreateModal(date?: Date) {
 		editingEvent = null;
+		// Note: We intentionally don't pass the selected date to the modal as a default.
+		// This allows users to freely choose the event date regardless of which day they clicked.
+		// Users can still see which date they clicked via the selectedDate display below the calendar.
 		if (date) {
 			selectedDate = date;
 		}
@@ -192,11 +197,9 @@
 	async function handleSave(data: CreateEventInput) {
 		if (!groupId) return;
 
-		const profileId = selectedProfileId === 'all' ? profiles[0]?.id : selectedProfileId;
-		if (!profileId) return;
-
-		try {
-			if (editingEvent) {
+		// When editing, use the event's profile; when creating, check if we need profile selection
+		if (editingEvent) {
+			try {
 				const updated = await updateEvent(
 					groupId,
 					editingEvent.care_profile_id,
@@ -204,14 +207,49 @@
 					data
 				);
 				events = events.map((e) => (e.id === updated.id ? updated : e));
-			} else {
-				const created = await createEvent(groupId, profileId, data);
-				events = [...events, created];
+				closeEventModal();
+			} catch (err) {
+				throw err;
 			}
-			closeEventModal();
-		} catch (err) {
-			throw err;
+		} else {
+			// Creating new event
+			if (selectedProfileId === 'all' && profiles.length > 1) {
+				// Need to ask user which profile
+				pendingEventData = data;
+				closeEventModal();
+				showProfileSelector = true;
+			} else {
+				// Either a specific profile is selected, or there's only one profile
+				const profileId = selectedProfileId === 'all' ? profiles[0]?.id : selectedProfileId;
+				if (!profileId) return;
+
+				try {
+					const created = await createEvent(groupId, profileId, data);
+					events = [...events, created];
+					closeEventModal();
+				} catch (err) {
+					throw err;
+				}
+			}
 		}
+	}
+
+	async function handleProfileSelect(profileId: string) {
+		if (!groupId || !pendingEventData) return;
+
+		try {
+			const created = await createEvent(groupId, profileId, pendingEventData);
+			events = [...events, created];
+			showProfileSelector = false;
+			pendingEventData = null;
+		} catch (err) {
+			console.error('Failed to create event', err);
+		}
+	}
+
+	function closeProfileSelector() {
+		showProfileSelector = false;
+		pendingEventData = null;
 	}
 
 	function openDeleteModal(event: Event) {
@@ -542,4 +580,47 @@
 		onConfirm={handleDeleteConfirm}
 		onClose={closeDeleteModal}
 	/>
+{/if}
+
+{#if showProfileSelector}
+	<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+	<div
+		class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-unit-2"
+		role="dialog"
+		aria-modal="true"
+		aria-labelledby="profile-selector-title"
+		onmousedown={(e) => e.target === e.currentTarget && closeProfileSelector()}
+	>
+		<div class="card w-full max-w-md">
+			<h2 id="profile-selector-title" class="text-h3 font-semibold text-text-primary mb-unit-3">
+				Select Profile
+			</h2>
+			<p class="text-sm text-text-secondary mb-unit-3">
+				Choose which profile this event should be added to:
+			</p>
+			<div class="flex flex-col gap-2">
+				{#each profiles as profile}
+					<button
+						onclick={() => handleProfileSelect(profile.id)}
+						class="w-full p-3 border border-gray-300 rounded-card text-left hover:bg-gray-50 hover:border-primary transition-colors"
+					>
+						<p class="font-medium text-text-primary">{profile.name}</p>
+						{#if profile.date_of_birth}
+							<p class="text-xs text-text-secondary">
+								Born {new Date(profile.date_of_birth).toLocaleDateString()}
+							</p>
+						{/if}
+					</button>
+				{/each}
+			</div>
+			<div class="flex justify-end pt-unit-3 mt-unit-3 border-t border-gray-200">
+				<button
+					onclick={closeProfileSelector}
+					class="px-unit-3 py-2 rounded-card border border-gray-300 text-base text-text-primary hover:bg-gray-50 transition-colors"
+				>
+					Cancel
+				</button>
+			</div>
+		</div>
+	</div>
 {/if}
