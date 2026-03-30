@@ -1018,8 +1018,6 @@
 
 {#if showJournalModal && groupId}
 	<JournalEntryModal
-		{groupId}
-		{profileId}
 		entry={editingJournalEntry}
 		onSave={handleJournalSave}
 		onClose={closeJournalModal}

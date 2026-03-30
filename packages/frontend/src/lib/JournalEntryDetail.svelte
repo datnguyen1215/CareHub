@@ -172,7 +172,7 @@
 				{/if}
 			</div>
 
-				<!-- Notes -->
+			<!-- Notes -->
 			<div>
 				<h3 class="text-xs font-semibold text-text-secondary uppercase tracking-wide mb-1.5">
 					Notes

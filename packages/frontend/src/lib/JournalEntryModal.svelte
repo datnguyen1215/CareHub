@@ -4,8 +4,6 @@
 	import { createFocusTrap } from './focusTrap';
 
 	interface Props {
-		groupId: string;
-		profileId: string;
 		entry?: JournalEntry | null;
 		onSave: (data: CreateJournalEntryInput) => Promise<void>;
 		onClose: () => void;
@@ -51,10 +49,7 @@
 			const data: CreateJournalEntryInput = {
 				title: title.trim(),
 				content: content.trim(),
-				entry_date: entryDate,
-				key_takeaways: null,
-				linked_event_id: null,
-				starred: false
+				entry_date: entryDate
 			};
 
 			await onSave(data);
