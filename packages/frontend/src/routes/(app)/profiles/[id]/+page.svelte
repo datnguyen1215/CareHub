@@ -5,6 +5,7 @@
 	import {
 		getProfile,
 		updateProfile,
+		deleteProfile,
 		listMedications,
 		createMedication,
 		updateMedication,
@@ -72,6 +73,9 @@
 
 	// Track which events have attachments (event_id -> count)
 	let eventAttachmentCounts = $state<Record<string, number>>({});
+
+	// Profile delete state
+	let showDeleteProfileModal = $state(false);
 
 	// Calendar computed values
 	const currentYear = $derived(currentDate.getFullYear());
@@ -537,6 +541,21 @@
 			input.value = '';
 		}
 	}
+
+	// Profile delete handlers
+	function openDeleteProfileModal() {
+		showDeleteProfileModal = true;
+	}
+
+	function closeDeleteProfileModal() {
+		showDeleteProfileModal = false;
+	}
+
+	async function handleDeleteProfileConfirm() {
+		if (!profile) return;
+		await deleteProfile(profile.id);
+		goto('/');
+	}
 </script>
 
 <!-- Page-specific top bar (overrides the global TopBar for this page) -->
@@ -823,6 +842,17 @@
 					{/each}
 				</ul>
 			{/if}
+		</div>
+
+		<!-- Delete Profile button -->
+		<div class="mt-unit-4 pt-unit-3 border-t border-gray-200">
+			<button
+				onclick={openDeleteProfileModal}
+				class="w-full py-3 rounded-card border border-danger text-danger font-semibold text-base
+				       hover:bg-danger hover:text-white transition-colors"
+			>
+				Delete Profile
+			</button>
 		</div>
 	{:else if activeTab === 'meds' && profile}
 		<!-- Meds Tab -->
@@ -1225,5 +1255,13 @@
 		}}
 		onEdit={handleEventEditFromDetail}
 		onDeleted={handleEventDeleted}
+	/>
+{/if}
+
+{#if showDeleteProfileModal && profile}
+	<DeleteConfirmModal
+		name={profile.name}
+		onConfirm={handleDeleteProfileConfirm}
+		onClose={closeDeleteProfileModal}
 	/>
 {/if}
