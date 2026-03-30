@@ -313,7 +313,9 @@
 
 <div class="max-w-4xl mx-auto px-unit-3 py-unit-3">
 	<div class="flex items-center justify-between mb-unit-3">
-		<h2 class="text-h2 font-semibold text-text-primary">Calendar</h2>
+		<h2 class="text-h2 font-semibold text-text-primary">
+			{selectedProfileId !== 'all' ? `${getProfileName(selectedProfileId)}'s Calendar` : 'Calendar'}
+		</h2>
 		{#if groupId && profiles.length > 0}
 			<button
 				onclick={() => openCreateModal()}
@@ -342,20 +344,32 @@
 		</div>
 	{:else}
 		<!-- Profile Filter -->
-		<div class="mb-unit-3">
-			<label for="profile-filter" class="block text-sm font-medium text-text-primary mb-1">
-				Filter by Profile
-			</label>
-			<select
-				id="profile-filter"
-				bind:value={selectedProfileId}
-				class="w-full max-w-xs border border-gray-300 rounded-card px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-primary"
-			>
-				<option value="all">All Profiles</option>
-				{#each profiles as profile}
-					<option value={profile.id}>{profile.name}</option>
-				{/each}
-			</select>
+		<div class="card mb-unit-3">
+			<div class="flex items-center justify-between">
+				<div class="flex-1">
+					<label for="profile-filter" class="block text-sm font-medium text-text-primary mb-1">
+						Viewing events for
+					</label>
+					<select
+						id="profile-filter"
+						bind:value={selectedProfileId}
+						class="w-full max-w-xs border border-gray-300 rounded-card px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-primary"
+					>
+						<option value="all">All Profiles</option>
+						{#each profiles as profile}
+							<option value={profile.id}>{profile.name}</option>
+						{/each}
+					</select>
+				</div>
+				{#if selectedProfileId !== 'all'}
+					<a
+						href="/profiles/{selectedProfileId}"
+						class="text-sm text-primary hover:underline font-medium"
+					>
+						View Profile
+					</a>
+				{/if}
+			</div>
 		</div>
 
 		<!-- Calendar Grid -->
@@ -471,11 +485,9 @@
 										{#if event.notes}
 											<p class="text-sm text-text-secondary mt-1">{event.notes}</p>
 										{/if}
-										{#if selectedProfileId === 'all'}
-											<p class="text-xs text-text-secondary mt-1">
-												{getProfileName(event.care_profile_id)}
-											</p>
-										{/if}
+										<p class="text-xs text-text-secondary mt-1">
+											{getProfileName(event.care_profile_id)}
+										</p>
 									</div>
 									<div class="flex gap-1">
 										<button
@@ -555,11 +567,9 @@
 									{#if event.location}
 										<p class="text-sm text-text-secondary">{event.location}</p>
 									{/if}
-									{#if selectedProfileId === 'all'}
-										<p class="text-xs text-text-secondary mt-1">
-											{getProfileName(event.care_profile_id)}
-										</p>
-									{/if}
+									<p class="text-xs text-text-secondary mt-1">
+										{getProfileName(event.care_profile_id)}
+									</p>
 								</div>
 							</div>
 						</button>
@@ -571,7 +581,12 @@
 </div>
 
 {#if showEventModal && groupId}
-	<EventModal event={editingEvent} onSave={handleSave} onClose={closeEventModal} />
+	<EventModal
+		event={editingEvent}
+		profileName={editingEvent ? getProfileName(editingEvent.care_profile_id) : (selectedProfileId !== 'all' ? getProfileName(selectedProfileId) : null)}
+		onSave={handleSave}
+		onClose={closeEventModal}
+	/>
 {/if}
 
 {#if deleteModalEvent}

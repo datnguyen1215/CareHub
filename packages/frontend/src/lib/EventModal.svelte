@@ -5,11 +5,12 @@
 
 	interface Props {
 		event?: Event | null;
+		profileName?: string | null;
 		onSave: (data: CreateEventInput) => Promise<void>;
 		onClose: () => void;
 	}
 
-	let { event = null, onSave, onClose }: Props = $props();
+	let { event = null, profileName = null, onSave, onClose }: Props = $props();
 
 	const EVENT_TYPE_OPTIONS = [
 		{ value: 'doctor_visit', label: 'Doctor Visit' },
@@ -86,9 +87,15 @@
 	onmousedown={handleBackdropClick}
 >
 	<div class="card w-full max-w-md">
-		<h2 id="event-modal-title" class="text-h3 font-semibold text-text-primary mb-unit-3">
+		<h2 id="event-modal-title" class="text-h3 font-semibold text-text-primary mb-unit-1">
 			{isEdit ? 'Edit Event' : 'Add Event'}
 		</h2>
+
+		{#if profileName}
+			<p class="text-sm text-text-secondary mb-unit-2">
+				For: <span class="font-medium text-text-primary">{profileName}</span>
+			</p>
+		{/if}
 
 		<form onsubmit={handleSubmit} class="flex flex-col gap-unit-2" novalidate>
 			<!-- Title -->
