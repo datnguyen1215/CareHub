@@ -141,7 +141,7 @@
 		<!-- Back arrow -->
 		<button
 			onclick={() => goto('/')}
-			class="w-9 h-9 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors"
+			class="w-11 h-11 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors"
 			aria-label="Back to dashboard"
 		>
 			<svg
@@ -167,7 +167,7 @@
 		<!-- Edit button -->
 		<button
 			onclick={() => (showEditModal = true)}
-			class="w-9 h-9 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors"
+			class="w-11 h-11 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors"
 			aria-label="Edit profile"
 			disabled={!profile}
 		>
