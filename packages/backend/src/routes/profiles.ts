@@ -24,11 +24,12 @@ async function getAdminMembership(userId: string, groupId: string) {
 profilesRouter.post('/', requireAuth, async (req: Request, res: Response): Promise<void> => {
   try {
     const groupId = req.params['groupId'] as string
-    const { name, date_of_birth, relationship, conditions } = req.body as {
+    const { name, date_of_birth, relationship, conditions, avatar_url } = req.body as {
       name?: string
       date_of_birth?: string
       relationship?: string
       conditions?: string[]
+      avatar_url?: string | null
     }
 
     if (!name || typeof name !== 'string' || !name.trim()) {
@@ -54,6 +55,7 @@ profilesRouter.post('/', requireAuth, async (req: Request, res: Response): Promi
         date_of_birth: date_of_birth ?? null,
         relationship: relationship ?? null,
         conditions: Array.isArray(conditions) ? conditions : [],
+        avatar_url: avatar_url ?? null,
       })
       .returning()
 
@@ -119,11 +121,12 @@ profilesRouter.patch('/:id', requireAuth, async (req: Request, res: Response): P
   try {
     const groupId = req.params['groupId'] as string
     const id = req.params['id'] as string
-    const { name, date_of_birth, relationship, conditions } = req.body as {
+    const { name, date_of_birth, relationship, conditions, avatar_url } = req.body as {
       name?: string
       date_of_birth?: string | null
       relationship?: string | null
       conditions?: string[]
+      avatar_url?: string | null
     }
 
     const membership = await getAdminMembership(req.user!.userId, groupId)
@@ -142,6 +145,7 @@ profilesRouter.patch('/:id', requireAuth, async (req: Request, res: Response): P
       date_of_birth: string | null
       relationship: string | null
       conditions: string[]
+      avatar_url: string | null
       updated_at: Date
     }> = { updated_at: new Date() }
 
@@ -155,6 +159,7 @@ profilesRouter.patch('/:id', requireAuth, async (req: Request, res: Response): P
     if (date_of_birth !== undefined) updates.date_of_birth = date_of_birth
     if (relationship !== undefined) updates.relationship = relationship
     if (conditions !== undefined) updates.conditions = Array.isArray(conditions) ? conditions : []
+    if (avatar_url !== undefined) updates.avatar_url = avatar_url
 
     const [updated] = await db
       .update(careProfiles)

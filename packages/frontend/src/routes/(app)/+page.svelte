@@ -88,6 +88,10 @@
 		// Placeholder — medication count will be wired when medications feature is added.
 		return 0;
 	}
+
+	function getInitial(name: string): string {
+		return name.charAt(0).toUpperCase();
+	}
 </script>
 
 <div class="max-w-2xl mx-auto px-unit-3 py-unit-3">
@@ -151,10 +155,29 @@
 						onclick={() => goto(`/profiles/${profile.id}`)}
 						class="card text-left flex flex-col gap-1 hover:shadow-md transition-shadow active:opacity-90 w-full"
 					>
-						<!-- Name -->
-						<h3 class="text-h3 font-semibold text-text-primary leading-tight truncate">
-							{profile.name}
-						</h3>
+						<!-- Avatar and Name row -->
+						<div class="flex items-center gap-2 mb-1">
+							<!-- Avatar -->
+							<div
+								class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0 overflow-hidden"
+							>
+								{#if profile.avatar_url}
+									<img
+										src={profile.avatar_url}
+										alt=""
+										class="w-full h-full object-cover"
+									/>
+								{:else}
+									<span class="text-primary font-semibold text-sm">
+										{getInitial(profile.name)}
+									</span>
+								{/if}
+							</div>
+							<!-- Name -->
+							<h3 class="text-h3 font-semibold text-text-primary leading-tight truncate">
+								{profile.name}
+							</h3>
+						</div>
 
 						<!-- Relationship subtitle -->
 						{#if profile.relationship}

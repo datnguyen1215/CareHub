@@ -12,9 +12,10 @@
 		listEvents,
 		createJournalEntry,
 		updateJournalEntry,
+		uploadFile,
 		type CareProfile,
 		type Medication,
-		type Event,
+		type Event as ApiEvent,
 		type JournalEntry,
 		type CreateProfileInput,
 		type CreateMedicationInput,
@@ -33,7 +34,7 @@
 	let profile = $state<CareProfile | null>(null);
 	let recentMeds = $state<Medication[]>([]);
 	let medications = $state<Medication[]>([]);
-	let upcomingEvents = $state<Event[]>([]);
+	let upcomingEvents = $state<ApiEvent[]>([]);
 	let loadError = $state('');
 	let loading = $state(true);
 	let showDiscontinued = $state(false);
@@ -224,6 +225,49 @@
 
 	const activeMeds = $derived(medications.filter((m) => m.status === 'active'));
 	const discontinuedMeds = $derived(medications.filter((m) => m.status === 'discontinued'));
+
+	// Avatar upload state
+	let avatarUploading = $state(false);
+	let avatarFileInput: HTMLInputElement;
+
+	function getInitial(name: string): string {
+		return name.charAt(0).toUpperCase();
+	}
+
+	function handleAvatarClick() {
+		if (!avatarUploading) {
+			avatarFileInput?.click();
+		}
+	}
+
+	async function handleAvatarChange(e: Event) {
+		const input = e.target as HTMLInputElement;
+		const file = input.files?.[0];
+		if (!file || !groupId || !profile) return;
+
+		// Validate file type
+		const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+		if (!allowedTypes.includes(file.type)) {
+			return;
+		}
+
+		// Validate file size (5MB)
+		if (file.size > 5 * 1024 * 1024) {
+			return;
+		}
+
+		avatarUploading = true;
+		try {
+			const url = await uploadFile(file);
+			const updated = await updateProfile(groupId, profile.id, { avatar_url: url });
+			profile = updated;
+		} catch {
+			// Silently fail - user can try again
+		} finally {
+			avatarUploading = false;
+			input.value = '';
+		}
+	}
 </script>
 
 <!-- Page-specific top bar (overrides the global TopBar for this page) -->
@@ -344,38 +388,105 @@
 	{:else if activeTab === 'overview' && profile}
 		<!-- Overview Tab -->
 
-		<!-- Profile info card -->
-		<div class="card mb-unit-2">
-			<h2 class="text-h3 font-semibold text-text-primary mb-unit-2">{profile.name}</h2>
-
-			<dl class="flex flex-col gap-1.5 text-sm">
-				{#if profile.relationship}
-					<div class="flex gap-2">
-						<dt class="text-text-secondary w-28 shrink-0">Relationship</dt>
-						<dd class="text-text-primary capitalize">{profile.relationship}</dd>
-					</div>
+		<!-- Avatar Header -->
+		<div class="flex flex-col items-center mb-unit-3">
+			<button
+				onclick={handleAvatarClick}
+				disabled={avatarUploading}
+				class="relative w-24 h-24 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden
+				       hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed
+				       focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+				aria-label="Change profile photo"
+			>
+				{#if profile.avatar_url}
+					<img src={profile.avatar_url} alt="" class="w-full h-full object-cover" />
+				{:else}
+					<span class="text-primary font-semibold text-3xl">{getInitial(profile.name)}</span>
 				{/if}
 
-				{#if profile.date_of_birth}
-					<div class="flex gap-2">
-						<dt class="text-text-secondary w-28 shrink-0">Date of birth</dt>
-						<dd class="text-text-primary">{formatDate(profile.date_of_birth)}</dd>
-					</div>
-				{/if}
-			</dl>
-
-			{#if profile.conditions && profile.conditions.length > 0}
-				<div class="mt-unit-2 flex flex-wrap gap-1.5">
-					{#each profile.conditions as condition}
-						<span
-							class="text-xs bg-blue-50 text-primary rounded-full px-2.5 py-0.5 border border-blue-100"
+				<!-- Camera overlay -->
+				<div
+					class="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0
+					       hover:opacity-100 transition-opacity"
+					class:opacity-100={avatarUploading}
+				>
+					{#if avatarUploading}
+						<svg
+							class="animate-spin text-white w-6 h-6"
+							xmlns="http://www.w3.org/2000/svg"
+							fill="none"
+							viewBox="0 0 24 24"
 						>
-							{condition}
-						</span>
-					{/each}
+							<circle
+								class="opacity-25"
+								cx="12"
+								cy="12"
+								r="10"
+								stroke="currentColor"
+								stroke-width="4"
+							></circle>
+							<path
+								class="opacity-75"
+								fill="currentColor"
+								d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+							></path>
+						</svg>
+					{:else}
+						<svg
+							xmlns="http://www.w3.org/2000/svg"
+							viewBox="0 0 24 24"
+							fill="currentColor"
+							class="text-white w-6 h-6"
+						>
+							<path d="M12 9a3.75 3.75 0 1 0 0 7.5A3.75 3.75 0 0 0 12 9Z" />
+							<path
+								fill-rule="evenodd"
+								d="M9.344 3.071a49.52 49.52 0 0 1 5.312 0c.967.052 1.83.585 2.332 1.39l.821 1.317c.24.383.645.643 1.11.71.386.054.77.113 1.152.177 1.432.239 2.429 1.493 2.429 2.909V18a3 3 0 0 1-3 3H4.5a3 3 0 0 1-3-3V9.574c0-1.416.997-2.67 2.429-2.909.382-.064.766-.123 1.152-.177a1.56 1.56 0 0 0 1.11-.71l.821-1.317a2.685 2.685 0 0 1 2.332-1.39ZM12 12.75a2.25 2.25 0 1 0 0 4.5 2.25 2.25 0 0 0 0-4.5Z"
+								clip-rule="evenodd"
+							/>
+						</svg>
+					{/if}
 				</div>
+			</button>
+			<h2 class="text-h2 font-semibold text-text-primary mt-unit-2">{profile.name}</h2>
+			{#if profile.relationship}
+				<p class="text-text-secondary capitalize">{profile.relationship}</p>
 			{/if}
 		</div>
+
+		<input
+			bind:this={avatarFileInput}
+			type="file"
+			accept="image/jpeg,image/png,image/gif,image/webp"
+			class="hidden"
+			onchange={handleAvatarChange}
+		/>
+
+		<!-- Profile info card -->
+		{#if profile.date_of_birth || (profile.conditions && profile.conditions.length > 0)}
+			<div class="card mb-unit-2">
+				{#if profile.date_of_birth}
+					<dl class="flex flex-col gap-1.5 text-sm">
+						<div class="flex gap-2">
+							<dt class="text-text-secondary w-28 shrink-0">Date of birth</dt>
+							<dd class="text-text-primary">{formatDate(profile.date_of_birth)}</dd>
+						</div>
+					</dl>
+				{/if}
+
+				{#if profile.conditions && profile.conditions.length > 0}
+					<div class="flex flex-wrap gap-1.5" class:mt-unit-2={profile.date_of_birth}>
+						{#each profile.conditions as condition}
+							<span
+								class="text-xs bg-blue-50 text-primary rounded-full px-2.5 py-0.5 border border-blue-100"
+							>
+								{condition}
+							</span>
+						{/each}
+					</div>
+				{/if}
+			</div>
+		{/if}
 
 		<!-- Recent medications card -->
 		<div class="card mb-unit-2">
