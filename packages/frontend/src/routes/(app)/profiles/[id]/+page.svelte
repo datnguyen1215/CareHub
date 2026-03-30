@@ -3,7 +3,6 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import {
-		listGroups,
 		getProfile,
 		updateProfile,
 		listMedications,
@@ -36,7 +35,6 @@
 
 	const profileId = $derived($page.params.id ?? '');
 
-	let groupId = $state<string | null>(null);
 	let profile = $state<CareProfile | null>(null);
 	let recentMeds = $state<Medication[]>([]);
 	let medications = $state<Medication[]>([]);
@@ -60,12 +58,12 @@
 	let journalTabKey = $state(0);
 
 	// Calendar state
-	let calendarEvents = $state<Event[]>([]);
+	let calendarEvents = $state<ApiEvent[]>([]);
 	let currentDate = $state(new Date());
 	let selectedDate = $state<Date | null>(null);
 	let showEventModal = $state(false);
-	let editingEvent = $state<Event | null>(null);
-	let deleteModalEvent = $state<Event | null>(null);
+	let editingEvent = $state<ApiEvent | null>(null);
+	let deleteModalEvent = $state<ApiEvent | null>(null);
 	let calendarLoading = $state(false);
 
 	// Calendar computed values
@@ -110,7 +108,7 @@
 		return days;
 	});
 
-	function getEventsForDate(date: Date): Event[] {
+	function getEventsForDate(date: Date): ApiEvent[] {
 		const dateStr = date.toISOString().split('T')[0];
 		return calendarEvents.filter((e) => {
 			const eventDateStr = new Date(e.event_date).toISOString().split('T')[0];
@@ -143,16 +141,10 @@
 		canRetry = false;
 
 		try {
-			const groups = await listGroups();
-			if (groups.length === 0) {
-				loadError = 'No group found. Please complete setup first.';
-				return;
-			}
-			groupId = groups[0].id;
 			const [profileData, medsData, eventsData] = await Promise.all([
-				getProfile(groupId, profileId),
-				listMedications(groupId, profileId),
-				listEvents(groupId, profileId)
+				getProfile(profileId),
+				listMedications(profileId),
+				listEvents(profileId)
 			]);
 			profile = profileData;
 			medications = medsData;
@@ -193,19 +185,18 @@
 	}
 
 	async function handleEditSave(data: CreateProfileInput) {
-		if (!groupId || !profile) return;
-		const updated = await updateProfile(groupId, profile.id, data);
+		if (!profile) return;
+		const updated = await updateProfile(profile.id, data);
 		profile = updated;
 		showEditModal = false;
 	}
 
 	async function toggleDiscontinued() {
-		if (!groupId) return;
 		showDiscontinued = !showDiscontinued;
 		loadingMeds = true;
 		medError = '';
 		try {
-			medications = await listMedications(groupId, profileId, showDiscontinued);
+			medications = await listMedications(profileId, showDiscontinued);
 		} catch (err: unknown) {
 			const apiErr = err as { status?: number };
 			if (apiErr?.status === 401) {
@@ -236,16 +227,14 @@
 	}
 
 	async function handleMedSave(data: CreateMedicationInput) {
-		if (!groupId) return;
-
 		if (editingMedication) {
-			const updated = await updateMedication(groupId, profileId, editingMedication.id, data);
+			const updated = await updateMedication(profileId, editingMedication.id, data);
 			medications = medications.map((m) => (m.id === updated.id ? updated : m));
 			if (!showDiscontinued && updated.status === 'discontinued') {
 				medications = medications.filter((m) => m.id !== updated.id);
 			}
 		} else {
-			const created = await createMedication(groupId, profileId, data);
+			const created = await createMedication(profileId, data);
 			medications = [...medications, created];
 		}
 
@@ -272,12 +261,10 @@
 	}
 
 	async function handleJournalSave(data: CreateJournalEntryInput) {
-		if (!groupId) return;
-
 		if (editingJournalEntry) {
-			await updateJournalEntry(groupId, profileId, editingJournalEntry.id, data);
+			await updateJournalEntry(profileId, editingJournalEntry.id, data);
 		} else {
-			await createJournalEntry(groupId, profileId, data);
+			await createJournalEntry(profileId, data);
 		}
 
 		closeJournalModal();
@@ -296,14 +283,13 @@
 
 	// Calendar functions
 	async function loadCalendarEvents() {
-		if (!groupId) return;
 		calendarLoading = true;
 
 		const start = new Date(currentYear, currentMonth - 1, 1);
 		const end = new Date(currentYear, currentMonth + 2, 0);
 
 		try {
-			calendarEvents = await listEvents(groupId, profileId, start.toISOString(), end.toISOString());
+			calendarEvents = await listEvents(profileId, start.toISOString(), end.toISOString());
 		} catch (err) {
 			console.error('Failed to load calendar events', err);
 		} finally {
@@ -313,9 +299,8 @@
 
 	// Re-fetch all events (without date range) to update overview's upcoming events
 	async function refreshUpcomingEvents() {
-		if (!groupId) return;
 		try {
-			const allEvents = await listEvents(groupId, profileId);
+			const allEvents = await listEvents(profileId);
 			const now = new Date();
 			now.setHours(0, 0, 0, 0);
 			upcomingEvents = allEvents
@@ -349,7 +334,7 @@
 		showEventModal = true;
 	}
 
-	function openEditEvent(event: Event) {
+	function openEditEvent(event: ApiEvent) {
 		editingEvent = event;
 		showEventModal = true;
 	}
@@ -360,13 +345,11 @@
 	}
 
 	async function handleEventSave(data: CreateEventInput) {
-		if (!groupId) return;
-
 		if (editingEvent) {
-			const updated = await updateEvent(groupId, profileId, editingEvent.id, data);
+			const updated = await updateEvent(profileId, editingEvent.id, data);
 			calendarEvents = calendarEvents.map((e) => (e.id === updated.id ? updated : e));
 		} else {
-			const created = await createEvent(groupId, profileId, data);
+			const created = await createEvent(profileId, data);
 			calendarEvents = [...calendarEvents, created];
 		}
 
@@ -376,7 +359,7 @@
 		closeEventModal();
 	}
 
-	function openDeleteEventModal(event: Event) {
+	function openDeleteEventModal(event: ApiEvent) {
 		deleteModalEvent = event;
 	}
 
@@ -385,10 +368,10 @@
 	}
 
 	async function handleDeleteEventConfirm() {
-		if (!groupId || !deleteModalEvent) return;
+		if (!deleteModalEvent) return;
 		const eventToDelete = deleteModalEvent;
 		try {
-			await deleteEvent(groupId, profileId, eventToDelete.id);
+			await deleteEvent(profileId, eventToDelete.id);
 			calendarEvents = calendarEvents.filter((e) => e.id !== eventToDelete.id);
 
 			// Re-fetch all events to properly update overview upcoming events (not limited to calendar window)
@@ -430,7 +413,7 @@
 
 	// Load calendar events when switching to calendar tab
 	$effect(() => {
-		if (activeTab === 'calendar' && groupId && calendarEvents.length === 0) {
+		if (activeTab === 'calendar' && calendarEvents.length === 0) {
 			loadCalendarEvents();
 		}
 	});
@@ -464,7 +447,7 @@
 	async function handleAvatarChange(e: Event) {
 		const input = e.target as HTMLInputElement;
 		const file = input.files?.[0];
-		if (!file || !groupId || !profile) return;
+		if (!file || !profile) return;
 
 		avatarError = '';
 
@@ -486,7 +469,7 @@
 		avatarUploading = true;
 		try {
 			const url = await uploadFile(file);
-			const updated = await updateProfile(groupId, profile.id, { avatar_url: url });
+			const updated = await updateProfile(profile.id, { avatar_url: url });
 			profile = updated;
 		} catch (err: unknown) {
 			avatarError = getErrorMessage(err, 'upload photo');
@@ -892,7 +875,7 @@
 				</button>
 			</div>
 		</div>
-	{:else if activeTab === 'calendar' && profile && groupId}
+	{:else if activeTab === 'calendar' && profile}
 		<!-- Calendar Tab -->
 		<div>
 			<div class="flex items-center justify-between mb-unit-2">
@@ -1112,11 +1095,10 @@
 				</div>
 			{/if}
 		</div>
-	{:else if activeTab === 'journal' && profile && groupId}
+	{:else if activeTab === 'journal' && profile}
 		<!-- Journal Tab -->
 		{#key journalTabKey}
 			<JournalTab
-				{groupId}
 				{profileId}
 				onEntryClick={handleJournalEntryClick}
 				onAddClick={openCreateJournal}
@@ -1125,20 +1107,15 @@
 	{/if}
 </div>
 
-{#if showEditModal && groupId && profile}
-	<ProfileModal
-		{groupId}
-		{profile}
-		onSave={handleEditSave}
-		onClose={() => (showEditModal = false)}
-	/>
+{#if showEditModal && profile}
+	<ProfileModal {profile} onSave={handleEditSave} onClose={() => (showEditModal = false)} />
 {/if}
 
 {#if showMedModal}
 	<MedicationModal medication={editingMedication} onSave={handleMedSave} onClose={closeMedModal} />
 {/if}
 
-{#if showJournalModal && groupId}
+{#if showJournalModal}
 	<JournalEntryModal
 		entry={editingJournalEntry}
 		onSave={handleJournalSave}
@@ -1146,9 +1123,8 @@
 	/>
 {/if}
 
-{#if viewingJournalEntryId && groupId}
+{#if viewingJournalEntryId}
 	<JournalEntryDetail
-		{groupId}
 		{profileId}
 		entryId={viewingJournalEntryId}
 		onClose={() => (viewingJournalEntryId = null)}
@@ -1157,7 +1133,7 @@
 	/>
 {/if}
 
-{#if showEventModal && groupId}
+{#if showEventModal}
 	<EventModal
 		event={editingEvent}
 		profileName={profile?.name}

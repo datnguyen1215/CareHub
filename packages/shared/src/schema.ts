@@ -12,7 +12,6 @@ import {
 } from 'drizzle-orm/pg-core'
 
 // Enums
-export const groupMemberRoleEnum = pgEnum('group_member_role', ['admin', 'viewer'])
 export const medicationStatusEnum = pgEnum('medication_status', ['active', 'discontinued'])
 export const eventTypeEnum = pgEnum('event_type', [
   'doctor_visit',
@@ -20,6 +19,7 @@ export const eventTypeEnum = pgEnum('event_type', [
   'therapy',
   'general',
 ])
+export const profileShareRoleEnum = pgEnum('profile_share_role', ['admin', 'viewer'])
 
 // Users
 export const users = pgTable('users', {
@@ -31,37 +31,12 @@ export const users = pgTable('users', {
   created_at: timestamp('created_at').defaultNow().notNull(),
 })
 
-// Groups
-export const groups = pgTable('groups', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  name: varchar('name').notNull(),
-  created_at: timestamp('created_at').defaultNow().notNull(),
-})
-
-// Group Members
-export const groupMembers = pgTable(
-  'group_members',
-  {
-    user_id: uuid('user_id')
-      .notNull()
-      .references(() => users.id),
-    group_id: uuid('group_id')
-      .notNull()
-      .references(() => groups.id),
-    role: groupMemberRoleEnum('role').notNull(),
-    created_at: timestamp('created_at').defaultNow().notNull(),
-  },
-  (table) => ({
-    pk: primaryKey({ columns: [table.user_id, table.group_id] }),
-  })
-)
-
-// Care Profiles
+// Care Profiles — now owned directly by users
 export const careProfiles = pgTable('care_profiles', {
   id: uuid('id').primaryKey().defaultRandom(),
-  group_id: uuid('group_id')
+  user_id: uuid('user_id')
     .notNull()
-    .references(() => groups.id),
+    .references(() => users.id),
   name: varchar('name').notNull(),
   avatar_url: varchar('avatar_url'),
   date_of_birth: date('date_of_birth'),
@@ -71,12 +46,30 @@ export const careProfiles = pgTable('care_profiles', {
   updated_at: timestamp('updated_at').defaultNow().notNull(),
 })
 
+// Profile Shares — grants other users access to profiles
+export const profileShares = pgTable(
+  'profile_shares',
+  {
+    profile_id: uuid('profile_id')
+      .notNull()
+      .references(() => careProfiles.id, { onDelete: 'cascade' }),
+    user_id: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    role: profileShareRoleEnum('role').notNull(),
+    created_at: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => ({
+    pk: primaryKey({ columns: [table.profile_id, table.user_id] }),
+  })
+)
+
 // Medications
 export const medications = pgTable('medications', {
   id: uuid('id').primaryKey().defaultRandom(),
   care_profile_id: uuid('care_profile_id')
     .notNull()
-    .references(() => careProfiles.id),
+    .references(() => careProfiles.id, { onDelete: 'cascade' }),
   name: varchar('name').notNull(),
   dosage: varchar('dosage'),
   schedule: text('schedule').array().default([]).notNull(),
@@ -90,7 +83,7 @@ export const events = pgTable('events', {
   id: uuid('id').primaryKey().defaultRandom(),
   care_profile_id: uuid('care_profile_id')
     .notNull()
-    .references(() => careProfiles.id),
+    .references(() => careProfiles.id, { onDelete: 'cascade' }),
   title: varchar('title').notNull(),
   event_type: eventTypeEnum('event_type').notNull(),
   event_date: timestamp('event_date').notNull(),
@@ -107,7 +100,7 @@ export const journalEntries = pgTable(
     id: uuid('id').primaryKey().defaultRandom(),
     care_profile_id: uuid('care_profile_id')
       .notNull()
-      .references(() => careProfiles.id),
+      .references(() => careProfiles.id, { onDelete: 'cascade' }),
     title: varchar('title').notNull(),
     content: text('content').notNull(),
     key_takeaways: text('key_takeaways'),

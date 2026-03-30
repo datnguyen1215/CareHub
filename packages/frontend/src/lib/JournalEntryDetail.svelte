@@ -4,7 +4,6 @@
 	import { createFocusTrap } from './focusTrap';
 
 	interface Props {
-		groupId: string;
 		profileId: string;
 		entryId: string;
 		onClose: () => void;
@@ -12,7 +11,7 @@
 		onDeleted: () => void;
 	}
 
-	let { groupId, profileId, entryId, onClose, onEdit, onDeleted }: Props = $props();
+	let { profileId, entryId, onClose, onEdit, onDeleted }: Props = $props();
 
 	let entry = $state<JournalEntry | null>(null);
 	let loading = $state(true);
@@ -31,7 +30,7 @@
 		loading = true;
 		error = '';
 		try {
-			entry = await getJournalEntry(groupId, profileId, entryId);
+			entry = await getJournalEntry(profileId, entryId);
 		} catch (err: unknown) {
 			const apiErr = err as { message?: string };
 			error = apiErr?.message ?? 'Failed to load journal entry';
@@ -44,7 +43,7 @@
 		if (!entry) return;
 		deleting = true;
 		try {
-			await deleteJournalEntry(groupId, profileId, entry.id);
+			await deleteJournalEntry(profileId, entry.id);
 			onDeleted();
 		} catch (err: unknown) {
 			const apiErr = err as { message?: string };

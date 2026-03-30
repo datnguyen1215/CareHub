@@ -2,40 +2,46 @@
 import { Router, Request, Response } from 'express'
 import { eq, and, gte, lte } from 'drizzle-orm'
 import { db } from '../db'
-import { events, groupMembers, careProfiles } from '@carehub/shared'
+import { events, careProfiles, profileShares } from '@carehub/shared'
 import { requireAuth } from '../middleware/auth'
 import { logger } from '../services/logger'
 
 export const eventsRouter = Router({ mergeParams: true })
 
-/** Verify the authenticated user is a member of the given group. Returns the membership or null. */
-async function getMembership(userId: string, groupId: string) {
-  const [membership] = await db
-    .select()
-    .from(groupMembers)
-    .where(and(eq(groupMembers.group_id, groupId), eq(groupMembers.user_id, userId)))
-    .limit(1)
-
-  return membership ?? null
-}
-
-/** Verify the profile belongs to the group. Returns the profile or null. */
-async function getProfileInGroup(profileId: string, groupId: string) {
+/** Check if user can access a profile (owner or shared with them) */
+async function canAccessProfile(userId: string, profileId: string) {
   const [profile] = await db
     .select()
     .from(careProfiles)
-    .where(and(eq(careProfiles.id, profileId), eq(careProfiles.group_id, groupId)))
+    .where(eq(careProfiles.id, profileId))
     .limit(1)
 
-  return profile ?? null
+  if (!profile) return null
+
+  // Check if user owns the profile
+  if (profile.user_id === userId) {
+    return profile
+  }
+
+  // Check if profile is shared with user
+  const [share] = await db
+    .select()
+    .from(profileShares)
+    .where(and(eq(profileShares.profile_id, profileId), eq(profileShares.user_id, userId)))
+    .limit(1)
+
+  if (share) {
+    return profile
+  }
+
+  return null
 }
 
 const VALID_EVENT_TYPES = ['doctor_visit', 'lab_work', 'therapy', 'general']
 
-// POST /api/groups/:groupId/profiles/:profileId/events
+// POST /api/profiles/:profileId/events
 eventsRouter.post('/', requireAuth, async (req: Request, res: Response): Promise<void> => {
   try {
-    const groupId = req.params['groupId'] as string
     const profileId = req.params['profileId'] as string
     const { title, event_type, event_date, location, notes } = req.body as {
       title?: string
@@ -60,15 +66,9 @@ eventsRouter.post('/', requireAuth, async (req: Request, res: Response): Promise
       return
     }
 
-    const membership = await getMembership(req.user!.userId, groupId)
-    if (!membership) {
-      res.status(403).json({ error: 'Forbidden' })
-      return
-    }
-
-    const profile = await getProfileInGroup(profileId, groupId)
+    const profile = await canAccessProfile(req.user!.userId, profileId)
     if (!profile) {
-      res.status(404).json({ error: 'Profile not found' })
+      res.status(403).json({ error: 'Forbidden' })
       return
     }
 
@@ -91,23 +91,16 @@ eventsRouter.post('/', requireAuth, async (req: Request, res: Response): Promise
   }
 })
 
-// GET /api/groups/:groupId/profiles/:profileId/events
+// GET /api/profiles/:profileId/events
 eventsRouter.get('/', requireAuth, async (req: Request, res: Response): Promise<void> => {
   try {
-    const groupId = req.params['groupId'] as string
     const profileId = req.params['profileId'] as string
     const start = req.query['start'] as string | undefined
     const end = req.query['end'] as string | undefined
 
-    const membership = await getMembership(req.user!.userId, groupId)
-    if (!membership) {
-      res.status(403).json({ error: 'Forbidden' })
-      return
-    }
-
-    const profile = await getProfileInGroup(profileId, groupId)
+    const profile = await canAccessProfile(req.user!.userId, profileId)
     if (!profile) {
-      res.status(404).json({ error: 'Profile not found' })
+      res.status(403).json({ error: 'Forbidden' })
       return
     }
 
@@ -142,22 +135,15 @@ eventsRouter.get('/', requireAuth, async (req: Request, res: Response): Promise<
   }
 })
 
-// GET /api/groups/:groupId/profiles/:profileId/events/:id
+// GET /api/profiles/:profileId/events/:id
 eventsRouter.get('/:id', requireAuth, async (req: Request, res: Response): Promise<void> => {
   try {
-    const groupId = req.params['groupId'] as string
     const profileId = req.params['profileId'] as string
     const id = req.params['id'] as string
 
-    const membership = await getMembership(req.user!.userId, groupId)
-    if (!membership) {
-      res.status(403).json({ error: 'Forbidden' })
-      return
-    }
-
-    const profile = await getProfileInGroup(profileId, groupId)
+    const profile = await canAccessProfile(req.user!.userId, profileId)
     if (!profile) {
-      res.status(404).json({ error: 'Profile not found' })
+      res.status(403).json({ error: 'Forbidden' })
       return
     }
 
@@ -179,10 +165,9 @@ eventsRouter.get('/:id', requireAuth, async (req: Request, res: Response): Promi
   }
 })
 
-// PATCH /api/groups/:groupId/profiles/:profileId/events/:id
+// PATCH /api/profiles/:profileId/events/:id
 eventsRouter.patch('/:id', requireAuth, async (req: Request, res: Response): Promise<void> => {
   try {
-    const groupId = req.params['groupId'] as string
     const profileId = req.params['profileId'] as string
     const id = req.params['id'] as string
     const { title, event_type, event_date, location, notes } = req.body as {
@@ -193,15 +178,9 @@ eventsRouter.patch('/:id', requireAuth, async (req: Request, res: Response): Pro
       notes?: string | null
     }
 
-    const membership = await getMembership(req.user!.userId, groupId)
-    if (!membership) {
-      res.status(403).json({ error: 'Forbidden' })
-      return
-    }
-
-    const profile = await getProfileInGroup(profileId, groupId)
+    const profile = await canAccessProfile(req.user!.userId, profileId)
     if (!profile) {
-      res.status(404).json({ error: 'Profile not found' })
+      res.status(403).json({ error: 'Forbidden' })
       return
     }
 
@@ -256,22 +235,15 @@ eventsRouter.patch('/:id', requireAuth, async (req: Request, res: Response): Pro
   }
 })
 
-// DELETE /api/groups/:groupId/profiles/:profileId/events/:id
+// DELETE /api/profiles/:profileId/events/:id
 eventsRouter.delete('/:id', requireAuth, async (req: Request, res: Response): Promise<void> => {
   try {
-    const groupId = req.params['groupId'] as string
     const profileId = req.params['profileId'] as string
     const id = req.params['id'] as string
 
-    const membership = await getMembership(req.user!.userId, groupId)
-    if (!membership) {
-      res.status(403).json({ error: 'Forbidden' })
-      return
-    }
-
-    const profile = await getProfileInGroup(profileId, groupId)
+    const profile = await canAccessProfile(req.user!.userId, profileId)
     if (!profile) {
-      res.status(404).json({ error: 'Profile not found' })
+      res.status(403).json({ error: 'Forbidden' })
       return
     }
 

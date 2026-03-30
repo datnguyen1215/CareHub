@@ -5,7 +5,6 @@ import cors from 'cors'
 import pinoHttp from 'pino-http'
 import { authRouter } from './routes/auth'
 import { usersRouter } from './routes/users'
-import { groupsRouter } from './routes/groups'
 import { profilesRouter } from './routes/profiles'
 import { medicationsRouter } from './routes/medications'
 import { eventsRouter } from './routes/events'
@@ -40,12 +39,11 @@ export function createApp() {
   app.use('/api/health', healthRouter)
   app.use('/api/auth', authRouter)
   app.use('/api/users', usersRouter)
-  app.use('/api/groups', groupsRouter)
   app.use('/api/upload', uploadRouter)
-  app.use('/api/groups/:groupId/profiles', profilesRouter)
-  app.use('/api/groups/:groupId/profiles/:profileId/medications', medicationsRouter)
-  app.use('/api/groups/:groupId/profiles/:profileId/events', eventsRouter)
-  app.use('/api/groups/:groupId/profiles/:profileId/journal', journalRouter)
+  app.use('/api/profiles', profilesRouter)
+  app.use('/api/profiles/:profileId/medications', medicationsRouter)
+  app.use('/api/profiles/:profileId/events', eventsRouter)
+  app.use('/api/profiles/:profileId/journal', journalRouter)
 
   return app
 }

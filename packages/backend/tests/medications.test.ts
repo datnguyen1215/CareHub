@@ -3,7 +3,7 @@ import request from 'supertest'
 import { createApp } from '../src/app'
 import { makeAuthCookie } from './utils'
 import { truncateAll } from './helpers/truncate'
-import { createUser, createGroup, createGroupMember, createProfile, createMedication } from './factories'
+import { createUser, createProfile, createMedication } from './factories'
 import { db } from '../src/db'
 import { medications } from '@carehub/shared'
 import { eq } from 'drizzle-orm'
@@ -14,22 +14,20 @@ beforeAll(async () => {
   await truncateAll()
 })
 
-describe('POST /api/groups/:groupId/profiles/:profileId/medications', () => {
+describe('POST /api/profiles/:profileId/medications', () => {
   it('returns 401 without auth', async () => {
     const res = await request(app)
-      .post('/api/groups/group-1/profiles/profile-1/medications')
+      .post('/api/profiles/profile-1/medications')
       .send({ name: 'Metformin' })
     expect(res.status).toBe(401)
   })
 
   it('returns 400 when name is missing', async () => {
     const user = await createUser({ email: 'med-user@example.com' })
-    const group = await createGroup({ name: 'Family' })
-    await createGroupMember({ user_id: user.id, group_id: group.id, role: 'admin' })
-    const profile = await createProfile({ group_id: group.id, name: 'Rose' })
+    const profile = await createProfile({ user_id: user.id, name: 'Rose' })
 
     const res = await request(app)
-      .post(`/api/groups/${group.id}/profiles/${profile.id}/medications`)
+      .post(`/api/profiles/${profile.id}/medications`)
       .set('Cookie', makeAuthCookie(user.id, user.email))
       .send({})
 
@@ -39,12 +37,10 @@ describe('POST /api/groups/:groupId/profiles/:profileId/medications', () => {
 
   it('creates a medication with name only', async () => {
     const user = await createUser({ email: 'create-med@example.com' })
-    const group = await createGroup({ name: 'Family' })
-    await createGroupMember({ user_id: user.id, group_id: group.id, role: 'admin' })
-    const profile = await createProfile({ group_id: group.id, name: 'Rose' })
+    const profile = await createProfile({ user_id: user.id, name: 'Rose' })
 
     const res = await request(app)
-      .post(`/api/groups/${group.id}/profiles/${profile.id}/medications`)
+      .post(`/api/profiles/${profile.id}/medications`)
       .set('Cookie', makeAuthCookie(user.id, user.email))
       .send({ name: 'Metformin' })
 
@@ -61,12 +57,10 @@ describe('POST /api/groups/:groupId/profiles/:profileId/medications', () => {
 
   it('creates a medication with all fields', async () => {
     const user = await createUser({ email: 'full-med@example.com' })
-    const group = await createGroup({ name: 'Family' })
-    await createGroupMember({ user_id: user.id, group_id: group.id, role: 'admin' })
-    const profile = await createProfile({ group_id: group.id, name: 'Rose' })
+    const profile = await createProfile({ user_id: user.id, name: 'Rose' })
 
     const res = await request(app)
-      .post(`/api/groups/${group.id}/profiles/${profile.id}/medications`)
+      .post(`/api/profiles/${profile.id}/medications`)
       .set('Cookie', makeAuthCookie(user.id, user.email))
       .send({ name: 'Metformin', dosage: '500mg', schedule: ['morning', 'evening'] })
 
@@ -80,13 +74,13 @@ describe('POST /api/groups/:groupId/profiles/:profileId/medications', () => {
     expect(med.schedule).toEqual(['morning', 'evening'])
   })
 
-  it('returns 403 for a non-member', async () => {
-    const user = await createUser({ email: 'non-member-med@example.com' })
-    const group = await createGroup({ name: 'Private' })
-    const profile = await createProfile({ group_id: group.id, name: 'Rose' })
+  it('returns 403 for a non-owner (no access)', async () => {
+    const user = await createUser({ email: 'non-owner-med@example.com' })
+    const otherUser = await createUser({ email: 'profile-owner-med@example.com' })
+    const profile = await createProfile({ user_id: otherUser.id, name: 'Rose' })
 
     const res = await request(app)
-      .post(`/api/groups/${group.id}/profiles/${profile.id}/medications`)
+      .post(`/api/profiles/${profile.id}/medications`)
       .set('Cookie', makeAuthCookie(user.id, user.email))
       .send({ name: 'Metformin' })
 
@@ -94,17 +88,15 @@ describe('POST /api/groups/:groupId/profiles/:profileId/medications', () => {
   })
 })
 
-describe('GET /api/groups/:groupId/profiles/:profileId/medications', () => {
+describe('GET /api/profiles/:profileId/medications', () => {
   it('returns 401 without auth', async () => {
-    const res = await request(app).get('/api/groups/group-1/profiles/profile-1/medications')
+    const res = await request(app).get('/api/profiles/profile-1/medications')
     expect(res.status).toBe(401)
   })
 
   it('returns only active medications by default', async () => {
     const user = await createUser({ email: 'list-meds@example.com' })
-    const group = await createGroup({ name: 'Family' })
-    await createGroupMember({ user_id: user.id, group_id: group.id, role: 'admin' })
-    const profile = await createProfile({ group_id: group.id, name: 'Rose' })
+    const profile = await createProfile({ user_id: user.id, name: 'Rose' })
 
     await createMedication({
       care_profile_id: profile.id,
@@ -118,7 +110,7 @@ describe('GET /api/groups/:groupId/profiles/:profileId/medications', () => {
     })
 
     const res = await request(app)
-      .get(`/api/groups/${group.id}/profiles/${profile.id}/medications`)
+      .get(`/api/profiles/${profile.id}/medications`)
       .set('Cookie', makeAuthCookie(user.id, user.email))
 
     expect(res.status).toBe(200)
@@ -128,47 +120,43 @@ describe('GET /api/groups/:groupId/profiles/:profileId/medications', () => {
 
   it('returns all medications with include_discontinued=true', async () => {
     const user = await createUser({ email: 'all-meds@example.com' })
-    const group = await createGroup({ name: 'Family' })
-    await createGroupMember({ user_id: user.id, group_id: group.id, role: 'admin' })
-    const profile = await createProfile({ group_id: group.id, name: 'Rose' })
+    const profile = await createProfile({ user_id: user.id, name: 'Rose' })
 
     await createMedication({ care_profile_id: profile.id, name: 'Med1', status: 'active' })
     await createMedication({ care_profile_id: profile.id, name: 'Med2', status: 'discontinued' })
 
     const res = await request(app)
-      .get(`/api/groups/${group.id}/profiles/${profile.id}/medications?include_discontinued=true`)
+      .get(`/api/profiles/${profile.id}/medications?include_discontinued=true`)
       .set('Cookie', makeAuthCookie(user.id, user.email))
 
     expect(res.status).toBe(200)
     expect(res.body).toHaveLength(2)
   })
 
-  it('returns 403 for a non-member', async () => {
-    const user = await createUser({ email: 'list-non-member@example.com' })
-    const group = await createGroup({ name: 'Private' })
-    const profile = await createProfile({ group_id: group.id, name: 'Rose' })
+  it('returns 403 for a non-owner (no access)', async () => {
+    const user = await createUser({ email: 'list-non-owner@example.com' })
+    const otherUser = await createUser({ email: 'profile-owner-list@example.com' })
+    const profile = await createProfile({ user_id: otherUser.id, name: 'Rose' })
 
     const res = await request(app)
-      .get(`/api/groups/${group.id}/profiles/${profile.id}/medications`)
+      .get(`/api/profiles/${profile.id}/medications`)
       .set('Cookie', makeAuthCookie(user.id, user.email))
 
     expect(res.status).toBe(403)
   })
 })
 
-describe('PATCH /api/groups/:groupId/profiles/:profileId/medications/:id', () => {
+describe('PATCH /api/profiles/:profileId/medications/:id', () => {
   it('returns 401 without auth', async () => {
     const res = await request(app)
-      .patch('/api/groups/group-1/profiles/profile-1/medications/med-1')
+      .patch('/api/profiles/profile-1/medications/med-1')
       .send({ name: 'Updated' })
     expect(res.status).toBe(401)
   })
 
   it('updates a medication', async () => {
     const user = await createUser({ email: 'update-med@example.com' })
-    const group = await createGroup({ name: 'Family' })
-    await createGroupMember({ user_id: user.id, group_id: group.id, role: 'admin' })
-    const profile = await createProfile({ group_id: group.id, name: 'Rose' })
+    const profile = await createProfile({ user_id: user.id, name: 'Rose' })
     const med = await createMedication({
       care_profile_id: profile.id,
       name: 'Metformin',
@@ -176,7 +164,7 @@ describe('PATCH /api/groups/:groupId/profiles/:profileId/medications/:id', () =>
     })
 
     const res = await request(app)
-      .patch(`/api/groups/${group.id}/profiles/${profile.id}/medications/${med.id}`)
+      .patch(`/api/profiles/${profile.id}/medications/${med.id}`)
       .set('Cookie', makeAuthCookie(user.id, user.email))
       .send({ dosage: '1000mg' })
 
@@ -190,9 +178,7 @@ describe('PATCH /api/groups/:groupId/profiles/:profileId/medications/:id', () =>
 
   it('discontinues a medication (PATCH status to discontinued)', async () => {
     const user = await createUser({ email: 'discontinue-med@example.com' })
-    const group = await createGroup({ name: 'Family' })
-    await createGroupMember({ user_id: user.id, group_id: group.id, role: 'admin' })
-    const profile = await createProfile({ group_id: group.id, name: 'Rose' })
+    const profile = await createProfile({ user_id: user.id, name: 'Rose' })
     const med = await createMedication({
       care_profile_id: profile.id,
       name: 'Metformin',
@@ -200,7 +186,7 @@ describe('PATCH /api/groups/:groupId/profiles/:profileId/medications/:id', () =>
     })
 
     const res = await request(app)
-      .patch(`/api/groups/${group.id}/profiles/${profile.id}/medications/${med.id}`)
+      .patch(`/api/profiles/${profile.id}/medications/${med.id}`)
       .set('Cookie', makeAuthCookie(user.id, user.email))
       .send({ status: 'discontinued' })
 
@@ -214,28 +200,26 @@ describe('PATCH /api/groups/:groupId/profiles/:profileId/medications/:id', () =>
 
   it('returns 404 when medication not found', async () => {
     const user = await createUser({ email: 'med-not-found@example.com' })
-    const group = await createGroup({ name: 'Family' })
-    await createGroupMember({ user_id: user.id, group_id: group.id, role: 'admin' })
-    const profile = await createProfile({ group_id: group.id, name: 'Rose' })
+    const profile = await createProfile({ user_id: user.id, name: 'Rose' })
 
     // Use a valid UUID that doesn't exist
     const fakeUuid = '00000000-0000-0000-0000-000000000000'
     const res = await request(app)
-      .patch(`/api/groups/${group.id}/profiles/${profile.id}/medications/${fakeUuid}`)
+      .patch(`/api/profiles/${profile.id}/medications/${fakeUuid}`)
       .set('Cookie', makeAuthCookie(user.id, user.email))
       .send({ dosage: '200mg' })
 
     expect(res.status).toBe(404)
   })
 
-  it('returns 403 for a non-member', async () => {
-    const user = await createUser({ email: 'update-non-member@example.com' })
-    const group = await createGroup({ name: 'Private' })
-    const profile = await createProfile({ group_id: group.id, name: 'Rose' })
+  it('returns 403 for a non-owner (no access)', async () => {
+    const user = await createUser({ email: 'update-non-owner@example.com' })
+    const otherUser = await createUser({ email: 'profile-owner-update-med@example.com' })
+    const profile = await createProfile({ user_id: otherUser.id, name: 'Rose' })
     const med = await createMedication({ care_profile_id: profile.id, name: 'Metformin' })
 
     const res = await request(app)
-      .patch(`/api/groups/${group.id}/profiles/${profile.id}/medications/${med.id}`)
+      .patch(`/api/profiles/${profile.id}/medications/${med.id}`)
       .set('Cookie', makeAuthCookie(user.id, user.email))
       .send({ dosage: '200mg' })
 
@@ -243,23 +227,19 @@ describe('PATCH /api/groups/:groupId/profiles/:profileId/medications/:id', () =>
   })
 })
 
-describe('DELETE /api/groups/:groupId/profiles/:profileId/medications/:id', () => {
+describe('DELETE /api/profiles/:profileId/medications/:id', () => {
   it('returns 401 without auth', async () => {
-    const res = await request(app).delete(
-      '/api/groups/group-1/profiles/profile-1/medications/med-1'
-    )
+    const res = await request(app).delete('/api/profiles/profile-1/medications/med-1')
     expect(res.status).toBe(401)
   })
 
   it('deletes a medication and returns 204', async () => {
     const user = await createUser({ email: 'delete-med@example.com' })
-    const group = await createGroup({ name: 'Family' })
-    await createGroupMember({ user_id: user.id, group_id: group.id, role: 'admin' })
-    const profile = await createProfile({ group_id: group.id, name: 'Rose' })
+    const profile = await createProfile({ user_id: user.id, name: 'Rose' })
     const med = await createMedication({ care_profile_id: profile.id, name: 'Metformin' })
 
     const res = await request(app)
-      .delete(`/api/groups/${group.id}/profiles/${profile.id}/medications/${med.id}`)
+      .delete(`/api/profiles/${profile.id}/medications/${med.id}`)
       .set('Cookie', makeAuthCookie(user.id, user.email))
 
     expect(res.status).toBe(204)
@@ -271,27 +251,25 @@ describe('DELETE /api/groups/:groupId/profiles/:profileId/medications/:id', () =
 
   it('returns 404 when medication not found', async () => {
     const user = await createUser({ email: 'delete-not-found@example.com' })
-    const group = await createGroup({ name: 'Family' })
-    await createGroupMember({ user_id: user.id, group_id: group.id, role: 'admin' })
-    const profile = await createProfile({ group_id: group.id, name: 'Rose' })
+    const profile = await createProfile({ user_id: user.id, name: 'Rose' })
 
     // Use a valid UUID that doesn't exist
     const fakeUuid = '00000000-0000-0000-0000-000000000000'
     const res = await request(app)
-      .delete(`/api/groups/${group.id}/profiles/${profile.id}/medications/${fakeUuid}`)
+      .delete(`/api/profiles/${profile.id}/medications/${fakeUuid}`)
       .set('Cookie', makeAuthCookie(user.id, user.email))
 
     expect(res.status).toBe(404)
   })
 
-  it('returns 403 for a non-member', async () => {
-    const user = await createUser({ email: 'delete-non-member@example.com' })
-    const group = await createGroup({ name: 'Private' })
-    const profile = await createProfile({ group_id: group.id, name: 'Rose' })
+  it('returns 403 for a non-owner (no access)', async () => {
+    const user = await createUser({ email: 'delete-non-owner@example.com' })
+    const otherUser = await createUser({ email: 'profile-owner-delete-med@example.com' })
+    const profile = await createProfile({ user_id: otherUser.id, name: 'Rose' })
     const med = await createMedication({ care_profile_id: profile.id, name: 'Metformin' })
 
     const res = await request(app)
-      .delete(`/api/groups/${group.id}/profiles/${profile.id}/medications/${med.id}`)
+      .delete(`/api/profiles/${profile.id}/medications/${med.id}`)
       .set('Cookie', makeAuthCookie(user.id, user.email))
 
     expect(res.status).toBe(403)

@@ -2,7 +2,6 @@
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import {
-		listGroups,
 		listProfiles,
 		createProfile,
 		deleteProfile,
@@ -13,7 +12,6 @@
 	import ProfileModal from '$lib/ProfileModal.svelte';
 	import DeleteConfirmModal from '$lib/DeleteConfirmModal.svelte';
 
-	let groupId = $state<string | null>(null);
 	let profiles = $state<CareProfile[]>([]);
 	let loadError = $state('');
 	let loading = $state(true);
@@ -28,13 +26,7 @@
 		canRetry = false;
 
 		try {
-			const groups = await listGroups();
-			if (groups.length === 0) {
-				loadError = 'No group found. Please complete setup first.';
-				return;
-			}
-			groupId = groups[0].id;
-			profiles = await listProfiles(groupId);
+			profiles = await listProfiles();
 		} catch (err: unknown) {
 			const apiErr = err as { status?: number };
 			if (apiErr?.status === 401) {
@@ -61,8 +53,7 @@
 	}
 
 	async function handleSave(data: CreateProfileInput) {
-		if (!groupId) return;
-		const created = await createProfile(groupId, data);
+		const created = await createProfile(data);
 		profiles = [...profiles, created];
 		closeProfileModal();
 	}
@@ -77,9 +68,9 @@
 	}
 
 	async function handleDeleteConfirm() {
-		if (!groupId || !deleteModalProfile) return;
+		if (!deleteModalProfile) return;
 		const profileId = deleteModalProfile.id;
-		await deleteProfile(groupId, profileId);
+		await deleteProfile(profileId);
 		profiles = profiles.filter((p) => p.id !== profileId);
 		closeDeleteModal();
 	}
@@ -97,7 +88,7 @@
 <div class="max-w-2xl mx-auto px-unit-3 py-unit-3">
 	<div class="flex items-center justify-between mb-unit-3">
 		<h2 class="text-h2 font-semibold text-text-primary">Care Profiles</h2>
-		{#if groupId && profiles.length > 0}
+		{#if profiles.length > 0}
 			<button
 				onclick={openCreate}
 				class="bg-primary text-white rounded-card px-unit-2 py-1.5 text-sm font-semibold hover:bg-blue-600 transition-colors"
@@ -162,11 +153,7 @@
 								class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0 overflow-hidden"
 							>
 								{#if profile.avatar_url}
-									<img
-										src={profile.avatar_url}
-										alt=""
-										class="w-full h-full object-cover"
-									/>
+									<img src={profile.avatar_url} alt="" class="w-full h-full object-cover" />
 								{:else}
 									<span class="text-primary font-semibold text-sm">
 										{getInitial(profile.name)}
@@ -236,8 +223,8 @@
 	{/if}
 </div>
 
-{#if showProfileModal && groupId}
-	<ProfileModal {groupId} profile={null} onSave={handleSave} onClose={closeProfileModal} />
+{#if showProfileModal}
+	<ProfileModal profile={null} onSave={handleSave} onClose={closeProfileModal} />
 {/if}
 
 {#if deleteModalProfile}
