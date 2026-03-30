@@ -48,7 +48,7 @@ Add scheduling, journaling, and AI-powered document management.
 - [x] Full-text search (PostgreSQL full-text search across OCR text)
 - [x] Documents tab (search/browse view across all profile attachments)
 
-**Screens**: Calendar, Journal Entry, Documents, Document Detail
+**Screens**: Calendar, Journal Entry, Documents, Attachment Detail
 
 ---
 
