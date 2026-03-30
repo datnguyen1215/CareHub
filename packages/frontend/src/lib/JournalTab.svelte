@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import { listJournalEntries, updateJournalEntry, type JournalEntry } from './api';
 
 	interface Props {
@@ -35,8 +36,10 @@
 		}
 	}
 
-	// Initial load
-	$effect(() => {
+	// Initial load only - don't use $effect here as it would auto-track
+	// searchQuery and sortOrder, causing duplicate API calls alongside the
+	// debounced search and explicit sort handlers
+	onMount(() => {
 		loadEntries();
 	});
 
