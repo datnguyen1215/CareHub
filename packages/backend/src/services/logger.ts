@@ -1,5 +1,7 @@
 /** Logger service — Pino-based structured logging with file and stdout streams. */
 import pino from 'pino'
+import { mkdirSync, existsSync } from 'node:fs'
+import { dirname } from 'node:path'
 import { env } from '../config/env'
 
 /**
@@ -11,6 +13,14 @@ export function createLogger(): pino.Logger {
   const logLevel = env.LOG_LEVEL
   const logFormat = env.LOG_FORMAT
   const logFile = env.LOG_FILE
+
+  // Ensure log directory exists
+  if (logFile) {
+    const logDir = dirname(logFile)
+    if (!existsSync(logDir)) {
+      mkdirSync(logDir, { recursive: true })
+    }
+  }
 
   // Base configuration
   const options: pino.LoggerOptions = {
