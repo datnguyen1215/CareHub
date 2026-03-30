@@ -107,6 +107,7 @@ export interface CreateProfileInput {
 	date_of_birth?: string | null;
 	relationship?: string | null;
 	conditions?: string[];
+	avatar_url?: string | null;
 }
 
 export function listProfiles(groupId: string) {
@@ -298,4 +299,38 @@ export function listJournalEntriesByEvent(groupId: string, profileId: string, ev
 		'GET',
 		`/groups/${groupId}/profiles/${profileId}/journal/by-event/${eventId}`
 	);
+}
+
+// File Upload
+
+export interface UploadResponse {
+	url: string;
+}
+
+/** Uploads a file and returns the URL */
+export async function uploadFile(file: File): Promise<string> {
+	const formData = new FormData();
+	formData.append('file', file);
+
+	const res = await fetch('/api/upload', {
+		method: 'POST',
+		body: formData,
+		credentials: 'include'
+	});
+
+	if (!res.ok) {
+		let message = `Upload failed (${res.status})`;
+		try {
+			const data = await res.json();
+			if (data?.message) message = data.message;
+			else if (data?.error) message = data.error;
+		} catch {
+			// ignore parse errors
+		}
+		const err: ApiError = { message, status: res.status };
+		throw err;
+	}
+
+	const data = (await res.json()) as UploadResponse;
+	return data.url;
 }

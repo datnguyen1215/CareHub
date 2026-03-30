@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import type { CareProfile, CreateProfileInput } from './api';
 	import { createFocusTrap } from './focusTrap';
+	import AvatarUpload from './AvatarUpload.svelte';
 
 	interface Props {
 		groupId: string;
@@ -16,6 +17,7 @@
 	let dateOfBirth = $state('');
 	let relationship = $state('');
 	let conditionsRaw = $state('');
+	let avatarUrl = $state<string | null>(null);
 	let error = $state('');
 	let loading = $state(false);
 	let modalElement: HTMLElement;
@@ -27,6 +29,7 @@
 		dateOfBirth = profile?.date_of_birth ?? '';
 		relationship = profile?.relationship ?? '';
 		conditionsRaw = (profile?.conditions ?? []).join(', ');
+		avatarUrl = profile?.avatar_url ?? null;
 	});
 
 	onMount(() => {
@@ -54,7 +57,8 @@
 				name: name.trim(),
 				date_of_birth: dateOfBirth.trim() || null,
 				relationship: relationship.trim() || null,
-				conditions
+				conditions,
+				avatar_url: avatarUrl
 			});
 		} catch (err: unknown) {
 			const apiErr = err as { message?: string };
@@ -84,6 +88,17 @@
 		</h2>
 
 		<form onsubmit={handleSubmit} class="flex flex-col gap-unit-2" novalidate>
+			<!-- Avatar -->
+			<div class="flex justify-center mb-unit-2">
+				<AvatarUpload
+					currentUrl={avatarUrl}
+					{name}
+					size="lg"
+					disabled={loading}
+					onUpload={(url) => (avatarUrl = url)}
+				/>
+			</div>
+
 			<!-- Name -->
 			<div>
 				<label for="profile-name" class="block text-sm font-medium text-text-primary mb-1">

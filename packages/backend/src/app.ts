@@ -1,4 +1,5 @@
 import express from 'express'
+import path from 'path'
 import cookieParser from 'cookie-parser'
 import cors from 'cors'
 import pinoHttp from 'pino-http'
@@ -9,8 +10,11 @@ import { profilesRouter } from './routes/profiles'
 import { medicationsRouter } from './routes/medications'
 import { eventsRouter } from './routes/events'
 import { journalRouter } from './routes/journal'
+import { uploadRouter } from './routes/upload'
 import healthRouter from './routes/health'
 import { logger } from './services/logger'
+
+const UPLOADS_PATH = process.env.UPLOADS_PATH ?? path.join(process.cwd(), 'uploads')
 
 export function createApp() {
   const app = express()
@@ -29,11 +33,15 @@ export function createApp() {
   app.use(express.json())
   app.use(cookieParser())
 
+  // Serve uploaded files statically
+  app.use('/uploads', express.static(UPLOADS_PATH))
+
   app.use('/health', healthRouter)
   app.use('/api/health', healthRouter)
   app.use('/api/auth', authRouter)
   app.use('/api/users', usersRouter)
   app.use('/api/groups', groupsRouter)
+  app.use('/api/upload', uploadRouter)
   app.use('/api/groups/:groupId/profiles', profilesRouter)
   app.use('/api/groups/:groupId/profiles/:profileId/medications', medicationsRouter)
   app.use('/api/groups/:groupId/profiles/:profileId/events', eventsRouter)
