@@ -137,7 +137,7 @@
 							type="button"
 							onclick={() => toggleSchedule(option)}
 							disabled={loading}
-							class="px-3 py-1 rounded-full text-sm font-medium border transition-colors capitalize
+							class="px-3 py-2.5 rounded-full text-sm font-medium border transition-colors capitalize min-h-[44px]
 							       {selectedSchedule.has(option)
 								? 'bg-primary text-white border-primary'
 								: 'bg-surface text-text-secondary border-gray-300 hover:border-primary hover:text-primary'}
@@ -158,7 +158,7 @@
 							type="button"
 							onclick={() => (status = 'active')}
 							disabled={loading}
-							class="px-3 py-1 rounded-full text-sm font-medium border transition-colors
+							class="px-3 py-2.5 rounded-full text-sm font-medium border transition-colors min-h-[44px]
 							       {status === 'active'
 								? 'bg-success text-white border-success'
 								: 'bg-surface text-text-secondary border-gray-300 hover:border-success hover:text-success'}
@@ -170,7 +170,7 @@
 							type="button"
 							onclick={() => (status = 'discontinued')}
 							disabled={loading}
-							class="px-3 py-1 rounded-full text-sm font-medium border transition-colors
+							class="px-3 py-2.5 rounded-full text-sm font-medium border transition-colors min-h-[44px]
 							       {status === 'discontinued'
 								? 'bg-text-secondary text-white border-text-secondary'
 								: 'bg-surface text-text-secondary border-gray-300 hover:border-text-secondary'}

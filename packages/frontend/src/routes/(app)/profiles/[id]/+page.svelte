@@ -141,7 +141,7 @@
 		<!-- Back arrow -->
 		<button
 			onclick={() => goto('/')}
-			class="w-9 h-9 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors"
+			class="w-11 h-11 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors"
 			aria-label="Back to dashboard"
 		>
 			<svg
@@ -167,7 +167,7 @@
 		<!-- Edit button -->
 		<button
 			onclick={() => (showEditModal = true)}
-			class="w-9 h-9 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors"
+			class="w-11 h-11 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors"
 			aria-label="Edit profile"
 			disabled={!profile}
 		>
@@ -197,7 +197,7 @@
 	<div class="max-w-2xl mx-auto flex">
 		<button
 			onclick={() => (activeTab = 'overview')}
-			class="flex-1 py-3 text-sm font-semibold transition-colors
+			class="flex-1 py-3 min-h-[44px] text-sm font-semibold transition-colors
 				{activeTab === 'overview'
 				? 'text-primary border-b-2 border-primary'
 				: 'text-text-secondary hover:text-text-primary'}"
@@ -206,7 +206,7 @@
 		</button>
 		<button
 			onclick={() => (activeTab = 'meds')}
-			class="flex-1 py-3 text-sm font-semibold transition-colors
+			class="flex-1 py-3 min-h-[44px] text-sm font-semibold transition-colors
 				{activeTab === 'meds'
 				? 'text-primary border-b-2 border-primary'
 				: 'text-text-secondary hover:text-text-primary'}"

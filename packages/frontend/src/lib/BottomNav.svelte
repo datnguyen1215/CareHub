@@ -18,7 +18,7 @@
 		{#each tabs as tab}
 			<a
 				href={tab.href}
-				class="flex-1 flex flex-col items-center justify-center py-3 gap-0.5 text-xs font-medium transition-colors
+				class="flex-1 flex flex-col items-center justify-center py-3 gap-0.5 text-xs font-medium transition-colors min-h-[44px]
 					{isActive(tab.href) ? 'text-primary' : 'text-text-secondary hover:text-text-primary'}"
 				aria-current={isActive(tab.href) ? 'page' : undefined}
 			>

@@ -25,7 +25,7 @@
 
 		<button
 			onclick={() => goto('/settings')}
-			class="w-9 h-9 rounded-full bg-primary text-white flex items-center justify-center text-sm font-semibold hover:opacity-90 transition-opacity"
+			class="w-11 h-11 rounded-full bg-primary text-white flex items-center justify-center text-sm font-semibold hover:opacity-90 transition-opacity"
 			aria-label="Go to settings"
 		>
 			{#if user}
