@@ -106,7 +106,10 @@
 				/>
 			</svg>
 			<h3 class="text-lg font-semibold text-text-primary mb-unit-1">Get started with CareHub</h3>
-		<p class="text-text-secondary mb-unit-2">Create a profile for someone you care for. You'll be able to track their medications, appointments, and health notes.</p>
+			<p class="text-text-secondary mb-unit-2">
+				Create a profile for someone you care for. You'll be able to track their medications,
+				appointments, and health notes.
+			</p>
 			<button
 				onclick={openCreate}
 				class="bg-primary text-white rounded-card px-unit-3 py-2 font-semibold text-base hover:bg-blue-600 transition-colors"
