@@ -1,12 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import {
-		getJournalEntry,
-		getEvent,
-		deleteJournalEntry,
-		type JournalEntry,
-		type Event
-	} from './api';
+	import { getJournalEntry, deleteJournalEntry, type JournalEntry } from './api';
 	import { createFocusTrap } from './focusTrap';
 
 	interface Props {
@@ -16,13 +10,11 @@
 		onClose: () => void;
 		onEdit: (entry: JournalEntry) => void;
 		onDeleted: () => void;
-		onEventClick: (eventId: string) => void;
 	}
 
-	let { groupId, profileId, entryId, onClose, onEdit, onDeleted, onEventClick }: Props = $props();
+	let { groupId, profileId, entryId, onClose, onEdit, onDeleted }: Props = $props();
 
 	let entry = $state<JournalEntry | null>(null);
-	let linkedEvent = $state<Event | null>(null);
 	let loading = $state(true);
 	let error = $state('');
 	let showDeleteConfirm = $state(false);
@@ -40,17 +32,6 @@
 		error = '';
 		try {
 			entry = await getJournalEntry(groupId, profileId, entryId);
-
-			// Load linked event if exists
-			if (entry.linked_event_id) {
-				try {
-					linkedEvent = await getEvent(groupId, profileId, entry.linked_event_id);
-				} catch {
-					// Handles deleted events gracefully — FK uses ON DELETE SET NULL,
-					// so linked_event_id may reference an event that no longer exists
-					linkedEvent = null;
-				}
-			}
 		} catch (err: unknown) {
 			const apiErr = err as { message?: string };
 			error = apiErr?.message ?? 'Failed to load journal entry';
@@ -81,14 +62,6 @@
 
 	function handleBackdropClick(e: MouseEvent) {
 		if (e.target === e.currentTarget) onClose();
-	}
-
-	function parseKeyTakeaways(text: string | null): string[] {
-		if (!text) return [];
-		return text
-			.split('\n')
-			.map((line) => line.trim())
-			.filter((line) => line.length > 0);
 	}
 </script>
 
@@ -199,61 +172,7 @@
 				{/if}
 			</div>
 
-			<!-- Linked event -->
-			{#if linkedEvent}
-				<button
-					onclick={() => onEventClick(linkedEvent!.id)}
-					class="w-full flex items-center gap-2 p-2 mb-unit-3 bg-blue-50 rounded-card
-					       hover:bg-blue-100 transition-colors text-left"
-				>
-					<svg
-						xmlns="http://www.w3.org/2000/svg"
-						viewBox="0 0 20 20"
-						fill="currentColor"
-						class="w-5 h-5 text-primary shrink-0"
-					>
-						<path
-							fill-rule="evenodd"
-							d="M12.586 4.586a2 2 0 112.828 2.828l-3 3a2 2 0 01-2.828 0 1 1 0 00-1.414 1.414 4 4 0 005.656 0l3-3a4 4 0 00-5.656-5.656l-1.5 1.5a1 1 0 101.414 1.414l1.5-1.5zm-5 5a2 2 0 012.828 0 1 1 0 101.414-1.414 4 4 0 00-5.656 0l-3 3a4 4 0 105.656 5.656l1.5-1.5a1 1 0 10-1.414-1.414l-1.5 1.5a2 2 0 11-2.828-2.828l3-3z"
-							clip-rule="evenodd"
-						/>
-					</svg>
-					<span class="flex-1 text-sm text-primary font-medium truncate">{linkedEvent.title}</span>
-					<svg
-						xmlns="http://www.w3.org/2000/svg"
-						viewBox="0 0 20 20"
-						fill="currentColor"
-						class="w-4 h-4 text-primary shrink-0"
-					>
-						<path
-							fill-rule="evenodd"
-							d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z"
-							clip-rule="evenodd"
-						/>
-					</svg>
-				</button>
-			{/if}
-
-			<!-- Key Takeaways -->
-			{#if entry.key_takeaways}
-				<div class="mb-unit-3">
-					<h3 class="text-xs font-semibold text-text-secondary uppercase tracking-wide mb-1.5">
-						Key Takeaways
-					</h3>
-					<div class="bg-gray-50 rounded-card p-3">
-						<ul class="flex flex-col gap-1 text-sm text-text-primary">
-							{#each parseKeyTakeaways(entry.key_takeaways) as takeaway}
-								<li class="flex items-start gap-2">
-									<span class="text-text-secondary shrink-0">•</span>
-									<span>{takeaway}</span>
-								</li>
-							{/each}
-						</ul>
-					</div>
-				</div>
-			{/if}
-
-			<!-- Notes -->
+				<!-- Notes -->
 			<div>
 				<h3 class="text-xs font-semibold text-text-secondary uppercase tracking-wide mb-1.5">
 					Notes

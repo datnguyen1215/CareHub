@@ -91,14 +91,13 @@ Detailed feature breakdown organized by area. See [phases.md](phases.md) for imp
 ### Journal Entries
 
 - Free-form text entries tied to a date
-- Optional link to a calendar event (e.g., post-visit notes)
-- Key takeaways field for quick scanning
+- Star entries to mark important notes
 - Attached documents and photos
 
 ### Search
 
 - Full-text search across all journal entries
-- Filter by profile, date range, or linked event
+- Filter by profile or date range
 
 ---
 
