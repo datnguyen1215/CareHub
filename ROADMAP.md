@@ -42,12 +42,11 @@ Add scheduling, journaling, and AI-powered document management.
 - [ ] Event CRUD (appointments with type, date, location, notes)
 - [x] Journal entries (free-form text linked to dates and events)
 - [x] Key takeaways (summary field on journal entries)
-- [ ] Document upload (camera capture and file upload)
-- [ ] OCR text extraction (Google Vision API or equivalent)
-- [ ] Document categorization (auto-categorize: lab results, prescriptions, insurance, billing, imaging)
-- [ ] Manual tagging (user-defined tags on documents)
-- [ ] Full-text search (PostgreSQL full-text search across OCR text)
-- [ ] Cross-linking (link documents to calendar events and journal entries)
+- [x] Attachment upload (camera capture and file upload for journal and event attachments)
+- [x] OCR text extraction (Google Vision API integration)
+- [x] Attachment categorization (auto-categorize: lab results, prescriptions, insurance, billing, imaging)
+- [x] Full-text search (PostgreSQL full-text search across OCR text)
+- [x] Documents tab (search/browse view across all profile attachments)
 
 **Screens**: Calendar, Journal Entry, Documents, Document Detail
 

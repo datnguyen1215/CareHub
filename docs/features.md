@@ -82,6 +82,7 @@ Detailed feature breakdown organized by area. See [phases.md](phases.md) for imp
 - Event types: doctor visit, lab work, therapy, general appointment
 - Fields: title, date/time, location, notes, linked profile
 - Events linkable to journal entries
+- Attach documents to events (pre-visit records, results, etc.)
 - Recurring event support (future)
 
 ---
@@ -92,7 +93,7 @@ Detailed feature breakdown organized by area. See [phases.md](phases.md) for imp
 
 - Free-form text entries tied to a date
 - Star entries to mark important notes
-- Attached documents and photos
+- Attach documents and photos to entries
 
 ### Search
 
@@ -101,34 +102,33 @@ Detailed feature breakdown organized by area. See [phases.md](phases.md) for imp
 
 ---
 
-## Document Storage with AI
+## Attachments
 
-### Upload
+### Upload and Storage
 
 - Camera capture for paper documents (mobile photo upload)
 - File upload for digital documents (PDF, images)
-- Documents assigned to a care profile
+- Attachments belong to a care profile
+- Attachments can be linked to journal entries or calendar events
+- Attach documents when creating or editing journals and events
 
 ### AI Processing
 
-- OCR text extraction at upload time (Google Vision API, AWS Textract, or Tesseract)
-- Extracted text stored alongside document for search
+- OCR text extraction at upload time (Google Vision API)
+- Auto-generated descriptions based on OCR content
 - Auto-categorization: lab results, prescriptions, insurance, billing, imaging, other
+- Extracted text stored for full-text search
 
-### Organization
+### Documents Tab
 
-- Manual tags and categories
-- Documents linkable to calendar events and journal entries
-- Chronological and categorical browsing
-
-### Search
-
-- Full-text search across all OCR-extracted text
-- Filter by category, profile, date range
+- Search/browse view across all attachments for a profile
+- Full-text search across OCR-extracted text and descriptions
+- Filter by category and date range
+- View attachment details with parent context (linked journal or event)
 
 ### Future: AI Summarization
 
-- Health history summaries generated from accumulated documents
+- Health history summaries generated from accumulated attachments
 - Trend detection across lab results
 
 ---

@@ -98,7 +98,7 @@ Group
                       |-- has many --> Medication
                       |-- has many --> CalendarEvent
                       |-- has many --> JournalEntry
-                      |-- has many --> Document
+                      |-- has many --> Attachment
                       |-- assigned to --> Device (many-to-many)
 
 User
@@ -108,6 +108,11 @@ User
 Device
   |-- assigned --> CareProfile (many-to-many)
   |-- has many --> DeviceAccess
+
+Attachment
+  |-- belongs to --> CareProfile (required)
+  |-- optionally linked to --> CalendarEvent
+  |-- optionally linked to --> JournalEntry
 ```
 
 ### Entities
@@ -187,19 +192,17 @@ All entities are defined as Drizzle ORM schemas in `packages/shared`.
 - `date`
 - `created_at`, `updated_at`
 
-**Document**
+**Attachment**
 
 - `id` (UUID, primary key)
-- `care_profile_id` (FK -> CareProfile)
-- `calendar_event_id` (FK -> CalendarEvent, optional)
-- `journal_entry_id` (FK -> JournalEntry, optional)
-- `file_url`
-- `file_name`
-- `mime_type`
+- `profile_id` (FK -> CareProfile, required)
+- `event_id` (FK -> CalendarEvent, optional)
+- `journal_id` (FK -> JournalEntry, optional)
+- `file_url` (string)
+- `description` (text, AI-generated from OCR)
 - `ocr_text` (text, indexed for full-text search)
-- `category` (enum: lab_results, prescription, insurance, billing, imaging, other)
-- `tags` (text array)
-- `created_at`
+- `category` (enum: lab_result, prescription, insurance, billing, imaging, other)
+- `created_at`, `updated_at`
 
 **Device**
 

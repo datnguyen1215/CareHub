@@ -38,16 +38,18 @@ Add scheduling, journaling, and AI-powered document management.
 
 - **Calendar view** -- Monthly calendar with event dots and list of upcoming events
 - **Event CRUD** -- Create, edit, delete appointments with type, date, location, and notes
+- **Event attachments** -- Upload and link documents to calendar events ✅
 - **Journal entries** -- Free-form entries linked to dates and optionally to calendar events ✅
+- **Journal attachments** -- Upload and link documents to journal entries ✅
 - **Key takeaways** -- Summary field on journal entries for quick scanning ✅
 - **Journal full-text search** -- PostgreSQL full-text search across title, content, and key takeaways ✅
 - **Journal starred entries** -- Star/bookmark entries for quick access ✅
-- **Document upload** -- Camera capture and file upload, assigned to care profiles
-- **OCR text extraction** -- Automatic processing on upload via Google Vision API or equivalent
-- **Document categorization** -- Auto-categorization (lab results, prescriptions, insurance, billing, imaging)
-- **Manual tagging** -- User-defined tags on documents
-- **Full-text search** -- PostgreSQL full-text search across OCR-extracted text
-- **Cross-linking** -- Documents linkable to calendar events and journal entries
+- **Attachment upload** -- Camera capture and file upload, assigned to care profiles ✅
+- **OCR text extraction** -- Automatic processing on upload via Google Vision API ✅
+- **Attachment categorization** -- Auto-categorization (lab results, prescriptions, insurance, billing, imaging) ✅
+- **Auto-generated descriptions** -- AI-generated descriptions from OCR content ✅
+- **Full-text search** -- PostgreSQL full-text search across OCR-extracted text ✅
+- **Documents tab** -- Search/browse view across all profile attachments ✅
 
 ### Screens Implemented
 
@@ -55,8 +57,8 @@ Add scheduling, journaling, and AI-powered document management.
 - Journal Tab (`designs/06-journal-entry.svg`) ✅
 - Journal Entry Detail (`designs/06b-journal-detail.svg`) ✅
 - Journal Entry Modal (`designs/06c-journal-modal.svg`) ✅
-- Documents (`designs/07-documents.svg`)
-- Document Detail (`designs/08-document-detail.svg`)
+- Documents Tab (`designs/07-documents.svg`) ✅
+- Attachment Detail (`designs/08-document-detail.svg`) ✅
 
 ---
 
