@@ -1,35 +1,35 @@
 <script lang="ts">
-	import { onMount } from 'svelte'
+	import { onMount, onDestroy } from 'svelte';
 	import {
 		listAttachments,
 		getJournalEntry,
 		getEvent,
 		type Attachment,
 		type AttachmentCategory
-	} from './api'
+	} from './api';
 
 	interface Props {
-		profileId: string
-		onNavigateToJournal: (journalId: string) => void
-		onNavigateToEvent: (eventId: string) => void
+		profileId: string;
+		onNavigateToJournal: (journalId: string) => void;
+		onNavigateToEvent: (eventId: string) => void;
 	}
 
-	let { profileId, onNavigateToJournal, onNavigateToEvent }: Props = $props()
+	let { profileId, onNavigateToJournal, onNavigateToEvent }: Props = $props();
 
-	let attachments = $state<Attachment[]>([])
-	let loading = $state(true)
-	let error = $state('')
-	let searchQuery = $state('')
-	let activeCategory = $state<AttachmentCategory | 'all'>('all')
-	let searchTimeout: ReturnType<typeof setTimeout> | null = null
-	let hasMore = $state(false)
-	let loadingMore = $state(false)
+	let attachments = $state<Attachment[]>([]);
+	let loading = $state(true);
+	let error = $state('');
+	let searchQuery = $state('');
+	let activeCategory = $state<AttachmentCategory | 'all'>('all');
+	let searchTimeout: ReturnType<typeof setTimeout> | null = null;
+	let hasMore = $state(false);
+	let loadingMore = $state(false);
 
 	// Cache for parent context (journal/event titles)
-	let parentContextCache = $state<Record<string, string>>({})
+	let parentContextCache = $state<Record<string, string>>({});
 
-	const INITIAL_LIMIT = 10
-	const LOAD_MORE_LIMIT = 10
+	const INITIAL_LIMIT = 10;
+	const LOAD_MORE_LIMIT = 10;
 
 	const categories: { value: AttachmentCategory | 'all'; label: string }[] = [
 		{ value: 'all', label: 'All' },
@@ -38,7 +38,7 @@
 		{ value: 'insurance', label: 'Insurance' },
 		{ value: 'billing', label: 'Billing' },
 		{ value: 'imaging', label: 'Imaging' }
-	]
+	];
 
 	const categoryLabels: Record<string, string> = {
 		lab_result: 'Lab Result',
@@ -47,7 +47,7 @@
 		billing: 'Billing',
 		imaging: 'Imaging',
 		other: 'Other'
-	}
+	};
 
 	const categoryColors: Record<string, string> = {
 		lab_result: 'bg-green-50 text-green-700 border-green-200',
@@ -56,150 +56,157 @@
 		billing: 'bg-yellow-50 text-yellow-700 border-yellow-200',
 		imaging: 'bg-pink-50 text-pink-700 border-pink-200',
 		other: 'bg-gray-50 text-gray-700 border-gray-200'
-	}
+	};
 
 	async function loadAttachments(append = false) {
 		if (!append) {
-			loading = true
+			loading = true;
 		} else {
-			loadingMore = true
+			loadingMore = true;
 		}
-		error = ''
+		error = '';
 
 		try {
-			const currentCount = append ? attachments.length : 0
-			const limit = append ? LOAD_MORE_LIMIT : INITIAL_LIMIT
+			const currentCount = append ? attachments.length : 0;
+			const limit = append ? LOAD_MORE_LIMIT : INITIAL_LIMIT;
 
 			const results = await listAttachments(profileId, {
 				category: activeCategory === 'all' ? undefined : activeCategory,
 				search: searchQuery.trim() || undefined,
-				limit: limit + 1 // Fetch one extra to check if there's more
-			})
+				limit: limit + 1, // Fetch one extra to check if there's more
+				offset: currentCount
+			});
 
 			// Check if there's more data
 			if (results.length > limit) {
-				hasMore = true
-				results.pop() // Remove the extra item
+				hasMore = true;
+				results.pop(); // Remove the extra item
 			} else {
-				hasMore = false
+				hasMore = false;
 			}
 
 			if (append) {
 				// Filter out duplicates when appending
-				const existingIds = new Set(attachments.map((a) => a.id))
-				const newItems = results.filter((a) => !existingIds.has(a.id))
-				attachments = [...attachments, ...newItems]
+				const existingIds = new Set(attachments.map((a) => a.id));
+				const newItems = results.filter((a) => !existingIds.has(a.id));
+				attachments = [...attachments, ...newItems];
 			} else {
-				attachments = results
+				attachments = results;
 			}
 
 			// Fetch parent context for new attachments
-			await loadParentContexts(results)
+			await loadParentContexts(results);
 		} catch (err: unknown) {
-			const apiErr = err as { message?: string }
-			error = apiErr?.message ?? 'Failed to load documents'
+			const apiErr = err as { message?: string };
+			error = apiErr?.message ?? 'Failed to load documents';
 		} finally {
-			loading = false
-			loadingMore = false
+			loading = false;
+			loadingMore = false;
 		}
 	}
 
 	async function loadParentContexts(items: Attachment[]) {
-		const promises: Promise<void>[] = []
+		const promises: Promise<void>[] = [];
 
 		for (const attachment of items) {
 			const cacheKey = attachment.journal_id
 				? `journal:${attachment.journal_id}`
 				: attachment.event_id
 					? `event:${attachment.event_id}`
-					: null
+					: null;
 
 			if (cacheKey && !parentContextCache[cacheKey]) {
 				if (attachment.journal_id) {
 					promises.push(
 						getJournalEntry(profileId, attachment.journal_id)
 							.then((journal) => {
-								parentContextCache[`journal:${journal.id}`] = journal.title
+								parentContextCache[`journal:${journal.id}`] = journal.title;
 							})
 							.catch(() => {
 								// Silently fail for context loading
 							})
-					)
+					);
 				} else if (attachment.event_id) {
 					promises.push(
 						getEvent(profileId, attachment.event_id)
 							.then((event) => {
-								parentContextCache[`event:${event.id}`] = event.title
+								parentContextCache[`event:${event.id}`] = event.title;
 							})
 							.catch(() => {
 								// Silently fail for context loading
 							})
-					)
+					);
 				}
 			}
 		}
 
-		await Promise.all(promises)
+		await Promise.all(promises);
 		// Trigger reactivity
-		parentContextCache = { ...parentContextCache }
+		parentContextCache = { ...parentContextCache };
 	}
 
-	function getParentContext(attachment: Attachment): { label: string; id: string; type: 'journal' | 'event' } | null {
+	function getParentContext(
+		attachment: Attachment
+	): { label: string; id: string; type: 'journal' | 'event' } | null {
 		if (attachment.journal_id) {
-			const title = parentContextCache[`journal:${attachment.journal_id}`]
-			return { label: title ?? 'Journal Entry', id: attachment.journal_id, type: 'journal' }
+			const title = parentContextCache[`journal:${attachment.journal_id}`];
+			return { label: title ?? 'Journal Entry', id: attachment.journal_id, type: 'journal' };
 		}
 		if (attachment.event_id) {
-			const title = parentContextCache[`event:${attachment.event_id}`]
-			return { label: title ?? 'Event', id: attachment.event_id, type: 'event' }
+			const title = parentContextCache[`event:${attachment.event_id}`];
+			return { label: title ?? 'Event', id: attachment.event_id, type: 'event' };
 		}
-		return null
+		return null;
 	}
 
 	onMount(() => {
-		loadAttachments()
-	})
+		loadAttachments();
+	});
+
+	onDestroy(() => {
+		if (searchTimeout) clearTimeout(searchTimeout);
+	});
 
 	function handleSearchInput(e: Event) {
-		const target = e.target as HTMLInputElement
-		searchQuery = target.value
+		const target = e.target as HTMLInputElement;
+		searchQuery = target.value;
 
 		// Debounce search
-		if (searchTimeout) clearTimeout(searchTimeout)
+		if (searchTimeout) clearTimeout(searchTimeout);
 		searchTimeout = setTimeout(() => {
-			loadAttachments()
-		}, 300)
+			loadAttachments();
+		}, 300);
 	}
 
 	function handleCategoryChange(category: AttachmentCategory | 'all') {
-		activeCategory = category
-		loadAttachments()
+		activeCategory = category;
+		loadAttachments();
 	}
 
 	function handleLoadMore() {
-		loadAttachments(true)
+		loadAttachments(true);
 	}
 
 	function handleAttachmentClick(attachment: Attachment) {
-		const parent = getParentContext(attachment)
+		const parent = getParentContext(attachment);
 		if (parent) {
 			if (parent.type === 'journal') {
-				onNavigateToJournal(parent.id)
+				onNavigateToJournal(parent.id);
 			} else {
-				onNavigateToEvent(parent.id)
+				onNavigateToEvent(parent.id);
 			}
 		}
 	}
 
 	function isImage(url: string): boolean {
-		const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp']
-		const lowerUrl = url.toLowerCase()
-		return imageExtensions.some((ext) => lowerUrl.includes(ext))
+		const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
+		const lowerUrl = url.toLowerCase();
+		return imageExtensions.some((ext) => lowerUrl.includes(ext));
 	}
 
 	function formatDate(dateStr: string): string {
-		const d = new Date(dateStr)
-		return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+		const d = new Date(dateStr);
+		return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 	}
 </script>
 
@@ -259,7 +266,9 @@
 				<p class="text-sm text-text-secondary">Try adjusting your search or category filter</p>
 			{:else}
 				<p class="text-text-secondary mb-unit-1">No documents yet</p>
-				<p class="text-sm text-text-secondary">Add documents to your journal entries or calendar events</p>
+				<p class="text-sm text-text-secondary">
+					Add documents to your journal entries or calendar events
+				</p>
 			{/if}
 		</div>
 	{:else}
@@ -272,13 +281,11 @@
 						class="card w-full text-left hover:shadow-md transition-shadow active:opacity-90 flex gap-3"
 					>
 						<!-- Thumbnail -->
-						<div class="w-16 h-16 rounded-lg bg-gray-100 flex items-center justify-center overflow-hidden shrink-0">
+						<div
+							class="w-16 h-16 rounded-lg bg-gray-100 flex items-center justify-center overflow-hidden shrink-0"
+						>
 							{#if isImage(attachment.file_url)}
-								<img
-									src={attachment.file_url}
-									alt=""
-									class="w-full h-full object-cover"
-								/>
+								<img src={attachment.file_url} alt="" class="w-full h-full object-cover" />
 							{:else}
 								<svg
 									xmlns="http://www.w3.org/2000/svg"
@@ -309,8 +316,9 @@
 							<div class="flex items-center gap-2 mt-1">
 								<span class="text-sm text-text-secondary">{formatDate(attachment.created_at)}</span>
 								<span
-									class="text-xs px-2 py-0.5 rounded-full border {categoryColors[attachment.category] ??
-										categoryColors.other}"
+									class="text-xs px-2 py-0.5 rounded-full border {categoryColors[
+										attachment.category
+									] ?? categoryColors.other}"
 								>
 									{categoryLabels[attachment.category] ?? 'Other'}
 								</span>

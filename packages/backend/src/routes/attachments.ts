@@ -211,6 +211,7 @@ attachmentsRouter.get('/', requireAuth, async (req: Request, res: Response): Pro
     const journalId = req.query['journal_id'] as string | undefined
     const category = req.query['category'] as string | undefined
     const limit = req.query['limit'] ? parseInt(req.query['limit'] as string, 10) : undefined
+    const offset = req.query['offset'] ? parseInt(req.query['offset'] as string, 10) : undefined
     const search = req.query['search'] as string | undefined
 
     const profile = await canAccessProfile(req.user!.userId, profileId)
@@ -253,6 +254,10 @@ attachmentsRouter.get('/', requireAuth, async (req: Request, res: Response): Pro
 
     if (limit && limit > 0) {
       query = query.limit(limit) as typeof query
+    }
+
+    if (offset && offset > 0) {
+      query = query.offset(offset) as typeof query
     }
 
     const rows = await query
