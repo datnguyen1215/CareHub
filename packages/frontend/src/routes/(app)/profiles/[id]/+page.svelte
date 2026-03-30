@@ -294,12 +294,6 @@
 		journalTabKey += 1;
 	}
 
-	function handleEventClick(_eventId: string) {
-		// Navigate to Calendar tab
-		activeTab = 'calendar';
-		// In a real implementation, you might scroll to or highlight the event
-	}
-
 	// Calendar functions
 	async function loadCalendarEvents() {
 		if (!groupId) return;
@@ -1146,8 +1140,6 @@
 
 {#if showJournalModal && groupId}
 	<JournalEntryModal
-		{groupId}
-		{profileId}
 		entry={editingJournalEntry}
 		onSave={handleJournalSave}
 		onClose={closeJournalModal}
@@ -1162,7 +1154,6 @@
 		onClose={() => (viewingJournalEntryId = null)}
 		onEdit={openEditJournal}
 		onDeleted={handleJournalDeleted}
-		onEventClick={handleEventClick}
 	/>
 {/if}
 
