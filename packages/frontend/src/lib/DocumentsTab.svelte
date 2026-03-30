@@ -265,9 +265,9 @@
 				<p class="text-text-secondary mb-unit-1">No documents match your filters</p>
 				<p class="text-sm text-text-secondary">Try adjusting your search or category filter</p>
 			{:else}
-				<p class="text-text-secondary mb-unit-1">No documents yet</p>
+				<p class="text-text-secondary mb-unit-1">Photos and documents you attach to journal entries or events will appear here.</p>
 				<p class="text-sm text-text-secondary">
-					Add documents to your journal entries or calendar events
+					Text is automatically extracted for search.
 				</p>
 			{/if}
 		</div>

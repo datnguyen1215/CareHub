@@ -105,7 +105,11 @@
 					d="M5.082 14.254a8.287 8.287 0 0 0-1.308 5.135 9.687 9.687 0 0 1-1.764-.44l-.115-.04a.563.563 0 0 1-.373-.487l-.01-.121a3.75 3.75 0 0 1 3.57-4.047ZM20.226 19.389a8.287 8.287 0 0 0-1.308-5.135 3.75 3.75 0 0 1 3.57 4.047l-.01.121a.563.563 0 0 1-.373.486l-.115.04c-.567.2-1.156.366-1.764.441Z"
 				/>
 			</svg>
-			<p class="text-text-secondary mb-unit-2">Add your first care profile</p>
+			<h3 class="text-lg font-semibold text-text-primary mb-unit-1">Get started with CareHub</h3>
+			<p class="text-text-secondary mb-unit-2">
+				Create a profile for someone you care for. You'll be able to track their medications,
+				appointments, and health notes.
+			</p>
 			<button
 				onclick={openCreate}
 				class="bg-primary text-white rounded-card px-unit-3 py-2 font-semibold text-base hover:bg-blue-600 transition-colors"
