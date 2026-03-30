@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
-	import { listGroups } from '$lib/api';
+	import { listGroups, logout } from '$lib/api';
 
 	const API_BASE = import.meta.env.VITE_API_URL ?? '';
 
@@ -18,6 +18,8 @@
 	let saveError = $state('');
 	let saveSuccess = $state(false);
 	let loading = $state(false);
+	let logoutLoading = $state(false);
+	let logoutError = $state('');
 
 	onMount(async () => {
 		try {
@@ -70,6 +72,20 @@
 			loading = false;
 		}
 	}
+
+	async function handleLogout() {
+		logoutError = '';
+		logoutLoading = true;
+
+		try {
+			await logout();
+			goto('/login');
+		} catch (err: unknown) {
+			logoutError = 'Failed to logout. Please try again.';
+		} finally {
+			logoutLoading = false;
+		}
+	}
 </script>
 
 <div class="max-w-lg mx-auto px-unit-3 py-unit-3">
@@ -117,6 +133,23 @@
 					{loading ? 'Saving…' : 'Save'}
 				</button>
 			</form>
+		</div>
+
+		<div class="card mt-unit-3">
+			<h3 class="text-h3 font-semibold text-text-primary mb-unit-2">Account</h3>
+
+			{#if logoutError}
+				<p class="text-danger text-sm mb-unit-2">{logoutError}</p>
+			{/if}
+
+			<button
+				type="button"
+				onclick={handleLogout}
+				disabled={logoutLoading}
+				class="bg-danger text-white rounded-card px-unit-3 py-unit-1 font-medium text-base hover:opacity-90 disabled:opacity-60 transition-opacity"
+			>
+				{logoutLoading ? 'Logging out…' : 'Logout'}
+			</button>
 		</div>
 	{/if}
 </div>
