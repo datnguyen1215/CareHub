@@ -38,7 +38,7 @@ export const env = {
 
   // Logging
   LOG_LEVEL: optionalEnv('LOG_LEVEL', 'info'),
-  LOG_FILE: optionalEnv('LOG_FILE', ''),
+  LOG_FILE: optionalEnv('LOG_FILE', '/tmp/carehub/backend.log'),
   LOG_FORMAT: optionalEnv(
     'LOG_FORMAT',
     optionalEnv('NODE_ENV', 'development') === 'development' ? 'pretty' : 'json'
