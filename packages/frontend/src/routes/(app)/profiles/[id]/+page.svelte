@@ -307,10 +307,10 @@
 			calendarEvents = await listEvents(profileId, start.toISOString(), end.toISOString());
 			// Fetch attachment counts for all loaded events
 			await loadEventAttachmentCounts(calendarEvents.map((e) => e.id));
-			loadedMonthKey = currentMonthKey;
 		} catch (err) {
 			console.error('Failed to load calendar events', err);
 		} finally {
+			loadedMonthKey = currentMonthKey;
 			calendarState = 'loaded';
 		}
 	}
