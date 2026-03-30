@@ -13,7 +13,7 @@ Step-by-step workflows for core tasks. Wireframe references point to files in `d
 3. Receive 6-digit OTP via email (`designs/01b-otp-verify.svg`)
 4. Enter OTP to verify; JWT cookie is set on success
 5. Prompted to enter first and last name (`designs/01c-account-setup.svg`)
-6. On submit: profile is saved, a default group named "My Family" is created automatically (no user prompt), and the user is redirected to `/` (calendar view)
+6. On submit: profile is saved, a default group named "My Family" is created automatically (no user prompt), welcome toast displays "Welcome to CareHub!", and the user is redirected to `/` (calendar view)
 7. Navigate to Profiles tab to add first care profile: enter name, relationship, date of birth, photo
 8. Fill in initial health info: known conditions, current medications, notes
 9. Profile card appears on the profiles page (`designs/02-home-dashboard.svg`)
@@ -30,6 +30,7 @@ Step-by-step workflows for core tasks. Wireframe references point to files in `d
 2. A modal dialog opens over the profiles page
 3. Fill in the form: Name (required), Date of Birth (optional date picker), Relationship (optional text — e.g., grandmother, father), Conditions (optional comma-separated tags)
 4. Tap Save; the new profile card appears on the profiles page immediately
+5. Success toast displays: "[Name] created"
 
 ### Edit a profile
 
@@ -38,18 +39,21 @@ From the profiles page:
 1. On any profile card, tap "Edit"
 2. The same modal opens pre-filled with existing values
 3. Modify any field and tap Save; the card updates in place
+4. Success toast displays: "Profile saved"
 
 From the profile detail page (`/profiles/:id`):
 
 1. Tap the pencil icon in the top bar
 2. The same edit modal opens pre-filled with existing values
 3. Modify any field and tap Save; the top bar name and profile card update in place
+4. Success toast displays: "Profile saved"
 
 ### Delete a profile
 
 1. On any profile card on the profiles page, tap "Delete"
 2. A confirmation dialog opens: "Are you sure you want to remove [name]?"
 3. Tap the danger-red Delete button to confirm; profile card is removed from the profiles page
+4. Destructive toast displays: "Profile deleted"
 
 ---
 
@@ -64,6 +68,7 @@ From the profile detail page (`/profiles/:id`):
 5. Modal opens; fill form: name, dosage, schedule (multi-select: morning/afternoon/evening/bedtime), status (active/discontinued)
 6. Tap Save
 7. Medication appears in the active list with inline dosage and schedule badges
+8. Success toast displays: "[Medication name] added"
 
 ---
 
@@ -75,15 +80,17 @@ From the profile detail page (`/profiles/:id`):
 2. Open CareHub on phone, navigate to the profile (`designs/03-profile-detail.svg`)
 3. Tap Calendar tab (`designs/05-calendar.svg`)
 4. Create a calendar event for the visit (date, doctor name, location)
-5. Tap Journal tab (`designs/06-journal-entry.svg`)
-6. Tap "+ Add" to create a new journal entry (`designs/06c-journal-modal.svg`)
-7. Enter title (e.g., "Post-Visit Notes"), select the date
-8. Use the "Link to Event" dropdown to connect the entry to the calendar event
-9. Write key takeaways in bullet form for quick reference
-10. Write detailed notes in the Notes field
-11. Optionally star the entry for quick access
-12. Tap Save; entry appears in the journal list
-13. All related data is now connected: event and journal entry
+5. Success toast displays: "Event added"
+6. Tap Journal tab (`designs/06-journal-entry.svg`)
+7. Tap "+ Add" to create a new journal entry (`designs/06c-journal-modal.svg`)
+8. Enter title (e.g., "Post-Visit Notes"), select the date
+9. Use the "Link to Event" dropdown to connect the entry to the calendar event
+10. Write key takeaways in bullet form for quick reference
+11. Write detailed notes in the Notes field
+12. Optionally star the entry for quick access
+13. Tap Save; entry appears in the journal list
+14. Success toast displays: "Entry saved"
+15. All related data is now connected: event and journal entry
 
 ---
 
@@ -195,6 +202,7 @@ From the profile detail page (`/profiles/:id`):
 7. Optionally tap "Star this entry" to mark for quick access
 8. Tap Save
 9. Entry appears in the journal list, sorted by date
+10. Success toast displays: "Entry saved"
 
 ---
 

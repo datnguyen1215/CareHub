@@ -47,9 +47,12 @@ src/
   lib/
     TopBar.svelte          # Fixed top bar — "CareHub" branding left, user avatar right
     BottomNav.svelte       # Fixed bottom navigation — Calendar, Profiles, Devices, Settings tabs
+    Toast.svelte           # Toast notification component — displays success/error/destructive messages
     ProfileModal.svelte    # Create/edit care profile modal
     MedicationModal.svelte # Create/edit medication modal — name, dosage, schedule chips, status toggle (edit only)
     api.ts                 # API client with auth cookie handling
+    stores/
+      toast.ts             # Toast notification store — manage toast queue with auto-dismiss
   routes/
     login/                 # Public auth pages (email entry, OTP verify, account setup)
     (app)/
@@ -71,7 +74,8 @@ All main pages (calendar, profiles, devices, settings) are wrapped by `src/route
 
 1. `TopBar` — Fixed top bar with "CareHub" title and user avatar. Avatar fetches `GET /api/users/me` and displays the user's initial. Tapping navigates to `/settings`.
 2. `<main>` — Page content with top and bottom padding to clear the fixed bars.
-3. `BottomNav` — Fixed bottom navigation with four tabs. Active tab is highlighted with primary blue using the `$page` store. Tabs: Calendar (`/`), Profiles (`/profiles`), Devices (`/devices`), Settings (`/settings`).
+3. `Toast` — Toast notification component positioned above bottom navigation (z-index 40) to display success, error, and destructive messages. Success/destructive toasts auto-dismiss after 3 seconds; error toasts require manual dismissal.
+4. `BottomNav` — Fixed bottom navigation with four tabs. Active tab is highlighted with primary blue using the `$page` store. Tabs: Calendar (`/`), Profiles (`/profiles`), Devices (`/devices`), Settings (`/settings`).
 
 ### Profile Detail Page (`/profiles/:id`)
 

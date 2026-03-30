@@ -3,6 +3,7 @@
 	import type { CareProfile, CreateProfileInput } from './api';
 	import { createFocusTrap } from './focusTrap';
 	import AvatarUpload from './AvatarUpload.svelte';
+	import { toast } from './stores/toast';
 
 	interface Props {
 		profile?: CareProfile | null;
@@ -59,6 +60,7 @@
 				conditions,
 				avatar_url: avatarUrl
 			});
+			toast.success(isEdit ? 'Profile saved' : `${name.trim()} created`);
 		} catch (err: unknown) {
 			const apiErr = err as { message?: string };
 			error = apiErr?.message ?? 'Something went wrong.';

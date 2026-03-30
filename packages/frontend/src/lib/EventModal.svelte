@@ -64,6 +64,8 @@
 			};
 
 			await onSave(data);
+			// Toast is shown by parent component after successful creation/update
+			// to avoid premature toast in multi-profile creation flow
 		} catch (err: unknown) {
 			const apiErr = err as { message?: string };
 			error = apiErr?.message ?? 'Something went wrong.';
