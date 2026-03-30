@@ -5,10 +5,12 @@
 		listGroups,
 		listProfiles,
 		createProfile,
+		deleteProfile,
 		type CareProfile,
 		type CreateProfileInput
 	} from '$lib/api';
 	import ProfileModal from '$lib/ProfileModal.svelte';
+	import DeleteConfirmModal from '$lib/DeleteConfirmModal.svelte';
 
 	let groupId = $state<string | null>(null);
 	let profiles = $state<CareProfile[]>([]);
@@ -16,6 +18,7 @@
 	let loading = $state(true);
 
 	let showProfileModal = $state(false);
+	let deleteModalProfile = $state<CareProfile | null>(null);
 
 	onMount(async () => {
 		try {
@@ -51,6 +54,22 @@
 		const created = await createProfile(groupId, data);
 		profiles = [...profiles, created];
 		closeProfileModal();
+	}
+
+	function openDeleteModal(profile: CareProfile, e: MouseEvent) {
+		e.stopPropagation();
+		deleteModalProfile = profile;
+	}
+
+	function closeDeleteModal() {
+		deleteModalProfile = null;
+	}
+
+	async function handleDeleteConfirm() {
+		if (!groupId || !deleteModalProfile) return;
+		await deleteProfile(groupId, deleteModalProfile.id);
+		profiles = profiles.filter((p) => p.id !== deleteModalProfile?.id);
+		closeDeleteModal();
 	}
 
 	function activeMedCount(_profile: CareProfile): number {
@@ -107,43 +126,66 @@
 	{:else}
 		<div class="grid grid-cols-2 gap-unit-2">
 			{#each profiles as profile (profile.id)}
-				<button
-					onclick={() => goto(`/profiles/${profile.id}`)}
-					class="card text-left flex flex-col gap-1 hover:shadow-md transition-shadow active:opacity-90"
-				>
-					<!-- Name -->
-					<h3 class="text-h3 font-semibold text-text-primary leading-tight truncate">
-						{profile.name}
-					</h3>
+				<div class="relative">
+					<button
+						onclick={() => goto(`/profiles/${profile.id}`)}
+						class="card text-left flex flex-col gap-1 hover:shadow-md transition-shadow active:opacity-90 w-full"
+					>
+						<!-- Name -->
+						<h3 class="text-h3 font-semibold text-text-primary leading-tight truncate">
+							{profile.name}
+						</h3>
 
-					<!-- Relationship subtitle -->
-					{#if profile.relationship}
-						<p class="text-sm text-text-secondary capitalize">{profile.relationship}</p>
-					{/if}
+						<!-- Relationship subtitle -->
+						{#if profile.relationship}
+							<p class="text-sm text-text-secondary capitalize">{profile.relationship}</p>
+						{/if}
 
-					<!-- Conditions badges -->
-					{#if profile.conditions.length > 0}
-						<div class="flex flex-wrap gap-1 mt-1">
-							{#each profile.conditions.slice(0, 3) as condition}
-								<span
-									class="text-xs bg-blue-50 text-primary rounded-full px-2 py-0.5 border border-blue-100 truncate max-w-full"
-								>
-									{condition}
-								</span>
-							{/each}
-							{#if profile.conditions.length > 3}
-								<span class="text-xs text-text-secondary">+{profile.conditions.length - 3} more</span>
-							{/if}
-						</div>
-					{/if}
+						<!-- Conditions badges -->
+						{#if profile.conditions.length > 0}
+							<div class="flex flex-wrap gap-1 mt-1">
+								{#each profile.conditions.slice(0, 3) as condition}
+									<span
+										class="text-xs bg-blue-50 text-primary rounded-full px-2 py-0.5 border border-blue-100 truncate max-w-full"
+									>
+										{condition}
+									</span>
+								{/each}
+								{#if profile.conditions.length > 3}
+									<span class="text-xs text-text-secondary">+{profile.conditions.length - 3} more</span>
+								{/if}
+							</div>
+						{/if}
 
-					<!-- Medication count -->
-					<p class="text-xs text-text-secondary mt-auto pt-1">
-						{activeMedCount(profile) === 0
-							? 'No medications'
-							: `${activeMedCount(profile)} medication${activeMedCount(profile) === 1 ? '' : 's'}`}
-					</p>
-				</button>
+						<!-- Medication count -->
+						<p class="text-xs text-text-secondary mt-auto pt-1">
+							{activeMedCount(profile) === 0
+								? 'No medications'
+								: `${activeMedCount(profile)} medication${activeMedCount(profile) === 1 ? '' : 's'}`}
+						</p>
+					</button>
+
+					<!-- Delete button -->
+					<button
+						onclick={(e) => openDeleteModal(profile, e)}
+						class="absolute top-2 right-2 p-1.5 rounded-full hover:bg-gray-100 transition-colors z-10"
+						aria-label="Delete profile"
+						title="Delete profile"
+					>
+						<svg
+							xmlns="http://www.w3.org/2000/svg"
+							viewBox="0 0 20 20"
+							fill="currentColor"
+							class="w-5 h-5 text-gray-500 hover:text-danger"
+						>
+							<path
+								fill-rule="evenodd"
+								d="M8.75 1A2.75 2.75 0 0 0 6 3.75v.443c-.795.077-1.584.176-2.365.298a.75.75 0 1 0 .23 1.482l.149-.022.841 10.518A2.75 2.75 0 0 0 7.596 19h4.807a2.75 2.75 0 0 0 2.742-2.53l.841-10.52.149.023a.75.75 0 0 0 .23-1.482A41.03 41.03 0 0 0 14 4.193V3.75A2.75 2.75 0 0 0 11.25 1h-2.5ZM10 4c.84 0 1.673.025 2.5.075V3.75c0-.69-.56-1.25-1.25-1.25h-2.5c-.69 0-1.25.56-1.25 1.25v.325C8.327 4.025 9.16 4 10 4ZM8.58 7.72a.75.75 0 0 0-1.5.06l.3 7.5a.75.75 0 1 0 1.5-.06l-.3-7.5Zm4.34.06a.75.75 0 1 0-1.5-.06l-.3 7.5a.75.75 0 1 0 1.5.06l.3-7.5Z"
+								clip-rule="evenodd"
+							/>
+						</svg>
+					</button>
+				</div>
 			{/each}
 		</div>
 	{/if}
@@ -151,4 +193,12 @@
 
 {#if showProfileModal && groupId}
 	<ProfileModal {groupId} profile={null} onSave={handleSave} onClose={closeProfileModal} />
+{/if}
+
+{#if deleteModalProfile}
+	<DeleteConfirmModal
+		name={deleteModalProfile.name}
+		onConfirm={handleDeleteConfirm}
+		onClose={closeDeleteModal}
+	/>
 {/if}
