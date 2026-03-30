@@ -2,7 +2,6 @@
 	import { onMount } from 'svelte';
 	import type { Event, CreateEventInput } from './api';
 	import { createFocusTrap } from './focusTrap';
-	import { toast } from './stores/toast';
 
 	interface Props {
 		event?: Event | null;
@@ -65,7 +64,8 @@
 			};
 
 			await onSave(data);
-			toast.success(isEdit ? 'Event updated' : 'Event added');
+			// Toast is shown by parent component after successful creation/update
+			// to avoid premature toast in multi-profile creation flow
 		} catch (err: unknown) {
 			const apiErr = err as { message?: string };
 			error = apiErr?.message ?? 'Something went wrong.';

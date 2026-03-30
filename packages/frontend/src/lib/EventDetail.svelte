@@ -95,6 +95,7 @@
 		deleting = true;
 		try {
 			await deleteEvent(profileId, event.id);
+			toast.destructive('Event deleted');
 			onDeleted();
 		} catch (err: unknown) {
 			const apiErr = err as { message?: string };
@@ -211,7 +212,9 @@
 
 			<!-- Event type badge -->
 			<div class="mb-unit-2">
-				<span class="text-xs bg-blue-50 text-primary rounded-full px-2 py-0.5 border border-blue-100">
+				<span
+					class="text-xs bg-blue-50 text-primary rounded-full px-2 py-0.5 border border-blue-100"
+				>
 					{eventTypeLabels[event.event_type] ?? event.event_type}
 				</span>
 			</div>
@@ -250,11 +253,7 @@
 					<h3 class="text-xs font-semibold text-text-secondary uppercase tracking-wide">
 						Attachments
 					</h3>
-					<AttachmentUpload
-						{profileId}
-						{eventId}
-						onUploaded={handleAttachmentUploaded}
-					/>
+					<AttachmentUpload {profileId} {eventId} onUploaded={handleAttachmentUploaded} />
 				</div>
 
 				{#if attachmentsLoading}

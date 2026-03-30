@@ -192,6 +192,7 @@
 				const updated = await updateEvent(editingEvent.care_profile_id, editingEvent.id, data);
 				events = events.map((e) => (e.id === updated.id ? updated : e));
 				closeEventModal();
+				toast.success('Event updated');
 			} catch (err) {
 				throw err;
 			}
@@ -202,6 +203,7 @@
 				pendingEventData = data;
 				closeEventModal();
 				showProfileSelector = true;
+				// Toast will be shown in handleProfileSelect after actual creation
 			} else {
 				// Either a specific profile is selected, or there's only one profile
 				const profileId = selectedProfileId === 'all' ? profiles[0]?.id : selectedProfileId;
@@ -211,6 +213,7 @@
 					const created = await createEvent(profileId, data);
 					events = [...events, created];
 					closeEventModal();
+					toast.success('Event added');
 				} catch (err) {
 					throw err;
 				}
