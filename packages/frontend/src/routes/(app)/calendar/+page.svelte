@@ -13,6 +13,7 @@
 	} from '$lib/api';
 	import EventModal from '$lib/EventModal.svelte';
 	import DeleteConfirmModal from '$lib/DeleteConfirmModal.svelte';
+	import { toast } from '$lib/stores/toast';
 
 	let profiles = $state<CareProfile[]>([]);
 	let selectedProfileId = $state<string>('all');
@@ -223,6 +224,7 @@
 		try {
 			const created = await createEvent(profileId, pendingEventData);
 			events = [...events, created];
+			toast.success('Event added');
 			showProfileSelector = false;
 			pendingEventData = null;
 		} catch (err) {
@@ -249,6 +251,7 @@
 		try {
 			await deleteEvent(eventToDelete.care_profile_id, eventToDelete.id);
 			events = events.filter((e) => e.id !== eventToDelete.id);
+			toast.destructive('Event deleted');
 			closeDeleteModal();
 		} catch (err) {
 			console.error('Failed to delete event', err);

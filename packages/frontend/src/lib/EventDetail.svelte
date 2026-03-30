@@ -11,6 +11,7 @@
 	import { createFocusTrap } from './focusTrap';
 	import AttachmentCard from './AttachmentCard.svelte';
 	import AttachmentUpload from './AttachmentUpload.svelte';
+	import { toast } from './stores/toast';
 
 	interface Props {
 		profileId: string;
@@ -82,6 +83,7 @@
 		try {
 			await deleteAttachment(profileId, attachment.id);
 			attachments = attachments.filter((a) => a.id !== attachment.id);
+			toast.destructive('Attachment deleted');
 		} catch (err: unknown) {
 			const apiErr = err as { message?: string };
 			attachmentsError = apiErr?.message ?? 'Failed to delete attachment';

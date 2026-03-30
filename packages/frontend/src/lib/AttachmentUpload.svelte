@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { uploadAttachment, type Attachment, type AttachmentCategory } from './api';
+	import { toast } from './stores/toast';
 
 	interface Props {
 		profileId: string;
@@ -92,6 +93,7 @@
 			});
 			uploadProgress = 100;
 			onUploaded(attachment);
+			toast.success('Attachment uploaded');
 			showCategorySelect = false;
 			selectedFile = null;
 		} catch (err: unknown) {

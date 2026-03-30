@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import type { Medication, CreateMedicationInput } from './api';
 	import { createFocusTrap } from './focusTrap';
+	import { toast } from './stores/toast';
 
 	interface Props {
 		medication?: Medication | null;
@@ -63,6 +64,7 @@
 			}
 
 			await onSave(data);
+			toast.success(isEdit ? `${name.trim()} updated` : `${name.trim()} added`);
 		} catch (err: unknown) {
 			const apiErr = err as { message?: string };
 			error = apiErr?.message ?? 'Something went wrong.';

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { updateMe } from '$lib/api';
+	import { toast } from '$lib/stores/toast';
 
 	let firstName = $state('');
 	let lastName = $state('');
@@ -17,6 +18,9 @@
 		try {
 			// Update user profile
 			await updateMe({ first_name: firstName.trim(), last_name: lastName.trim() });
+
+			// Show welcome toast before redirect
+			toast.success('Welcome to CareHub!');
 
 			// Redirect to dashboard
 			await goto('/');

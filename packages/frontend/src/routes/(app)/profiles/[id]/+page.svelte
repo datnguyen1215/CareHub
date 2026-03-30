@@ -36,6 +36,7 @@
 	import JournalEntryDetail from '$lib/JournalEntryDetail.svelte';
 	import EventDetail from '$lib/EventDetail.svelte';
 	import DocumentsTab from '$lib/DocumentsTab.svelte';
+	import { toast } from '$lib/stores/toast';
 
 	const profileId = $derived($page.params.id ?? '');
 
@@ -447,6 +448,7 @@
 			// Re-fetch all events to properly update overview upcoming events (not limited to calendar window)
 			await refreshUpcomingEvents();
 
+			toast.destructive('Event deleted');
 			closeDeleteEventModal();
 		} catch (err) {
 			console.error('Failed to delete event', err);
@@ -541,6 +543,7 @@
 			const url = await uploadFile(file);
 			const updated = await updateProfile(profile.id, { avatar_url: url });
 			profile = updated;
+			toast.success('Photo updated');
 		} catch (err: unknown) {
 			avatarError = getErrorMessage(err, 'upload photo');
 		} finally {
@@ -561,6 +564,7 @@
 	async function handleDeleteProfileConfirm() {
 		if (!profile) return;
 		await deleteProfile(profile.id);
+		toast.destructive('Profile deleted');
 		goto('/');
 	}
 </script>

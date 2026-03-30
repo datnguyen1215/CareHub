@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import type { JournalEntry, CreateJournalEntryInput } from './api';
 	import { createFocusTrap } from './focusTrap';
+	import { toast } from './stores/toast';
 
 	interface Props {
 		entry?: JournalEntry | null;
@@ -53,6 +54,7 @@
 			};
 
 			await onSave(data);
+			toast.success('Entry saved');
 		} catch (err: unknown) {
 			const apiErr = err as { message?: string };
 			error = apiErr?.message ?? 'Something went wrong.';
