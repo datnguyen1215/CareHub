@@ -40,8 +40,8 @@ Add scheduling, journaling, and AI-powered document management.
 
 - [ ] Calendar view (monthly calendar with event dots and list view)
 - [ ] Event CRUD (appointments with type, date, location, notes)
-- [ ] Journal entries (free-form text linked to dates and events)
-- [ ] Key takeaways (summary field on journal entries)
+- [x] Journal entries (free-form text linked to dates and events)
+- [x] Key takeaways (summary field on journal entries)
 - [ ] Document upload (camera capture and file upload)
 - [ ] OCR text extraction (Google Vision API or equivalent)
 - [ ] Document categorization (auto-categorize: lab results, prescriptions, insurance, billing, imaging)
@@ -101,4 +101,4 @@ Refine experience with collaboration, AI improvements, and notifications.
 
 ---
 
-**Last Updated**: 2026-03-29
+**Last Updated**: 2026-03-30

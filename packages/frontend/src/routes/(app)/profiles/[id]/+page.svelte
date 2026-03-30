@@ -9,14 +9,23 @@
 		listMedications,
 		createMedication,
 		updateMedication,
+		listEvents,
+		createJournalEntry,
+		updateJournalEntry,
 		type CareProfile,
 		type Medication,
+		type Event,
+		type JournalEntry,
 		type CreateProfileInput,
-		type CreateMedicationInput
+		type CreateMedicationInput,
+		type CreateJournalEntryInput
 	} from '$lib/api';
 	import { getErrorMessage, isRetryable } from '$lib/error-utils';
 	import ProfileModal from '$lib/ProfileModal.svelte';
 	import MedicationModal from '$lib/MedicationModal.svelte';
+	import JournalTab from '$lib/JournalTab.svelte';
+	import JournalEntryModal from '$lib/JournalEntryModal.svelte';
+	import JournalEntryDetail from '$lib/JournalEntryDetail.svelte';
 
 	const profileId = $derived($page.params.id ?? '');
 
@@ -24,6 +33,7 @@
 	let profile = $state<CareProfile | null>(null);
 	let recentMeds = $state<Medication[]>([]);
 	let medications = $state<Medication[]>([]);
+	let upcomingEvents = $state<Event[]>([]);
 	let loadError = $state('');
 	let loading = $state(true);
 	let showDiscontinued = $state(false);
@@ -31,10 +41,16 @@
 	let canRetry = $state(false);
 	let medError = $state('');
 
-	let activeTab = $state<'overview' | 'meds'>('overview');
+	let activeTab = $state<'overview' | 'meds' | 'calendar' | 'journal'>('overview');
 	let showEditModal = $state(false);
 	let showMedModal = $state(false);
 	let editingMedication = $state<Medication | null>(null);
+
+	// Journal state
+	let showJournalModal = $state(false);
+	let editingJournalEntry = $state<JournalEntry | null>(null);
+	let viewingJournalEntryId = $state<string | null>(null);
+	let journalTabKey = $state(0);
 
 	async function loadData() {
 		loading = true;
@@ -48,13 +64,22 @@
 				return;
 			}
 			groupId = groups[0].id;
-			const [profileData, medsData] = await Promise.all([
+			const [profileData, medsData, eventsData] = await Promise.all([
 				getProfile(groupId, profileId),
-				listMedications(groupId, profileId)
+				listMedications(groupId, profileId),
+				listEvents(groupId, profileId)
 			]);
 			profile = profileData;
 			medications = medsData;
 			recentMeds = medsData.filter((m) => m.status === 'active').slice(0, 3);
+
+			// Filter upcoming events (future dates only)
+			const now = new Date();
+			now.setHours(0, 0, 0, 0);
+			upcomingEvents = eventsData
+				.filter((e) => new Date(e.event_date) >= now)
+				.sort((a, b) => new Date(a.event_date).getTime() - new Date(b.event_date).getTime())
+				.slice(0, 3);
 		} catch (err: unknown) {
 			const apiErr = err as { status?: number };
 			if (apiErr?.status === 401) {
@@ -75,6 +100,11 @@
 	function formatDate(iso: string): string {
 		const d = new Date(iso + 'T00:00:00');
 		return d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+	}
+
+	function formatShortDate(iso: string): string {
+		const d = new Date(iso);
+		return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 	}
 
 	async function handleEditSave(data: CreateProfileInput) {
@@ -137,6 +167,52 @@
 		// Refresh recent meds for overview tab
 		recentMeds = medications.filter((m) => m.status === 'active').slice(0, 3);
 		closeMedModal();
+	}
+
+	// Journal handlers
+	function openCreateJournal() {
+		editingJournalEntry = null;
+		showJournalModal = true;
+	}
+
+	function openEditJournal(entry: JournalEntry) {
+		editingJournalEntry = entry;
+		showJournalModal = true;
+		viewingJournalEntryId = null;
+	}
+
+	function closeJournalModal() {
+		showJournalModal = false;
+		editingJournalEntry = null;
+	}
+
+	async function handleJournalSave(data: CreateJournalEntryInput) {
+		if (!groupId) return;
+
+		if (editingJournalEntry) {
+			await updateJournalEntry(groupId, profileId, editingJournalEntry.id, data);
+		} else {
+			await createJournalEntry(groupId, profileId, data);
+		}
+
+		closeJournalModal();
+		// Force JournalTab to reload
+		journalTabKey += 1;
+	}
+
+	function handleJournalEntryClick(entry: JournalEntry) {
+		viewingJournalEntryId = entry.id;
+	}
+
+	function handleJournalDeleted() {
+		viewingJournalEntryId = null;
+		journalTabKey += 1;
+	}
+
+	function handleEventClick(_eventId: string) {
+		// Navigate to Calendar tab
+		activeTab = 'calendar';
+		// In a real implementation, you might scroll to or highlight the event
 	}
 
 	const SCHEDULE_LABELS: Record<string, string> = {
@@ -228,13 +304,31 @@
 		>
 			Meds
 		</button>
+		<button
+			onclick={() => (activeTab = 'calendar')}
+			class="flex-1 py-3 min-h-[44px] text-sm font-semibold transition-colors
+				{activeTab === 'calendar'
+				? 'text-primary border-b-2 border-primary'
+				: 'text-text-secondary hover:text-text-primary'}"
+		>
+			Calendar
+		</button>
+		<button
+			onclick={() => (activeTab = 'journal')}
+			class="flex-1 py-3 min-h-[44px] text-sm font-semibold transition-colors
+				{activeTab === 'journal'
+				? 'text-primary border-b-2 border-primary'
+				: 'text-text-secondary hover:text-text-primary'}"
+		>
+			Journal
+		</button>
 	</div>
 </div>
 
 <!-- Page content -->
 <div class="max-w-2xl mx-auto px-unit-2 py-unit-3">
 	{#if loading}
-		<p class="text-text-secondary text-sm">Loading…</p>
+		<p class="text-text-secondary text-sm">Loading...</p>
 	{:else if loadError}
 		<div class="card">
 			<p class="text-danger text-sm mb-unit-2">{loadError}</p>
@@ -284,7 +378,7 @@
 		</div>
 
 		<!-- Recent medications card -->
-		<div class="card">
+		<div class="card mb-unit-2">
 			<div class="flex items-center justify-between mb-unit-2">
 				<h3 class="text-base font-semibold text-text-primary">Recent Medications</h3>
 				{#if recentMeds.length > 0}
@@ -305,6 +399,34 @@
 							{#if med.dosage}
 								<span class="text-text-secondary">{med.dosage}</span>
 							{/if}
+						</li>
+					{/each}
+				</ul>
+			{/if}
+		</div>
+
+		<!-- Upcoming events card -->
+		<div class="card">
+			<div class="flex items-center justify-between mb-unit-2">
+				<h3 class="text-base font-semibold text-text-primary">Upcoming</h3>
+				{#if upcomingEvents.length > 0}
+					<button
+						onclick={() => (activeTab = 'calendar')}
+						class="text-sm text-primary hover:underline"
+					>
+						See all
+					</button>
+				{/if}
+			</div>
+
+			{#if upcomingEvents.length === 0}
+				<p class="text-text-secondary text-sm">No upcoming events</p>
+			{:else}
+				<ul class="flex flex-col gap-2">
+					{#each upcomingEvents as event (event.id)}
+						<li class="flex items-center gap-2 text-sm">
+							<span class="text-text-secondary shrink-0">{formatShortDate(event.event_date)}</span>
+							<span class="text-text-primary font-medium truncate">{event.title}</span>
 						</li>
 					{/each}
 				</ul>
@@ -331,7 +453,7 @@
 			{/if}
 
 			{#if loadingMeds}
-				<p class="text-text-secondary text-sm">Loading medications…</p>
+				<p class="text-text-secondary text-sm">Loading medications...</p>
 			{:else if medications.length === 0 && !showDiscontinued}
 				<!-- Empty state -->
 				<div class="card text-center py-unit-4">
@@ -429,6 +551,35 @@
 				</button>
 			</div>
 		</div>
+	{:else if activeTab === 'calendar' && profile}
+		<!-- Calendar Tab (placeholder - Calendar feature is separate) -->
+		<div class="card text-center py-unit-4">
+			<p class="text-text-secondary">Calendar view coming soon</p>
+			{#if upcomingEvents.length > 0}
+				<div class="mt-unit-3 text-left">
+					<h3 class="text-base font-semibold text-text-primary mb-unit-2">All Events</h3>
+					<ul class="flex flex-col gap-2">
+						{#each upcomingEvents as event (event.id)}
+							<li class="flex items-center gap-2 text-sm">
+								<span class="text-text-secondary shrink-0">{formatShortDate(event.event_date)}</span
+								>
+								<span class="text-text-primary font-medium truncate">{event.title}</span>
+							</li>
+						{/each}
+					</ul>
+				</div>
+			{/if}
+		</div>
+	{:else if activeTab === 'journal' && profile && groupId}
+		<!-- Journal Tab -->
+		{#key journalTabKey}
+			<JournalTab
+				{groupId}
+				{profileId}
+				onEntryClick={handleJournalEntryClick}
+				onAddClick={openCreateJournal}
+			/>
+		{/key}
 	{/if}
 </div>
 
@@ -443,4 +594,26 @@
 
 {#if showMedModal}
 	<MedicationModal medication={editingMedication} onSave={handleMedSave} onClose={closeMedModal} />
+{/if}
+
+{#if showJournalModal && groupId}
+	<JournalEntryModal
+		{groupId}
+		{profileId}
+		entry={editingJournalEntry}
+		onSave={handleJournalSave}
+		onClose={closeJournalModal}
+	/>
+{/if}
+
+{#if viewingJournalEntryId && groupId}
+	<JournalEntryDetail
+		{groupId}
+		{profileId}
+		entryId={viewingJournalEntryId}
+		onClose={() => (viewingJournalEntryId = null)}
+		onEdit={openEditJournal}
+		onDeleted={handleJournalDeleted}
+		onEventClick={handleEventClick}
+	/>
 {/if}

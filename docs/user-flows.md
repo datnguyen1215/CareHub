@@ -72,20 +72,18 @@ From the profile detail page (`/profiles/:id`):
 **Actor:** Caretaker (Admin), at a doctor's office
 
 1. Doctor provides paper documents (lab results, prescriptions)
-2. Open CareHub on phone, navigate to the profile
-3. Tap Documents tab (`designs/07-documents.svg`)
-4. Tap "Upload" and select camera capture
-5. Photograph each document
-6. Upload completes; OCR runs automatically in background
-7. Review extracted text and auto-assigned category (`designs/08-document-detail.svg`)
-8. Adjust category or add tags if needed
-9. Navigate to Calendar tab (`designs/05-calendar.svg`)
-10. Create a calendar event for the visit (date, doctor name, location)
-11. Link the uploaded documents to this event
-12. Navigate to Journals, create a new entry (`designs/06-journal-entry.svg`)
-13. Write visit notes and key takeaways
-14. Link the journal entry to the calendar event
-15. All related data is now connected: event, documents, and notes
+2. Open CareHub on phone, navigate to the profile (`designs/03-profile-detail.svg`)
+3. Tap Calendar tab (`designs/05-calendar.svg`)
+4. Create a calendar event for the visit (date, doctor name, location)
+5. Tap Journal tab (`designs/06-journal-entry.svg`)
+6. Tap "+ Add" to create a new journal entry (`designs/06c-journal-modal.svg`)
+7. Enter title (e.g., "Post-Visit Notes"), select the date
+8. Use the "Link to Event" dropdown to connect the entry to the calendar event
+9. Write key takeaways in bullet form for quick reference
+10. Write detailed notes in the Notes field
+11. Optionally star the entry for quick access
+12. Tap Save; entry appears in the journal list
+13. All related data is now connected: event and journal entry
 
 ---
 
@@ -181,3 +179,44 @@ From the profile detail page (`/profiles/:id`):
 5. Results display matching documents with highlighted excerpts
 6. Tap a result to view the full document (`designs/08-document-detail.svg`)
 7. Original image and extracted text displayed side by side
+
+---
+
+## 11. Creating a Journal Entry
+
+**Actor:** Caretaker (Admin)
+
+1. From home dashboard, tap a profile card (`designs/02-home-dashboard.svg`)
+2. Profile detail opens with 4 tabs: Overview, Meds, Calendar, Journal (`designs/03-profile-detail.svg`)
+3. Tap the Journal tab (`designs/06-journal-entry.svg`)
+4. Tap "+ Add" button
+5. Modal opens (`designs/06c-journal-modal.svg`)
+6. Fill in: Title (required), Date (defaults to today), Link to Event (optional dropdown of existing events), Key Takeaways (optional), Notes (required)
+7. Optionally tap "Star this entry" to mark for quick access
+8. Tap Save
+9. Entry appears in the journal list, sorted by date
+
+---
+
+## 12. Searching Journal Entries
+
+**Actor:** Caretaker (Admin or Viewer)
+
+1. Navigate to a profile's Journal tab (`designs/06-journal-entry.svg`)
+2. Tap the search bar at the top
+3. Type a search term (e.g., "blood pressure")
+4. PostgreSQL full-text search queries title, content, and key takeaways
+5. Results update in real-time as you type (debounced)
+6. Tap a result to view the full entry (`designs/06b-journal-detail.svg`)
+7. If the entry is linked to a calendar event, tap the link to navigate to the Calendar tab
+
+---
+
+## 13. Viewing Linked Journal from Event
+
+**Actor:** Caretaker (Admin or Viewer)
+
+1. Navigate to Calendar tab and view an event
+2. If journal entries are linked to this event, they appear in a "Linked Journal" section
+3. Tap a linked journal entry to view its full content
+4. Cross-linking allows navigating between events and their related notes

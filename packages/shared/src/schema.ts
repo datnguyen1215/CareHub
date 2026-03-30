@@ -8,12 +8,18 @@ import {
   pgEnum,
   primaryKey,
   index,
+  boolean,
 } from 'drizzle-orm/pg-core'
 
 // Enums
 export const groupMemberRoleEnum = pgEnum('group_member_role', ['admin', 'viewer'])
 export const medicationStatusEnum = pgEnum('medication_status', ['active', 'discontinued'])
-export const eventTypeEnum = pgEnum('event_type', ['doctor_visit', 'lab_work', 'therapy', 'general'])
+export const eventTypeEnum = pgEnum('event_type', [
+  'doctor_visit',
+  'lab_work',
+  'therapy',
+  'general',
+])
 
 // Users
 export const users = pgTable('users', {
@@ -93,6 +99,30 @@ export const events = pgTable('events', {
   created_at: timestamp('created_at').defaultNow().notNull(),
   updated_at: timestamp('updated_at').defaultNow().notNull(),
 })
+
+// Journal Entries
+export const journalEntries = pgTable(
+  'journal_entries',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    care_profile_id: uuid('care_profile_id')
+      .notNull()
+      .references(() => careProfiles.id),
+    title: varchar('title').notNull(),
+    content: text('content').notNull(),
+    key_takeaways: text('key_takeaways'),
+    entry_date: date('entry_date').notNull(),
+    // Nullable FK — journal entries exist independently; set to null when event is deleted
+    linked_event_id: uuid('linked_event_id').references(() => events.id, { onDelete: 'set null' }),
+    starred: boolean('starred').default(false).notNull(),
+    created_at: timestamp('created_at').defaultNow().notNull(),
+    updated_at: timestamp('updated_at').defaultNow().notNull(),
+  },
+  (table) => ({
+    profileIdx: index('journal_entries_profile_idx').on(table.care_profile_id),
+    entryDateIdx: index('journal_entries_date_idx').on(table.entry_date),
+  })
+)
 
 // OTP
 export const otps = pgTable(

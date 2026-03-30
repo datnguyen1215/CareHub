@@ -38,8 +38,10 @@ Add scheduling, journaling, and AI-powered document management.
 
 - **Calendar view** -- Monthly calendar with event dots and list of upcoming events
 - **Event CRUD** -- Create, edit, delete appointments with type, date, location, and notes
-- **Journal entries** -- Free-form entries linked to dates and optionally to calendar events
-- **Key takeaways** -- Summary field on journal entries for quick scanning
+- **Journal entries** -- Free-form entries linked to dates and optionally to calendar events ✅
+- **Key takeaways** -- Summary field on journal entries for quick scanning ✅
+- **Journal full-text search** -- PostgreSQL full-text search across title, content, and key takeaways ✅
+- **Journal starred entries** -- Star/bookmark entries for quick access ✅
 - **Document upload** -- Camera capture and file upload, assigned to care profiles
 - **OCR text extraction** -- Automatic processing on upload via Google Vision API or equivalent
 - **Document categorization** -- Auto-categorization (lab results, prescriptions, insurance, billing, imaging)
@@ -50,7 +52,9 @@ Add scheduling, journaling, and AI-powered document management.
 ### Screens Implemented
 
 - Calendar (`designs/05-calendar.svg`)
-- Journal Entry (`designs/06-journal-entry.svg`)
+- Journal Tab (`designs/06-journal-entry.svg`) ✅
+- Journal Entry Detail (`designs/06b-journal-detail.svg`) ✅
+- Journal Entry Modal (`designs/06c-journal-modal.svg`) ✅
 - Documents (`designs/07-documents.svg`)
 - Document Detail (`designs/08-document-detail.svg`)
 

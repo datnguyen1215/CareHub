@@ -8,6 +8,7 @@ import { groupsRouter } from './routes/groups'
 import { profilesRouter } from './routes/profiles'
 import { medicationsRouter } from './routes/medications'
 import { eventsRouter } from './routes/events'
+import { journalRouter } from './routes/journal'
 import healthRouter from './routes/health'
 import { logger } from './services/logger'
 
@@ -36,6 +37,7 @@ export function createApp() {
   app.use('/api/groups/:groupId/profiles', profilesRouter)
   app.use('/api/groups/:groupId/profiles/:profileId/medications', medicationsRouter)
   app.use('/api/groups/:groupId/profiles/:profileId/events', eventsRouter)
+  app.use('/api/groups/:groupId/profiles/:profileId/journal', journalRouter)
 
   return app
 }
