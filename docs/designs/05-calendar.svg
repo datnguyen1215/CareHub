@@ -96,11 +96,13 @@
   <text x="24" y="500" font-family="system-ui, sans-serif" font-size="14" font-weight="600" fill="#333">Thursday, March 26</text>
   <text x="335" y="500" font-family="system-ui, sans-serif" font-size="13" fill="#888" text-anchor="end">2 events</text>
 
-  <!-- Event 1 -->
+  <!-- Event 1 (with attachment indicator) -->
   <rect x="16" y="516" width="343" height="80" rx="12" fill="#FFFFFF" filter="url(#shadow)"/>
   <rect x="16" y="516" width="4" height="80" rx="2" fill="#4A90D9"/>
   <text x="36" y="541" font-family="system-ui, sans-serif" font-size="13" font-weight="600" fill="#4A90D9">2:00 PM</text>
   <text x="120" y="541" font-family="system-ui, sans-serif" font-size="15" font-weight="600" fill="#333">Dr. Nguyen - Cardiology</text>
+  <!-- Attachment indicator (paperclip emoji) -->
+  <text x="310" y="541" font-family="system-ui, sans-serif" font-size="14" fill="#AAA">📎</text>
   <text x="120" y="561" font-family="system-ui, sans-serif" font-size="13" fill="#888">Heart Health Clinic, Suite 200</text>
   <rect x="120" y="572" width="72" height="18" rx="9" fill="#E8F0FE"/>
   <text x="156" y="584" font-family="system-ui, sans-serif" font-size="10" font-weight="500" fill="#4A90D9" text-anchor="middle">Has journal</text>
