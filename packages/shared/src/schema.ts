@@ -14,7 +14,12 @@ import {
 // Enums
 export const groupMemberRoleEnum = pgEnum('group_member_role', ['admin', 'viewer'])
 export const medicationStatusEnum = pgEnum('medication_status', ['active', 'discontinued'])
-export const eventTypeEnum = pgEnum('event_type', ['doctor_visit', 'lab_work', 'therapy', 'general'])
+export const eventTypeEnum = pgEnum('event_type', [
+  'doctor_visit',
+  'lab_work',
+  'therapy',
+  'general',
+])
 
 // Users
 export const users = pgTable('users', {
@@ -107,7 +112,8 @@ export const journalEntries = pgTable(
     content: text('content').notNull(),
     key_takeaways: text('key_takeaways'),
     entry_date: date('entry_date').notNull(),
-    linked_event_id: uuid('linked_event_id').references(() => events.id),
+    // Nullable FK — journal entries exist independently; set to null when event is deleted
+    linked_event_id: uuid('linked_event_id').references(() => events.id, { onDelete: 'set null' }),
     starred: boolean('starred').default(false).notNull(),
     created_at: timestamp('created_at').defaultNow().notNull(),
     updated_at: timestamp('updated_at').defaultNow().notNull(),

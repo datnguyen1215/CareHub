@@ -46,7 +46,8 @@
 				try {
 					linkedEvent = await getEvent(groupId, profileId, entry.linked_event_id);
 				} catch {
-					// Event may have been deleted
+					// Handles deleted events gracefully — FK uses ON DELETE SET NULL,
+					// so linked_event_id may reference an event that no longer exists
 					linkedEvent = null;
 				}
 			}

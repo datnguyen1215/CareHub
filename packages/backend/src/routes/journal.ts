@@ -105,6 +105,49 @@ journalRouter.post('/', requireAuth, async (req: Request, res: Response): Promis
   }
 })
 
+// GET /api/groups/:groupId/profiles/:profileId/journal/by-event/:eventId
+// Get journal entries linked to a specific event
+// NOTE: Must be registered before /:id to avoid matching "by-event" as an id
+journalRouter.get(
+  '/by-event/:eventId',
+  requireAuth,
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      const groupId = req.params['groupId'] as string
+      const profileId = req.params['profileId'] as string
+      const eventId = req.params['eventId'] as string
+
+      const membership = await getMembership(req.user!.userId, groupId)
+      if (!membership) {
+        res.status(403).json({ error: 'Forbidden' })
+        return
+      }
+
+      const profile = await getProfileInGroup(profileId, groupId)
+      if (!profile) {
+        res.status(404).json({ error: 'Profile not found' })
+        return
+      }
+
+      const rows = await db
+        .select()
+        .from(journalEntries)
+        .where(
+          and(
+            eq(journalEntries.care_profile_id, profileId),
+            eq(journalEntries.linked_event_id, eventId)
+          )
+        )
+        .orderBy(desc(journalEntries.entry_date))
+
+      res.json(rows)
+    } catch (err) {
+      logger.error({ err }, 'GET journal by event error')
+      res.status(500).json({ error: 'Failed to fetch journal entries' })
+    }
+  }
+)
+
 // GET /api/groups/:groupId/profiles/:profileId/journal
 journalRouter.get('/', requireAuth, async (req: Request, res: Response): Promise<void> => {
   try {
@@ -333,45 +376,3 @@ journalRouter.delete('/:id', requireAuth, async (req: Request, res: Response): P
     res.status(500).json({ error: 'Failed to delete journal entry' })
   }
 })
-
-// GET /api/groups/:groupId/profiles/:profileId/journal/by-event/:eventId
-// Get journal entries linked to a specific event
-journalRouter.get(
-  '/by-event/:eventId',
-  requireAuth,
-  async (req: Request, res: Response): Promise<void> => {
-    try {
-      const groupId = req.params['groupId'] as string
-      const profileId = req.params['profileId'] as string
-      const eventId = req.params['eventId'] as string
-
-      const membership = await getMembership(req.user!.userId, groupId)
-      if (!membership) {
-        res.status(403).json({ error: 'Forbidden' })
-        return
-      }
-
-      const profile = await getProfileInGroup(profileId, groupId)
-      if (!profile) {
-        res.status(404).json({ error: 'Profile not found' })
-        return
-      }
-
-      const rows = await db
-        .select()
-        .from(journalEntries)
-        .where(
-          and(
-            eq(journalEntries.care_profile_id, profileId),
-            eq(journalEntries.linked_event_id, eventId)
-          )
-        )
-        .orderBy(desc(journalEntries.entry_date))
-
-      res.json(rows)
-    } catch (err) {
-      logger.error({ err }, 'GET journal by event error')
-      res.status(500).json({ error: 'Failed to fetch journal entries' })
-    }
-  }
-)
