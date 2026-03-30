@@ -7,6 +7,13 @@ export interface ApiError {
 	status: number;
 }
 
+/**
+ * Type guard to check if an error is an ApiError.
+ */
+export function isApiError(err: unknown): err is ApiError {
+	return typeof err === 'object' && err !== null && 'status' in err && 'message' in err;
+}
+
 async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
 	const res = await fetch(`/api${path}`, {
 		method,
