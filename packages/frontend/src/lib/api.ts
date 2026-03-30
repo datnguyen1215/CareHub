@@ -72,27 +72,11 @@ export function updateMe(data: { first_name: string; last_name: string }) {
 	return request<MeResponse>('PATCH', '/users/me', data);
 }
 
-// Groups
-
-export interface Group {
-	id: string;
-	name: string;
-	created_at: string;
-}
-
-export function listGroups() {
-	return request<Group[]>('GET', '/groups');
-}
-
-export function updateGroup(groupId: string, data: { name: string }) {
-	return request<Group>('PATCH', `/groups/${groupId}`, data);
-}
-
 // Care Profiles
 
 export interface CareProfile {
 	id: string;
-	group_id: string;
+	user_id: string;
 	name: string;
 	avatar_url: string | null;
 	date_of_birth: string | null;
@@ -110,24 +94,24 @@ export interface CreateProfileInput {
 	avatar_url?: string | null;
 }
 
-export function listProfiles(groupId: string) {
-	return request<CareProfile[]>('GET', `/groups/${groupId}/profiles`);
+export function listProfiles() {
+	return request<CareProfile[]>('GET', '/profiles');
 }
 
-export function createProfile(groupId: string, data: CreateProfileInput) {
-	return request<CareProfile>('POST', `/groups/${groupId}/profiles`, data);
+export function createProfile(data: CreateProfileInput) {
+	return request<CareProfile>('POST', '/profiles', data);
 }
 
-export function updateProfile(groupId: string, id: string, data: Partial<CreateProfileInput>) {
-	return request<CareProfile>('PATCH', `/groups/${groupId}/profiles/${id}`, data);
+export function updateProfile(id: string, data: Partial<CreateProfileInput>) {
+	return request<CareProfile>('PATCH', `/profiles/${id}`, data);
 }
 
-export function getProfile(groupId: string, id: string) {
-	return request<CareProfile>('GET', `/groups/${groupId}/profiles/${id}`);
+export function getProfile(id: string) {
+	return request<CareProfile>('GET', `/profiles/${id}`);
 }
 
-export function deleteProfile(groupId: string, id: string) {
-	return request<void>('DELETE', `/groups/${groupId}/profiles/${id}`);
+export function deleteProfile(id: string) {
+	return request<void>('DELETE', `/profiles/${id}`);
 }
 
 // Medications
@@ -150,30 +134,25 @@ export interface CreateMedicationInput {
 	status?: 'active' | 'discontinued';
 }
 
-export function listMedications(groupId: string, profileId: string, includeDiscontinued = false) {
+export function listMedications(profileId: string, includeDiscontinued = false) {
 	const qs = includeDiscontinued ? '?include_discontinued=true' : '';
-	return request<Medication[]>('GET', `/groups/${groupId}/profiles/${profileId}/medications${qs}`);
+	return request<Medication[]>('GET', `/profiles/${profileId}/medications${qs}`);
 }
 
-export function createMedication(groupId: string, profileId: string, data: CreateMedicationInput) {
-	return request<Medication>('POST', `/groups/${groupId}/profiles/${profileId}/medications`, data);
+export function createMedication(profileId: string, data: CreateMedicationInput) {
+	return request<Medication>('POST', `/profiles/${profileId}/medications`, data);
 }
 
 export function updateMedication(
-	groupId: string,
 	profileId: string,
 	id: string,
 	data: Partial<CreateMedicationInput>
 ) {
-	return request<Medication>(
-		'PATCH',
-		`/groups/${groupId}/profiles/${profileId}/medications/${id}`,
-		data
-	);
+	return request<Medication>('PATCH', `/profiles/${profileId}/medications/${id}`, data);
 }
 
-export function deleteMedication(groupId: string, profileId: string, id: string) {
-	return request<void>('DELETE', `/groups/${groupId}/profiles/${profileId}/medications/${id}`);
+export function deleteMedication(profileId: string, id: string) {
+	return request<void>('DELETE', `/profiles/${profileId}/medications/${id}`);
 }
 
 // Events
@@ -198,34 +177,29 @@ export interface CreateEventInput {
 	notes?: string | null;
 }
 
-export function listEvents(groupId: string, profileId: string, start?: string, end?: string) {
+export function listEvents(profileId: string, start?: string, end?: string) {
 	let qs = '';
 	const params = [];
 	if (start) params.push(`start=${encodeURIComponent(start)}`);
 	if (end) params.push(`end=${encodeURIComponent(end)}`);
 	if (params.length > 0) qs = `?${params.join('&')}`;
-	return request<Event[]>('GET', `/groups/${groupId}/profiles/${profileId}/events${qs}`);
+	return request<Event[]>('GET', `/profiles/${profileId}/events${qs}`);
 }
 
-export function createEvent(groupId: string, profileId: string, data: CreateEventInput) {
-	return request<Event>('POST', `/groups/${groupId}/profiles/${profileId}/events`, data);
+export function createEvent(profileId: string, data: CreateEventInput) {
+	return request<Event>('POST', `/profiles/${profileId}/events`, data);
 }
 
-export function updateEvent(
-	groupId: string,
-	profileId: string,
-	id: string,
-	data: Partial<CreateEventInput>
-) {
-	return request<Event>('PATCH', `/groups/${groupId}/profiles/${profileId}/events/${id}`, data);
+export function updateEvent(profileId: string, id: string, data: Partial<CreateEventInput>) {
+	return request<Event>('PATCH', `/profiles/${profileId}/events/${id}`, data);
 }
 
-export function deleteEvent(groupId: string, profileId: string, id: string) {
-	return request<void>('DELETE', `/groups/${groupId}/profiles/${profileId}/events/${id}`);
+export function deleteEvent(profileId: string, id: string) {
+	return request<void>('DELETE', `/profiles/${profileId}/events/${id}`);
 }
 
-export function getEvent(groupId: string, profileId: string, id: string) {
-	return request<Event>('GET', `/groups/${groupId}/profiles/${profileId}/events/${id}`);
+export function getEvent(profileId: string, id: string) {
+	return request<Event>('GET', `/profiles/${profileId}/events/${id}`);
 }
 
 // Journal Entries
@@ -252,53 +226,36 @@ export interface CreateJournalEntryInput {
 	starred?: boolean;
 }
 
-export function listJournalEntries(
-	groupId: string,
-	profileId: string,
-	search?: string,
-	sort?: 'recent' | 'oldest'
-) {
+export function listJournalEntries(profileId: string, search?: string, sort?: 'recent' | 'oldest') {
 	const params = [];
 	if (search) params.push(`search=${encodeURIComponent(search)}`);
 	if (sort) params.push(`sort=${encodeURIComponent(sort)}`);
 	const qs = params.length > 0 ? `?${params.join('&')}` : '';
-	return request<JournalEntry[]>('GET', `/groups/${groupId}/profiles/${profileId}/journal${qs}`);
+	return request<JournalEntry[]>('GET', `/profiles/${profileId}/journal${qs}`);
 }
 
-export function getJournalEntry(groupId: string, profileId: string, id: string) {
-	return request<JournalEntry>('GET', `/groups/${groupId}/profiles/${profileId}/journal/${id}`);
+export function getJournalEntry(profileId: string, id: string) {
+	return request<JournalEntry>('GET', `/profiles/${profileId}/journal/${id}`);
 }
 
-export function createJournalEntry(
-	groupId: string,
-	profileId: string,
-	data: CreateJournalEntryInput
-) {
-	return request<JournalEntry>('POST', `/groups/${groupId}/profiles/${profileId}/journal`, data);
+export function createJournalEntry(profileId: string, data: CreateJournalEntryInput) {
+	return request<JournalEntry>('POST', `/profiles/${profileId}/journal`, data);
 }
 
 export function updateJournalEntry(
-	groupId: string,
 	profileId: string,
 	id: string,
 	data: Partial<CreateJournalEntryInput>
 ) {
-	return request<JournalEntry>(
-		'PATCH',
-		`/groups/${groupId}/profiles/${profileId}/journal/${id}`,
-		data
-	);
+	return request<JournalEntry>('PATCH', `/profiles/${profileId}/journal/${id}`, data);
 }
 
-export function deleteJournalEntry(groupId: string, profileId: string, id: string) {
-	return request<void>('DELETE', `/groups/${groupId}/profiles/${profileId}/journal/${id}`);
+export function deleteJournalEntry(profileId: string, id: string) {
+	return request<void>('DELETE', `/profiles/${profileId}/journal/${id}`);
 }
 
-export function listJournalEntriesByEvent(groupId: string, profileId: string, eventId: string) {
-	return request<JournalEntry[]>(
-		'GET',
-		`/groups/${groupId}/profiles/${profileId}/journal/by-event/${eventId}`
-	);
+export function listJournalEntriesByEvent(profileId: string, eventId: string) {
+	return request<JournalEntry[]>('GET', `/profiles/${profileId}/journal/by-event/${eventId}`);
 }
 
 // File Upload

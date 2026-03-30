@@ -14,9 +14,8 @@ export async function truncateAll(): Promise<void> {
   await db.execute(sql`
     TRUNCATE TABLE
       users,
-      groups,
-      group_members,
       care_profiles,
+      profile_shares,
       medications,
       otps
     CASCADE

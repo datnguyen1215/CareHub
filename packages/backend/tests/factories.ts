@@ -3,7 +3,7 @@
  * These replace the mock chain helpers with real database inserts.
  */
 import { db } from '../src/db'
-import { users, groups, groupMembers, careProfiles, medications } from '@carehub/shared'
+import { users, careProfiles, profileShares, medications } from '@carehub/shared'
 
 /**
  * Create a user in the test database.
@@ -20,31 +20,11 @@ export async function createUser(data: {
 }
 
 /**
- * Create a group in the test database.
- */
-export async function createGroup(data: { id?: string; name: string }) {
-  const [group] = await db.insert(groups).values(data).returning()
-  return group
-}
-
-/**
- * Create a group membership in the test database.
- */
-export async function createGroupMember(data: {
-  user_id: string
-  group_id: string
-  role: 'admin' | 'viewer'
-}) {
-  const [member] = await db.insert(groupMembers).values(data).returning()
-  return member
-}
-
-/**
  * Create a care profile in the test database.
  */
 export async function createProfile(data: {
   id?: string
-  group_id: string
+  user_id: string
   name: string
   avatar_url?: string | null
   date_of_birth?: string | null
@@ -53,6 +33,18 @@ export async function createProfile(data: {
 }) {
   const [profile] = await db.insert(careProfiles).values(data).returning()
   return profile
+}
+
+/**
+ * Create a profile share in the test database.
+ */
+export async function createProfileShare(data: {
+  profile_id: string
+  user_id: string
+  role: 'admin' | 'viewer'
+}) {
+  const [share] = await db.insert(profileShares).values(data).returning()
+  return share
 }
 
 /**

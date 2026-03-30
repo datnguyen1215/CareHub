@@ -2,7 +2,6 @@
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import {
-		listGroups,
 		listProfiles,
 		listEvents,
 		createEvent,
@@ -15,7 +14,6 @@
 	import EventModal from '$lib/EventModal.svelte';
 	import DeleteConfirmModal from '$lib/DeleteConfirmModal.svelte';
 
-	let groupId = $state<string | null>(null);
 	let profiles = $state<CareProfile[]>([]);
 	let selectedProfileId = $state<string>('all');
 	let events = $state<Event[]>([]);
@@ -112,13 +110,7 @@
 
 	onMount(async () => {
 		try {
-			const groups = await listGroups();
-			if (groups.length === 0) {
-				loadError = 'No group found. Please complete setup first.';
-				return;
-			}
-			groupId = groups[0].id;
-			profiles = await listProfiles(groupId);
+			profiles = await listProfiles();
 			await loadEvents();
 		} catch (err: unknown) {
 			const apiErr = err as { status?: number };
@@ -133,8 +125,6 @@
 	});
 
 	async function loadEvents() {
-		if (!groupId) return;
-
 		// Load events for current month ± 1 month
 		const start = new Date(currentYear, currentMonth - 1, 1);
 		const end = new Date(currentYear, currentMonth + 2, 0);
@@ -147,12 +137,12 @@
 				// Load events for all profiles
 				const allEvents: Event[] = [];
 				for (const profile of profiles) {
-					const profileEvents = await listEvents(groupId, profile.id, startStr, endStr);
+					const profileEvents = await listEvents(profile.id, startStr, endStr);
 					allEvents.push(...profileEvents);
 				}
 				events = allEvents;
 			} else {
-				events = await listEvents(groupId, selectedProfileId, startStr, endStr);
+				events = await listEvents(selectedProfileId, startStr, endStr);
 			}
 		} catch (err) {
 			console.error('Failed to load events', err);
@@ -195,17 +185,10 @@
 	}
 
 	async function handleSave(data: CreateEventInput) {
-		if (!groupId) return;
-
 		// When editing, use the event's profile; when creating, check if we need profile selection
 		if (editingEvent) {
 			try {
-				const updated = await updateEvent(
-					groupId,
-					editingEvent.care_profile_id,
-					editingEvent.id,
-					data
-				);
+				const updated = await updateEvent(editingEvent.care_profile_id, editingEvent.id, data);
 				events = events.map((e) => (e.id === updated.id ? updated : e));
 				closeEventModal();
 			} catch (err) {
@@ -224,7 +207,7 @@
 				if (!profileId) return;
 
 				try {
-					const created = await createEvent(groupId, profileId, data);
+					const created = await createEvent(profileId, data);
 					events = [...events, created];
 					closeEventModal();
 				} catch (err) {
@@ -235,10 +218,10 @@
 	}
 
 	async function handleProfileSelect(profileId: string) {
-		if (!groupId || !pendingEventData) return;
+		if (!pendingEventData) return;
 
 		try {
-			const created = await createEvent(groupId, profileId, pendingEventData);
+			const created = await createEvent(profileId, pendingEventData);
 			events = [...events, created];
 			showProfileSelector = false;
 			pendingEventData = null;
@@ -261,10 +244,10 @@
 	}
 
 	async function handleDeleteConfirm() {
-		if (!groupId || !deleteModalEvent) return;
+		if (!deleteModalEvent) return;
 		const eventToDelete = deleteModalEvent;
 		try {
-			await deleteEvent(groupId, eventToDelete.care_profile_id, eventToDelete.id);
+			await deleteEvent(eventToDelete.care_profile_id, eventToDelete.id);
 			events = events.filter((e) => e.id !== eventToDelete.id);
 			closeDeleteModal();
 		} catch (err) {
@@ -316,7 +299,7 @@
 		<h2 class="text-h2 font-semibold text-text-primary">
 			{selectedProfileId !== 'all' ? `${getProfileName(selectedProfileId)}'s Calendar` : 'Calendar'}
 		</h2>
-		{#if groupId && profiles.length > 0}
+		{#if profiles.length > 0}
 			<button
 				onclick={() => openCreateModal()}
 				class="bg-primary text-white rounded-card px-unit-2 py-1.5 text-sm font-semibold hover:bg-blue-600 transition-colors"
@@ -580,10 +563,14 @@
 	{/if}
 </div>
 
-{#if showEventModal && groupId}
+{#if showEventModal}
 	<EventModal
 		event={editingEvent}
-		profileName={editingEvent ? getProfileName(editingEvent.care_profile_id) : (selectedProfileId !== 'all' ? getProfileName(selectedProfileId) : null)}
+		profileName={editingEvent
+			? getProfileName(editingEvent.care_profile_id)
+			: selectedProfileId !== 'all'
+				? getProfileName(selectedProfileId)
+				: null}
 		onSave={handleSave}
 		onClose={closeEventModal}
 	/>

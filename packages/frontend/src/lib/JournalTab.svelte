@@ -3,13 +3,12 @@
 	import { listJournalEntries, updateJournalEntry, type JournalEntry } from './api';
 
 	interface Props {
-		groupId: string;
 		profileId: string;
 		onEntryClick: (entry: JournalEntry) => void;
 		onAddClick: () => void;
 	}
 
-	let { groupId, profileId, onEntryClick, onAddClick }: Props = $props();
+	let { profileId, onEntryClick, onAddClick }: Props = $props();
 
 	let entries = $state<JournalEntry[]>([]);
 	let loading = $state(true);
@@ -22,12 +21,7 @@
 		loading = true;
 		error = '';
 		try {
-			entries = await listJournalEntries(
-				groupId,
-				profileId,
-				searchQuery.trim() || undefined,
-				sortOrder
-			);
+			entries = await listJournalEntries(profileId, searchQuery.trim() || undefined, sortOrder);
 		} catch (err: unknown) {
 			const apiErr = err as { message?: string };
 			error = apiErr?.message ?? 'Failed to load journal entries';
@@ -63,7 +57,7 @@
 	async function toggleStar(entry: JournalEntry, e: MouseEvent) {
 		e.stopPropagation();
 		try {
-			const updated = await updateJournalEntry(groupId, profileId, entry.id, {
+			const updated = await updateJournalEntry(profileId, entry.id, {
 				starred: !entry.starred
 			});
 			entries = entries.map((en) => (en.id === updated.id ? updated : en));

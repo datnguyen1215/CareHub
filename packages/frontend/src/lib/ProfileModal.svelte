@@ -5,13 +5,12 @@
 	import AvatarUpload from './AvatarUpload.svelte';
 
 	interface Props {
-		groupId: string;
 		profile?: CareProfile | null;
 		onSave: (data: CreateProfileInput) => Promise<void>;
 		onClose: () => void;
 	}
 
-	let { groupId: _groupId, profile = null, onSave, onClose }: Props = $props();
+	let { profile = null, onSave, onClose }: Props = $props();
 
 	let name = $state('');
 	let dateOfBirth = $state('');

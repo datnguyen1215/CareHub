@@ -1,29 +1,64 @@
-/** Care Profile routes — CRUD for profiles within a group. */
+/** Care Profile routes — CRUD for profiles owned by users. */
 import { Router, Request, Response } from 'express'
 import { eq, and } from 'drizzle-orm'
 import { db } from '../db'
-import { careProfiles, groupMembers } from '@carehub/shared'
+import { careProfiles, profileShares } from '@carehub/shared'
 import { requireAuth } from '../middleware/auth'
 import { logger } from '../services/logger'
 
-export const profilesRouter = Router({ mergeParams: true })
+export const profilesRouter = Router()
 
-/** Verify the authenticated user is an admin of the given group. Returns the membership or null. */
-async function getAdminMembership(userId: string, groupId: string) {
-  const [membership] = await db
+/** Check if user can view a profile (owner or shared with them) */
+async function canViewProfile(userId: string, profileId: string) {
+  const [profile] = await db
     .select()
-    .from(groupMembers)
-    .where(and(eq(groupMembers.group_id, groupId), eq(groupMembers.user_id, userId)))
+    .from(careProfiles)
+    .where(eq(careProfiles.id, profileId))
     .limit(1)
 
-  if (!membership) return null
-  return membership
+  if (!profile) return null
+
+  // Check if user owns the profile
+  if (profile.user_id === userId) {
+    return { profile, role: 'owner' as const }
+  }
+
+  // Check if profile is shared with user
+  const [share] = await db
+    .select()
+    .from(profileShares)
+    .where(and(eq(profileShares.profile_id, profileId), eq(profileShares.user_id, userId)))
+    .limit(1)
+
+  if (share) {
+    return { profile, role: share.role }
+  }
+
+  return null
 }
 
-// POST /api/groups/:groupId/profiles
+/** Check if user can edit a profile (owner or shared with admin role) */
+async function canEditProfile(userId: string, profileId: string) {
+  const access = await canViewProfile(userId, profileId)
+  if (!access) return null
+  if (access.role === 'owner' || access.role === 'admin') return access
+  return null
+}
+
+/** Check if user owns the profile (only owner can delete) */
+async function isProfileOwner(userId: string, profileId: string) {
+  const [profile] = await db
+    .select()
+    .from(careProfiles)
+    .where(and(eq(careProfiles.id, profileId), eq(careProfiles.user_id, userId)))
+    .limit(1)
+
+  return profile ?? null
+}
+
+// POST /api/profiles
 profilesRouter.post('/', requireAuth, async (req: Request, res: Response): Promise<void> => {
   try {
-    const groupId = req.params['groupId'] as string
     const { name, date_of_birth, relationship, conditions, avatar_url } = req.body as {
       name?: string
       date_of_birth?: string
@@ -37,20 +72,10 @@ profilesRouter.post('/', requireAuth, async (req: Request, res: Response): Promi
       return
     }
 
-    const membership = await getAdminMembership(req.user!.userId, groupId)
-    if (!membership) {
-      res.status(403).json({ error: 'Forbidden' })
-      return
-    }
-    if (membership.role !== 'admin') {
-      res.status(403).json({ error: 'Only admins can create profiles' })
-      return
-    }
-
     const [profile] = await db
       .insert(careProfiles)
       .values({
-        group_id: groupId,
+        user_id: req.user!.userId,
         name: name.trim(),
         date_of_birth: date_of_birth ?? null,
         relationship: relationship ?? null,
@@ -61,65 +86,68 @@ profilesRouter.post('/', requireAuth, async (req: Request, res: Response): Promi
 
     res.status(201).json(profile)
   } catch (err) {
-    logger.error({ err }, 'POST /groups/:groupId/profiles error')
+    logger.error({ err }, 'POST /profiles error')
     res.status(500).json({ error: 'Failed to create profile' })
   }
 })
 
-// GET /api/groups/:groupId/profiles
+// GET /api/profiles
 profilesRouter.get('/', requireAuth, async (req: Request, res: Response): Promise<void> => {
   try {
-    const groupId = req.params['groupId'] as string
+    const userId = req.user!.userId
 
-    const membership = await getAdminMembership(req.user!.userId, groupId)
-    if (!membership) {
-      res.status(403).json({ error: 'Forbidden' })
-      return
-    }
+    // Get profiles user owns
+    const ownedProfiles = await db
+      .select()
+      .from(careProfiles)
+      .where(eq(careProfiles.user_id, userId))
 
-    const profiles = await db.select().from(careProfiles).where(eq(careProfiles.group_id, groupId))
+    // Get profiles shared with user
+    const sharedRows = await db
+      .select({ profile: careProfiles })
+      .from(profileShares)
+      .innerJoin(careProfiles, eq(profileShares.profile_id, careProfiles.id))
+      .where(eq(profileShares.user_id, userId))
 
-    res.json(profiles)
+    const sharedProfiles = sharedRows.map((r) => r.profile)
+
+    // Combine and dedupe (in case of any overlap, though shouldn't happen)
+    const allProfiles = [...ownedProfiles, ...sharedProfiles]
+    const seen = new Set<string>()
+    const uniqueProfiles = allProfiles.filter((p) => {
+      if (seen.has(p.id)) return false
+      seen.add(p.id)
+      return true
+    })
+
+    res.json(uniqueProfiles)
   } catch (err) {
-    logger.error({ err }, 'GET /groups/:groupId/profiles error')
+    logger.error({ err }, 'GET /profiles error')
     res.status(500).json({ error: 'Failed to fetch profiles' })
   }
 })
 
-// GET /api/groups/:groupId/profiles/:id
+// GET /api/profiles/:id
 profilesRouter.get('/:id', requireAuth, async (req: Request, res: Response): Promise<void> => {
   try {
-    const groupId = req.params['groupId'] as string
     const id = req.params['id'] as string
 
-    const membership = await getAdminMembership(req.user!.userId, groupId)
-    if (!membership) {
-      res.status(403).json({ error: 'Forbidden' })
-      return
-    }
-
-    const [profile] = await db
-      .select()
-      .from(careProfiles)
-      .where(and(eq(careProfiles.id, id), eq(careProfiles.group_id, groupId)))
-      .limit(1)
-
-    if (!profile) {
+    const access = await canViewProfile(req.user!.userId, id)
+    if (!access) {
       res.status(404).json({ error: 'Profile not found' })
       return
     }
 
-    res.json(profile)
+    res.json(access.profile)
   } catch (err) {
-    logger.error({ err }, 'GET /groups/:groupId/profiles/:id error')
+    logger.error({ err }, 'GET /profiles/:id error')
     res.status(500).json({ error: 'Failed to fetch profile' })
   }
 })
 
-// PATCH /api/groups/:groupId/profiles/:id
+// PATCH /api/profiles/:id
 profilesRouter.patch('/:id', requireAuth, async (req: Request, res: Response): Promise<void> => {
   try {
-    const groupId = req.params['groupId'] as string
     const id = req.params['id'] as string
     const { name, date_of_birth, relationship, conditions, avatar_url } = req.body as {
       name?: string
@@ -129,13 +157,9 @@ profilesRouter.patch('/:id', requireAuth, async (req: Request, res: Response): P
       avatar_url?: string | null
     }
 
-    const membership = await getAdminMembership(req.user!.userId, groupId)
-    if (!membership) {
+    const access = await canEditProfile(req.user!.userId, id)
+    if (!access) {
       res.status(403).json({ error: 'Forbidden' })
-      return
-    }
-    if (membership.role !== 'admin') {
-      res.status(403).json({ error: 'Only admins can update profiles' })
       return
     }
 
@@ -164,7 +188,7 @@ profilesRouter.patch('/:id', requireAuth, async (req: Request, res: Response): P
     const [updated] = await db
       .update(careProfiles)
       .set(updates)
-      .where(and(eq(careProfiles.id, id), eq(careProfiles.group_id, groupId)))
+      .where(eq(careProfiles.id, id))
       .returning()
 
     if (!updated) {
@@ -174,31 +198,24 @@ profilesRouter.patch('/:id', requireAuth, async (req: Request, res: Response): P
 
     res.json(updated)
   } catch (err) {
-    logger.error({ err }, 'PATCH /groups/:groupId/profiles/:id error')
+    logger.error({ err }, 'PATCH /profiles/:id error')
     res.status(500).json({ error: 'Failed to update profile' })
   }
 })
 
-// DELETE /api/groups/:groupId/profiles/:id
+// DELETE /api/profiles/:id
 profilesRouter.delete('/:id', requireAuth, async (req: Request, res: Response): Promise<void> => {
   try {
-    const groupId = req.params['groupId'] as string
     const id = req.params['id'] as string
 
-    const membership = await getAdminMembership(req.user!.userId, groupId)
-    if (!membership) {
+    // Only owner can delete
+    const profile = await isProfileOwner(req.user!.userId, id)
+    if (!profile) {
       res.status(403).json({ error: 'Forbidden' })
       return
     }
-    if (membership.role !== 'admin') {
-      res.status(403).json({ error: 'Only admins can delete profiles' })
-      return
-    }
 
-    const [deleted] = await db
-      .delete(careProfiles)
-      .where(and(eq(careProfiles.id, id), eq(careProfiles.group_id, groupId)))
-      .returning()
+    const [deleted] = await db.delete(careProfiles).where(eq(careProfiles.id, id)).returning()
 
     if (!deleted) {
       res.status(404).json({ error: 'Profile not found' })
@@ -207,7 +224,7 @@ profilesRouter.delete('/:id', requireAuth, async (req: Request, res: Response): 
 
     res.status(204).send()
   } catch (err) {
-    logger.error({ err }, 'DELETE /groups/:groupId/profiles/:id error')
+    logger.error({ err }, 'DELETE /profiles/:id error')
     res.status(500).json({ error: 'Failed to delete profile' })
   }
 })
