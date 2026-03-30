@@ -51,6 +51,16 @@ Styles are implemented with Tailwind CSS within the SvelteKit frontend package. 
 - Rounded corners (8px)
 - Consistent padding (16px)
 
+### Toast Notifications
+
+- Positioned at bottom of screen, above bottom navigation (z-index 40)
+- Three types: success (green), error (red), destructive (red)
+- Success/destructive: auto-dismiss after 3 seconds with slide-up animation
+- Error: manual dismiss button required
+- Each toast includes icon (checkmark for success, X for destructive, exclamation for error) and message
+- Rounded card style with colored background and border
+- Maximum width: responsive (full width on mobile with padding, max-w-md on larger screens)
+
 ### Navigation -- Portal
 
 - **Bottom navigation bar** with three items: Home, Devices, Settings
