@@ -13,6 +13,7 @@ import {
 // Enums
 export const groupMemberRoleEnum = pgEnum('group_member_role', ['admin', 'viewer'])
 export const medicationStatusEnum = pgEnum('medication_status', ['active', 'discontinued'])
+export const eventTypeEnum = pgEnum('event_type', ['doctor_visit', 'lab_work', 'therapy', 'general'])
 
 // Users
 export const users = pgTable('users', {
@@ -74,6 +75,21 @@ export const medications = pgTable('medications', {
   dosage: varchar('dosage'),
   schedule: text('schedule').array().default([]).notNull(),
   status: medicationStatusEnum('status').default('active').notNull(),
+  created_at: timestamp('created_at').defaultNow().notNull(),
+  updated_at: timestamp('updated_at').defaultNow().notNull(),
+})
+
+// Events
+export const events = pgTable('events', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  care_profile_id: uuid('care_profile_id')
+    .notNull()
+    .references(() => careProfiles.id),
+  title: varchar('title').notNull(),
+  event_type: eventTypeEnum('event_type').notNull(),
+  event_date: timestamp('event_date').notNull(),
+  location: varchar('location'),
+  notes: text('notes'),
   created_at: timestamp('created_at').defaultNow().notNull(),
   updated_at: timestamp('updated_at').defaultNow().notNull(),
 })
