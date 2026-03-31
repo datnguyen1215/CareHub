@@ -1,16 +1,31 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
-	import { listProfiles, createProfile, type CareProfile, type CreateProfileInput } from '$lib/api';
+	import {
+		listProfiles,
+		createProfile,
+		listDevices,
+		type CareProfile,
+		type CreateProfileInput,
+		type Device
+	} from '$lib/api';
 	import { getErrorMessage, isRetryable } from '$lib/error-utils';
 	import ProfileModal from '$lib/ProfileModal.svelte';
 
 	let profiles = $state<CareProfile[]>([]);
+	let devices = $state<Device[]>([]);
 	let loadError = $state('');
 	let loading = $state(true);
 	let canRetry = $state(false);
 
 	let showProfileModal = $state(false);
+
+	/** Returns device status for a profile: 'online' if any device is online, 'offline' if devices exist but all offline, null if no devices */
+	function getProfileDeviceStatus(profileId: string): 'online' | 'offline' | null {
+		const profileDevices = devices.filter((d) => d.profiles.some((p) => p.id === profileId));
+		if (profileDevices.length === 0) return null;
+		return profileDevices.some((d) => d.status === 'online') ? 'online' : 'offline';
+	}
 
 	async function loadData() {
 		loading = true;
@@ -18,7 +33,9 @@
 		canRetry = false;
 
 		try {
-			profiles = await listProfiles();
+			const [profilesData, devicesData] = await Promise.all([listProfiles(), listDevices()]);
+			profiles = profilesData;
+			devices = devicesData;
 		} catch (err: unknown) {
 			const apiErr = err as { status?: number };
 			if (apiErr?.status === 401) {
@@ -133,10 +150,32 @@
 								</span>
 							{/if}
 						</div>
-						<!-- Name -->
-						<h3 class="text-h3 font-semibold text-text-primary leading-tight truncate">
-							{profile.name}
-						</h3>
+						<!-- Name and device status -->
+						<div class="flex-1 min-w-0">
+							<div class="flex items-center gap-1.5">
+								<h3 class="text-h3 font-semibold text-text-primary leading-tight truncate">
+									{profile.name}
+								</h3>
+								<!-- Device status indicator -->
+								{#if getProfileDeviceStatus(profile.id) !== null}
+									<span
+										class="inline-flex items-center shrink-0"
+										title={getProfileDeviceStatus(profile.id) === 'online'
+											? 'Device online'
+											: 'Devices offline'}
+									>
+										<span class="text-xs">📱</span>
+										<span
+											class="w-1.5 h-1.5 rounded-full -ml-0.5 -mt-1.5 {getProfileDeviceStatus(
+												profile.id
+											) === 'online'
+												? 'bg-green-500'
+												: 'bg-gray-400'}"
+										></span>
+									</span>
+								{/if}
+							</div>
+						</div>
 					</div>
 
 					<!-- Relationship subtitle -->

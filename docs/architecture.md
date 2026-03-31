@@ -285,6 +285,10 @@ Tablet push notifications, device status monitoring, and video call signaling al
 - `status_update` - Online/offline state changes
 - `call_request` - Elderly initiating call to caretaker (Phase 3.5)
 
+**Portal WebSocket Integration:**
+
+Portal WebSocket integration is deferred to Phase 3.5. The backend WebSocket endpoint (`/ws`) currently only accepts device token authentication for kiosk connections, not user session authentication required for portal connections. Device status updates in the portal currently require page refresh.
+
 ### Peer-to-Peer Video
 
 Video calls use WebRTC for direct peer-to-peer connections, avoiding the cost and complexity of a media server. STUN servers handle NAT traversal. A TURN relay serves as fallback when direct connection fails.

@@ -109,25 +109,36 @@ From the profile detail page (`/profiles/:id`):
 7. Token auto-refreshes every 4 minutes (before 5-min expiry)
 8. Instructions: "Scan this code from your CareHub portal"
 
-### Portal Pairing
+### Portal Pairing (3-Step Wizard)
 
-9. On phone/computer: navigate to Devices section in portal
-10. Tap "Pair New Device" button
-11. QR scanner opens (uses device camera or QR scanning library)
-12. Scan the QR code displayed on tablet screen
-13. Portal shows profile selection: "Assign profiles to this device"
-14. Select one or more care profiles from your group
-15. Tap "Confirm Pairing"
-16. Portal calls `POST /api/devices/pair` with token and profile IDs
+9. On phone/computer: navigate to Devices tab in portal
+10. Tap "+ Pair New Tablet" button (dashed border style)
+11. **Step 1 - Scan QR:**
+    - QR scanner opens using html5-qrcode library with camera viewfinder
+    - Corner bracket overlay guides the user
+    - On successful scan: haptic feedback, auto-advance to Step 2
+    - Fallback: "Enter code manually" link opens 8-character input if camera denied
+12. **Step 2 - Select Profiles:**
+    - Checkbox list of all profiles in the group
+    - At least one profile must be selected
+    - Tap "Continue" to advance
+13. **Step 3 - Confirm & Name:**
+    - Device name input (pre-filled "New Tablet", editable)
+    - Summary of selected profiles shown
+    - Tap "Pair Device" to complete
+14. Portal calls `POST /api/devices/pair` with token and profile IDs
+15. If device name changed, portal calls `PATCH /api/devices/:id` to update name
 
 ### Completion
 
-17. Server validates token, updates device, assigns profiles, grants access
-18. Server sends `device_paired` WebSocket event to kiosk
-19. Kiosk stores device_token securely
-20. Kiosk navigates to `/home` (or `/profile/[id]` if single profile)
-21. Device appears in portal device list with "online" status
-22. Kiosk displays home screen with assigned profile cards
+16. Server validates token, updates device, assigns profiles, grants access
+17. Server sends `device_paired` WebSocket event to kiosk
+18. Portal shows success screen with checkmark animation
+19. Auto-redirect to devices list after 2 seconds (or tap "Go to Devices")
+20. Kiosk stores device_token securely
+21. Kiosk navigates to `/home` (or `/profile/[id]` if single profile)
+22. Device appears in portal device list with "online" status
+23. Kiosk displays home screen with assigned profile cards
 
 ---
 

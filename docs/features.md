@@ -45,10 +45,11 @@ Detailed feature breakdown organized by area. See [phases.md](phases.md) for imp
 
 - All profiles visible on dedicated profiles page (`/profiles`) as cards
 - Each card shows: name, relationship (subtitle), conditions (tags, max 3 + overflow count), active medication count
+- Device status indicator on profile cards: 📱 with green dot (at least one device online), gray dot (devices exist but all offline), no icon (no devices assigned)
 - Tap a card to navigate to `/profiles/:id` (profile detail)
 - "Add Profile" button in header when profiles exist; empty state with icon and "Add your first care profile" CTA when no profiles exist
 - Top bar: "CareHub" branding left, user avatar/initial right (navigates to settings)
-- Bottom navigation: Home (home at `/`), Profiles, Devices (Coming Soon), Settings tabs
+- Bottom navigation: Home (home at `/`), Profiles, Devices, Settings tabs
 
 ---
 
@@ -152,18 +153,23 @@ Detailed feature breakdown organized by area. See [phases.md](phases.md) for imp
 
 - Kiosk generates one-time pairing token (5-minute expiry)
 - Kiosk displays QR code on pairing screen with auto-refresh
-- Caretaker scans QR from portal device management page
+- Caretaker scans QR from portal device management page using html5-qrcode library
+- Fallback to manual 8-character code entry if camera access denied
+- 3-step pairing wizard: Scan QR → Select Profiles → Name Device
 - Caretaker selects which profiles to assign during pairing
+- Device name editable (defaults to "New Tablet")
 - Confirmation completes pairing; kiosk receives notification via WebSocket
+- Success screen with auto-redirect to device list
 - Kiosk stores device_token securely and navigates to home screen
 
 ### Device Status
 
 - Online/offline indicator (real-time via WebSocket)
-- Battery level (updated via heartbeat messages)
-- Last seen timestamp
-- Device name (editable by caretakers)
-- Assigned profiles list
+- Green dot = online, gray dot = offline
+- Battery level with visual progress bar (color-coded: green > 50%, yellow 20-50%, red < 20%)
+- Last seen timestamp (relative time display: "Just now", "5m ago", "2h ago", etc.)
+- Device name (editable inline with pencil icon)
+- Assigned profiles list with avatars
 
 ### Access Control
 
