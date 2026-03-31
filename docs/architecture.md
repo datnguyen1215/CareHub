@@ -266,35 +266,75 @@ Tablet push notifications, device status monitoring, and video call signaling al
 **WebSocket Server Architecture:**
 
 - Mounted on `/ws` path alongside REST API
-- Connection authenticated via device_token query parameter
-- Server tracks connected devices in memory (Map<deviceId, WebSocket>)
+- Dual authentication: device tokens (query param `token`) for kiosks, JWT (query param `jwt`) for users
+- Client registry tracks connected devices and users separately with multi-tab support for users
 - Ping/pong for connection health (30s interval)
-- Updates `last_seen_at` and `status` on connect/disconnect
+- Updates `last_seen_at` and `status` on device connect/disconnect
+
+**Client Registry:**
+
+- `packages/backend/src/websocket/clients.ts` - Central registry with key format `device:{id}` or `user:{id}`
+- Devices: single connection per device
+- Users: multiple connections supported (multi-tab browser sessions)
+- Functions: `broadcastToDevice()`, `broadcastToUser()`, `isDeviceConnected()`, `isUserConnected()`
+
+**Message Handlers:**
+
+- `packages/backend/src/websocket/handlers/device.ts` - Device heartbeat, status updates
+- `packages/backend/src/websocket/handlers/user.ts` - User connection with JWT authentication
+- `packages/backend/src/websocket/handlers/call.ts` - Call signaling (offer/answer/ICE)
 
 **Events (Server → Kiosk):**
 
 - `device_paired` - Pairing completed, includes assigned profiles
 - `device_revoked` - Device unpaired, kiosk should clear data
 - `profiles_updated` - Profile assignments changed
-- `call:incoming` - Incoming call notification with caller info
-- `call:offer` - SDP offer for WebRTC connection
-- `call:ice-candidate` - ICE candidate from caller
-- `call:ended` - Call terminated by caller
-- `call:error` - Call error notification
+- `call:incoming` - Incoming call from user with caller info
+- `call:accepted` - Device accepted call
+- `call:declined` - Device declined call
+- `call:ended` - Call terminated by either party
+- `call:offer` - SDP offer from user (WebRTC)
+- `call:answer` - SDP answer from device (WebRTC)
+- `call:ice-candidate` - ICE candidate for WebRTC connection
 
 **Events (Kiosk → Server):**
 
 - `heartbeat` - Periodic ping with battery level
 - `status_update` - Online/offline state changes
-- `call:accepted` - Kiosk accepted incoming call
-- `call:declined` - Kiosk declined incoming call
-- `call:answer` - SDP answer for WebRTC connection
-- `call:ice-candidate` - ICE candidate from kiosk
-- `call:ended` - Call ended by kiosk user
+- `call:accepted` - Device accepts incoming call
+- `call:declined` - Device declines incoming call
+- `call:ended` - Device ends call
+- `call:answer` - SDP answer to user's offer
+- `call:ice-candidate` - ICE candidate for WebRTC connection
 
-**Portal WebSocket Integration:**
+**Events (User → Server):**
 
-Portal WebSocket integration is deferred to Phase 3.5. The backend WebSocket endpoint (`/ws`) currently only accepts device token authentication for kiosk connections, not user session authentication required for portal connections. Device status updates in the portal currently require page refresh.
+- `call:initiate` - Initiate call to device (creates call_sessions record)
+- `call:offer` - SDP offer to device (WebRTC)
+- `call:ice-candidate` - ICE candidate for WebRTC connection
+- `call:ended` - User ends call
+
+**Call Flow:**
+
+1. User sends `call:initiate` with deviceId and profileId
+2. Server validates permission, checks device online, creates call_sessions record
+3. Server forwards `call:incoming` to device with caller info
+4. Server starts 30-second ring timeout
+5. Device sends `call:accepted` or `call:declined`
+6. If accepted, WebRTC offer/answer/ICE exchange begins
+7. Either party can send `call:ended` to terminate
+8. Server updates call_sessions with duration and end reason
+
+**Call Service:**
+
+`packages/backend/src/services/call.ts` manages call session database operations:
+
+- `tryCreateCallSession()` - Atomically check and create session (prevents race conditions)
+- `updateCallStatus()` - Update call status (initiating → ringing → connecting → connected)
+- `endCall()` - End call with reason (idempotent, calculates duration)
+- `validateCallPermission()` - Check user has access to device
+- Ring timeout handling (marks calls as 'missed' after 30 seconds)
+- Terminal state protection (prevents overwriting ended calls)
 
 ### Peer-to-Peer Video
 
@@ -537,6 +577,7 @@ The tablet kiosk requires one-time Device Owner provisioning to enable Lock Task
 2. Connect the tablet to a computer via USB and authorize the ADB connection when prompted.
 
 3. Run the Device Owner provisioning command:
+
    ```bash
    adb shell dpm set-device-owner us.dnguyen.carehub.kiosk/.DeviceAdminReceiver
    ```
