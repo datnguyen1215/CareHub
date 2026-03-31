@@ -2,7 +2,7 @@
 
 ## Design Approach
 
-Styles are implemented with Tailwind CSS within the SvelteKit frontend package. Mobile-first responsive design. The caretaker portal is built for phone-sized screens first, then adapted for tablet and desktop. The caretaker mobile app is the same SvelteKit web app wrapped in Capacitor, with native incoming call UI for phone-style call notifications. The elderly tablet runs a separate Capacitor APK with a kiosk layout optimized for large touch targets, locked to the screen via Android Lock Task Mode.
+Styles are implemented with Tailwind CSS within the SvelteKit portal package. Mobile-first responsive design. The caretaker portal is built for phone-sized screens first, then adapted for tablet and desktop. The caretaker mobile app is the same SvelteKit web app wrapped in Capacitor, with native incoming call UI for phone-style call notifications. The elderly tablet runs a separate Capacitor APK with a kiosk layout optimized for large touch targets, locked to the screen via Android Lock Task Mode.
 
 ---
 
