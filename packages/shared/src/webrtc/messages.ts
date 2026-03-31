@@ -1,4 +1,4 @@
-import type { CallEndReason, CallParticipant, IceCandidate } from './types'
+import type { CallEndReason, CallParticipant, IceCandidate } from './types.js'
 
 /** Portal initiates a call to a device */
 export interface CallInitiateMessage {

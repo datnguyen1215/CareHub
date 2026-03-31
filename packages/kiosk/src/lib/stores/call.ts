@@ -1,4 +1,8 @@
-/** Call state store for managing video call lifecycle. Uses Svelte 5 runes. */
+/**
+ * Call state store for managing video call lifecycle.
+ * Uses hierarchical state machine for call lifecycle management.
+ * Kiosk acts as callee (receives calls from portal).
+ */
 
 import type {
 	CallParticipant,
@@ -6,8 +10,18 @@ import type {
 	CallIncomingMessage,
 	CallOfferMessage,
 	IceCandidateMessage,
-	CallEndedMessage
+	CallEndedMessage,
+	IceCandidate
 } from '@carehub/shared';
+import {
+	createMachine,
+	createCalleeMachineConfig,
+	sharedAssignActions,
+	calleeAssignActions,
+	CALL_EVENTS,
+	logWebRTCEvent,
+	type CallContext
+} from '@carehub/shared/webrtc/call-state-machine';
 import {
 	setCallHandlers,
 	sendCallAccepted,
@@ -49,205 +63,64 @@ const initialState: CallState = {
 	endReason: null
 };
 
-/** Reactive call state using Svelte 5 runes - only initialized on client */
+/** Reactive call state - only initialized on client */
 let callState: CallState = { ...initialState };
 
 /** Duration timer interval */
 let durationTimer: ReturnType<typeof setInterval> | null = null;
 
+/** State machine instance */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let machine: any = null;
+
 /**
  * Get current call state.
- * @returns {CallState} Current call state
+ * @returns Current call state
  */
 export function getCallState(): CallState {
 	return callState;
 }
 
 /**
- * Handle incoming call notification from server.
- * Sets status to 'incoming' and stores caller info.
+ * Maps state machine state to UI status.
  */
-function handleIncomingCall(message: CallIncomingMessage): void {
-	// Ignore if already in a call
-	if (callState.status !== 'idle') {
-		console.warn('Ignoring incoming call: already in call');
-		return;
-	}
+function mapMachineStateToStatus(machineState: string): CallStatus {
+	// Handle hierarchical states (e.g., "signaling.incoming")
+	const topLevelState = machineState.split('.')[0];
+	const subState = machineState.split('.')[1];
 
-	callState.status = 'incoming';
-	callState.callId = message.callId;
-	callState.caller = message.caller;
-	callState.profileId = message.profileId;
-	callState.error = null;
-	callState.endReason = null;
-}
-
-/**
- * Handle SDP offer from caller.
- * Sets remote description and creates answer.
- */
-async function handleCallOffer(message: CallOfferMessage): Promise<void> {
-	if (callState.callId !== message.callId) {
-		console.warn('Ignoring offer for different call');
-		return;
-	}
-
-	// Guard against offer arriving after call ended (network reordering)
-	if (callState.status !== 'connecting') {
-		console.warn('Ignoring offer: call not in connecting state');
-		return;
-	}
-
-	try {
-		await webrtc.handleOffer(message.sdp);
-		const answerSdp = await webrtc.createAnswer();
-		sendCallAnswer(message.callId, answerSdp);
-	} catch (err) {
-		console.error('Failed to handle offer:', err);
-		callState.error = 'Failed to establish connection';
-		endCallInternal();
+	switch (topLevelState) {
+		case 'idle':
+			return 'idle';
+		case 'signaling':
+			// incoming sub-state shows incoming UI, others show connecting
+			return subState === 'incoming' ? 'incoming' : 'connecting';
+		case 'connecting':
+			return 'connecting';
+		case 'connected':
+			return 'connected';
+		case 'ending':
+		case 'failed':
+			return 'ended';
+		default:
+			return 'idle';
 	}
 }
 
 /**
- * Handle ICE candidate from caller.
+ * Syncs machine context to callState.
  */
-async function handleIceCandidate(message: IceCandidateMessage): Promise<void> {
-	if (callState.callId !== message.callId) {
-		return;
-	}
-
-	// Guard against ICE candidates arriving after call ended
-	if (callState.status !== 'connecting' && callState.status !== 'connected') {
-		return;
-	}
-
-	await webrtc.addIceCandidate(message.candidate);
-}
-
-/**
- * Handle call ended by caller.
- */
-function handleCallEnded(message: CallEndedMessage): void {
-	if (callState.callId !== message.callId) {
-		return;
-	}
-
-	callState.endReason = message.reason;
-	callState.status = 'ended';
-	cleanup();
-}
-
-/**
- * Accept incoming call.
- * Acquires local media and notifies server.
- */
-export async function acceptCall(): Promise<void> {
-	if (callState.status !== 'incoming' || !callState.callId) {
-		console.warn('Cannot accept: no incoming call');
-		return;
-	}
-
-	callState.status = 'connecting';
-	callState.error = null;
-
-	try {
-		// Create peer connection first
-		webrtc.createPeerConnection();
-
-		// Set up ICE candidate handler
-		webrtc.onIceCandidate((candidate) => {
-			if (callState.callId) {
-				sendIceCandidate(callState.callId, candidate);
-			}
-		});
-
-		// Set up remote track handler
-		webrtc.onTrack((stream) => {
-			callState.remoteStream = stream;
-		});
-
-		// Monitor connection state
-		webrtc.onConnectionStateChange((state) => {
-			if (state === 'connected') {
-				callState.status = 'connected';
-				callState.connectedAt = new Date();
-				startDurationTimer();
-			} else if (state === 'failed' || state === 'disconnected') {
-				callState.error = 'Connection lost';
-				endCallInternal();
-			}
-		});
-
-		// Get local media stream
-		const stream = await webrtc.getLocalStream();
-
-		// Check if call was ended while awaiting media permissions
-		if (callState.status !== 'connecting') {
-			// Call ended during await, clean up the stream
-			stream.getTracks().forEach((track) => track.stop());
-			return;
-		}
-
-		callState.localStream = stream;
-
-		// Notify server we accepted
-		sendCallAccepted(callState.callId);
-	} catch (err) {
-		const error = err as Error;
-		console.error('Failed to accept call:', error);
-		callState.error = error.message || 'Failed to start video';
-		callState.status = 'ended';
-		cleanup();
-	}
-}
-
-/**
- * Decline incoming call.
- * Notifies server and resets state.
- */
-export function declineCall(): void {
-	if (!callState.callId) {
-		return;
-	}
-
-	sendCallDeclined(callState.callId);
-	callState.endReason = 'declined';
-	callState.status = 'ended';
-	cleanup();
-}
-
-/**
- * End active call.
- * Notifies server and cleans up resources.
- */
-export function endCall(): void {
-	if (!callState.callId) {
-		return;
-	}
-
-	sendCallEnded(callState.callId);
-	callState.endReason = 'completed';
-	callState.status = 'ended';
-	cleanup();
-}
-
-/**
- * End call internally without sending message.
- * Used when caller ends or on error.
- */
-function endCallInternal(): void {
-	callState.status = 'ended';
-	cleanup();
-}
-
-/**
- * Reset call state to idle.
- * Call this after showing "call ended" UI.
- */
-export function resetCallState(): void {
-	stopDurationTimer();
-	callState = { ...initialState };
+function syncStateFromMachine(state: string, context: CallContext): void {
+	callState.status = mapMachineStateToStatus(state);
+	callState.callId = context.callId;
+	callState.caller = context.caller;
+	callState.profileId = context.profileId;
+	callState.localStream = context.localStream;
+	callState.remoteStream = context.remoteStream;
+	callState.connectedAt = context.startedAt;
+	callState.duration = context.duration;
+	callState.error = context.error;
+	callState.endReason = context.endReason;
 }
 
 /**
@@ -274,11 +147,310 @@ function stopDurationTimer(): void {
 }
 
 /**
- * Clean up call resources.
+ * Creates and initializes the call state machine with Kiosk-specific actions.
  */
-function cleanup(): void {
+function createCallMachine() {
+	const config = createCalleeMachineConfig();
+
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	const actions: Record<string, any> = {
+		// Shared assign actions
+		...sharedAssignActions,
+		...calleeAssignActions,
+
+		// Logging actions
+		logTransition: ({ event }: { event: { type: string } }) => {
+			const currentState = machine?.state || 'unknown';
+			logWebRTCEvent('Transition', `${currentState} (${event.type})`);
+		},
+		logEnterIdle: () => logWebRTCEvent('State', 'idle'),
+		logEnterIncoming: () => logWebRTCEvent('State', 'signaling.incoming'),
+		logEnterWaitingForOffer: () => logWebRTCEvent('State', 'signaling.waitingForOffer'),
+		logEnterCreatingAnswer: () => logWebRTCEvent('State', 'signaling.creatingAnswer'),
+		logEnterConnecting: () => logWebRTCEvent('State', 'connecting'),
+		logEnterConnected: () => logWebRTCEvent('State', 'connected'),
+		logEnterEnding: () => logWebRTCEvent('State', 'ending'),
+		logEnterFailed: () => logWebRTCEvent('State', 'failed'),
+
+		// Media actions
+		acquireLocalMedia: async () => {
+			try {
+				logWebRTCEvent('Action', 'Acquiring local media');
+				const stream = await webrtc.getLocalStream();
+				machine.send(CALL_EVENTS.LOCAL_STREAM_READY, { stream });
+			} catch (err) {
+				const error = err as Error;
+				console.error('Failed to get local media:', error);
+				machine.send(CALL_EVENTS.MEDIA_ERROR, { error: error.message });
+			}
+		},
+
+		// Peer connection actions
+		createPeerConnection: () => {
+			logWebRTCEvent('Action', 'Creating peer connection');
+			webrtc.createPeerConnection();
+
+			// Set up ICE candidate handler
+			webrtc.onIceCandidate((candidate) => {
+				logWebRTCEvent('ICE', 'Local ICE candidate gathered');
+				machine.send(CALL_EVENTS.ICE_CANDIDATE, { candidate });
+			});
+
+			// Set up remote track handler
+			webrtc.onTrack((stream) => {
+				logWebRTCEvent('Track', 'Remote stream received');
+				machine.send(CALL_EVENTS.REMOTE_STREAM_READY, { stream });
+			});
+
+			// Monitor connection state
+			webrtc.onConnectionStateChange((state) => {
+				logWebRTCEvent('ICE', `Connection state: ${state}`);
+
+				if (state === 'connected') {
+					machine.send(CALL_EVENTS.ICE_CONNECTED);
+				} else if (state === 'failed') {
+					machine.send(CALL_EVENTS.ICE_FAILED);
+				} else if (state === 'disconnected') {
+					machine.send(CALL_EVENTS.ICE_DISCONNECTED);
+				}
+			});
+		},
+
+		// Signaling actions
+		sendCallAccepted: ({ context }: { context: CallContext }) => {
+			if (context.callId) {
+				logWebRTCEvent('Signaling', 'Sending call:accepted');
+				sendCallAccepted(context.callId);
+			}
+		},
+
+		sendCallDeclined: ({ context }: { context: CallContext }) => {
+			if (context.callId) {
+				logWebRTCEvent('Signaling', 'Sending call:declined');
+				sendCallDeclined(context.callId);
+			}
+		},
+
+		// SDP actions
+		handleOffer: async ({ event }: { event: { sdp: string } }) => {
+			try {
+				logWebRTCEvent('SDP', 'Handling offer');
+				await webrtc.handleOffer(event.sdp);
+			} catch (err) {
+				const error = err as Error;
+				console.error('Failed to handle offer:', error);
+				machine.send(CALL_EVENTS.CALL_ERROR, { error: error.message });
+			}
+		},
+
+		createAndSendAnswer: async ({ context }: { context: CallContext }) => {
+			try {
+				logWebRTCEvent('SDP', 'Creating answer');
+				const answerSdp = await webrtc.createAnswer();
+				logWebRTCEvent('Signaling', 'Sending call:answer');
+				sendCallAnswer(context.callId!, answerSdp);
+				machine.send(CALL_EVENTS.ANSWER_CREATED);
+			} catch (err) {
+				const error = err as Error;
+				console.error('Failed to create answer:', error);
+				machine.send(CALL_EVENTS.CALL_ERROR, { error: error.message });
+			}
+		},
+
+		// ICE actions
+		sendIceCandidate: ({ event }: { event: { candidate: IceCandidate } }) => {
+			const context = machine.context as CallContext;
+			if (context.callId) {
+				logWebRTCEvent('ICE', 'Sending ICE candidate');
+				sendIceCandidate(context.callId, event.candidate);
+			}
+		},
+
+		addRemoteIceCandidate: async ({ event }: { event: { candidate: IceCandidate } }) => {
+			logWebRTCEvent('ICE', 'Adding remote ICE candidate');
+			await webrtc.addIceCandidate(event.candidate);
+		},
+
+		flushPendingIceCandidates: async ({ context }: { context: CallContext }) => {
+			for (const candidate of context.pendingIceCandidates) {
+				logWebRTCEvent('ICE', 'Flushing pending ICE candidate');
+				await webrtc.addIceCandidate(candidate);
+			}
+		},
+
+		queueIceCandidate: sharedAssignActions.queueIceCandidate,
+
+		// Timer actions
+		startDurationTimer: () => {
+			startDurationTimer();
+		},
+
+		stopDurationTimer: () => {
+			stopDurationTimer();
+		},
+
+		// Call end actions
+		sendCallEnded: ({ context }: { context: CallContext }) => {
+			if (context.callId) {
+				logWebRTCEvent('Signaling', 'Sending call:ended');
+				sendCallEnded(context.callId);
+			}
+		},
+
+		// Cleanup actions
+		cleanup: () => {
+			logWebRTCEvent('Action', 'Cleaning up WebRTC resources');
+			webrtc.cleanup();
+			// Trigger cleanup complete after cleanup
+			setTimeout(() => {
+				machine?.send(CALL_EVENTS.CLEANUP_COMPLETE);
+			}, 0);
+		},
+
+		resetContext: sharedAssignActions.resetContext
+	};
+
+	machine = createMachine(config, { actions });
+
+	// Subscribe to state changes to sync with reactive state
+	machine.subscribe((state: string, context: CallContext) => {
+		syncStateFromMachine(state, context);
+	});
+
+	return machine;
+}
+
+/**
+ * Handle incoming call notification from server.
+ * Routes to state machine.
+ */
+function handleIncomingCall(message: CallIncomingMessage): void {
+	// Initialize machine if needed
+	if (!machine) {
+		machine = createCallMachine();
+	}
+
+	// Guard: can only receive incoming call if idle
+	if (!machine.matches('idle')) {
+		console.warn('[Call] Ignoring incoming call: not in idle state');
+		return;
+	}
+
+	logWebRTCEvent('Signaling', `Incoming call from ${message.caller.name}`);
+	machine.send(CALL_EVENTS.INCOMING_CALL, {
+		callId: message.callId,
+		caller: message.caller,
+		profileId: message.profileId
+	});
+}
+
+/**
+ * Handle SDP offer from caller.
+ * Routes to state machine.
+ */
+async function handleCallOffer(message: CallOfferMessage): Promise<void> {
+	if (!machine) return;
+
+	// Ignore messages for other calls
+	if (callState.callId !== message.callId) {
+		console.warn('[Call] Ignoring offer for different call');
+		return;
+	}
+
+	logWebRTCEvent('Signaling', 'Received call:offer');
+	machine.send(CALL_EVENTS.OFFER_RECEIVED, { sdp: message.sdp });
+}
+
+/**
+ * Handle ICE candidate from caller.
+ * Routes to state machine.
+ */
+async function handleIceCandidate(message: IceCandidateMessage): Promise<void> {
+	if (!machine) return;
+
+	// Ignore messages for other calls
+	if (callState.callId !== message.callId) {
+		return;
+	}
+
+	logWebRTCEvent('Signaling', 'Received call:ice-candidate');
+	machine.send(CALL_EVENTS.ICE_CANDIDATE, { candidate: message.candidate });
+}
+
+/**
+ * Handle call ended by caller.
+ * Routes to state machine.
+ */
+function handleCallEnded(message: CallEndedMessage): void {
+	if (!machine) return;
+
+	// Ignore messages for other calls
+	if (callState.callId !== message.callId) {
+		return;
+	}
+
+	logWebRTCEvent('Signaling', `Received call:ended (reason: ${message.reason})`);
+	machine.send(CALL_EVENTS.CALL_ENDED, { reason: message.reason });
+}
+
+/**
+ * Accept incoming call.
+ * Notifies server and starts media acquisition.
+ */
+export async function acceptCall(): Promise<void> {
+	if (!machine) return;
+
+	// Guard: can only accept in incoming state
+	if (!machine.matches('signaling.incoming')) {
+		console.warn('[Call] Cannot accept: not in incoming state');
+		return;
+	}
+
+	logWebRTCEvent('Action', 'Accepting call');
+	machine.send(CALL_EVENTS.ACCEPT);
+}
+
+/**
+ * Decline incoming call.
+ * Notifies server and resets state.
+ */
+export function declineCall(): void {
+	if (!machine) return;
+
+	// Guard: can only decline in incoming state
+	if (!machine.matches('signaling.incoming')) {
+		console.warn('[Call] Cannot decline: not in incoming state');
+		return;
+	}
+
+	logWebRTCEvent('Action', 'Declining call');
+	machine.send(CALL_EVENTS.DECLINE);
+}
+
+/**
+ * End active call.
+ * Notifies server and cleans up resources.
+ */
+export function endCall(): void {
+	if (!machine) return;
+
+	// Guard: can only end if not already idle or ending
+	if (machine.matches('idle') || machine.matches('ending')) {
+		console.warn('[Call] Cannot end: already idle or ending');
+		return;
+	}
+
+	logWebRTCEvent('Action', 'Ending call');
+	machine.send(CALL_EVENTS.END);
+}
+
+/**
+ * Reset call state to idle.
+ * Call this after showing "call ended" UI.
+ */
+export function resetCallState(): void {
 	stopDurationTimer();
-	webrtc.cleanup();
+	callState = { ...initialState };
 }
 
 /**
@@ -286,23 +458,27 @@ function cleanup(): void {
  * Registers WebSocket message handlers.
  */
 export function initCallStore(): void {
+	// Initialize state machine
+	machine = createCallMachine();
+
 	setCallHandlers({
 		onIncomingCall: handleIncomingCall,
 		onCallOffer: handleCallOffer,
 		onIceCandidate: handleIceCandidate,
 		onCallEnded: handleCallEnded,
 		onCallError: (message) => {
-			console.error('Call error:', message.error);
-			callState.error = message.error;
-			endCallInternal();
+			logWebRTCEvent('Error', message.error);
+			if (machine) {
+				machine.send(CALL_EVENTS.CALL_ERROR, { error: message.error });
+			}
 		}
 	});
 }
 
 /**
  * Format duration as MM:SS.
- * @param {number} seconds - Duration in seconds
- * @returns {string} Formatted duration
+ * @param seconds - Duration in seconds
+ * @returns Formatted duration
  */
 export function formatDuration(seconds: number): string {
 	const mins = Math.floor(seconds / 60);

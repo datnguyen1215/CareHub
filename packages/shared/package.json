@@ -1,14 +1,22 @@
 {
   "name": "@carehub/shared",
   "version": "1.0.0",
+  "type": "module",
   "private": true,
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "exports": {
     ".": {
       "import": "./dist/index.js",
-      "require": "./dist/index.js",
       "types": "./dist/index.d.ts"
+    },
+    "./webrtc": {
+      "import": "./dist/webrtc/index.js",
+      "types": "./dist/webrtc/index.d.ts"
+    },
+    "./webrtc/call-state-machine": {
+      "import": "./dist/webrtc/call-state-machine.js",
+      "types": "./dist/webrtc/call-state-machine.d.ts"
     }
   },
   "scripts": {
@@ -19,6 +27,7 @@
     "db:migrate": "drizzle-kit migrate"
   },
   "dependencies": {
+    "@datnguyen1215/hsmjs": "^2.2.1",
     "drizzle-orm": "^0.45.2",
     "pg": "^8.20.0"
   },
