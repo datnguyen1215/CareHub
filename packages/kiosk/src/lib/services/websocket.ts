@@ -21,6 +21,8 @@ let isConnected = false;
 
 /**
  * Get the WebSocket URL.
+ * Device token in query param is acceptable for kiosk-only deployment;
+ * tokens are device-bound and not user credentials.
  */
 function getWsUrl(): string | null {
 	const creds = getDeviceCredentials();

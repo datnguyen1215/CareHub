@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, onDestroy } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { getDeviceInfo, type Profile, type Caretaker } from '$lib/services/api';
@@ -13,12 +13,13 @@
 	let greeting = $state('');
 	let currentTime = $state('');
 	let currentDate = $state('');
+	let timeIntervalId: ReturnType<typeof setInterval> | null = null;
 
 	const profileId = $derived(page.params.id);
 
 	onMount(async () => {
 		updateTimeDisplay();
-		setInterval(updateTimeDisplay, 1000);
+		timeIntervalId = setInterval(updateTimeDisplay, 1000);
 
 		const creds = getDeviceCredentials();
 		if (!creds) {
@@ -84,6 +85,13 @@
 	function goBack() {
 		goto('/home');
 	}
+
+	onDestroy(() => {
+		if (timeIntervalId) {
+			clearInterval(timeIntervalId);
+			timeIntervalId = null;
+		}
+	});
 </script>
 
 <div class="min-h-screen p-unit-4">

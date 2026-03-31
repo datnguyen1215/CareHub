@@ -532,26 +532,16 @@ devicesRouter.post(
         return
       }
 
-      // Add profiles (ignore duplicates)
-      for (const profileId of validIds) {
-        const existing = await db
-          .select()
-          .from(deviceCareProfiles)
-          .where(
-            and(
-              eq(deviceCareProfiles.device_id, deviceId),
-              eq(deviceCareProfiles.care_profile_id, profileId)
-            )
-          )
-          .limit(1)
-
-        if (existing.length === 0) {
-          await db.insert(deviceCareProfiles).values({
+      // Add profiles with ON CONFLICT DO NOTHING to avoid N+1 queries
+      await db
+        .insert(deviceCareProfiles)
+        .values(
+          validIds.map((profileId) => ({
             device_id: deviceId,
             care_profile_id: profileId,
-          })
-        }
-      }
+          }))
+        )
+        .onConflictDoNothing()
 
       // Get updated profiles
       const profiles = await db
