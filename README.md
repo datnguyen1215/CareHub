@@ -121,8 +121,7 @@ carehub/
 │   ├── backend/      # Express REST API
 │   ├── portal/       # SvelteKit caretaker portal
 │   ├── shared/       # Drizzle schema and shared types
-│   ├── kiosk/        # SvelteKit kiosk app with Capacitor (Android)
-│   └── mobile/       # (placeholder)
+│   └── kiosk/        # SvelteKit kiosk app with Capacitor (Android)
 ├── docs/             # Project documentation
 ├── .env.example      # Environment template
 └── docker-compose.yml # PostgreSQL database
