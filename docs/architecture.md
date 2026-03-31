@@ -46,10 +46,12 @@ The SvelteKit frontend uses a route group `(app)` to wrap all authenticated main
 src/
   lib/
     TopBar.svelte          # Fixed top bar — "CareHub" branding left, user avatar right
-    BottomNav.svelte       # Fixed bottom navigation — Calendar, Profiles, Devices, Settings tabs
+    BottomNav.svelte       # Fixed bottom navigation — Home, Profiles, Devices, Settings tabs
     Toast.svelte           # Toast notification component — displays success/error/destructive messages
     ProfileModal.svelte    # Create/edit care profile modal
     MedicationModal.svelte # Create/edit medication modal — name, dosage, schedule chips, status toggle (edit only)
+    EventModal.svelte      # Create/edit event modal — title, date/time, type, location, notes
+    DeleteConfirmModal.svelte # Confirmation dialog for deleting events
     api.ts                 # API client with auth cookie handling
     stores/
       toast.ts             # Toast notification store — manage toast queue with auto-dismiss
@@ -57,7 +59,7 @@ src/
     login/                 # Public auth pages (email entry, OTP verify, account setup)
     (app)/
       +layout.svelte       # Shared layout: TopBar + main content area + BottomNav
-      +page.svelte         # Calendar view — aggregated events across all profiles
+      +page.svelte         # Home page — upcoming events list grouped by day with 7/14/30 day range toggle
       profiles/
         +page.svelte       # Profile list — profile card grid
         [id]/
@@ -70,12 +72,12 @@ src/
 
 ### Shared Layout (`(app)` route group)
 
-All main pages (calendar, profiles, devices, settings) are wrapped by `src/routes/(app)/+layout.svelte`, which renders:
+All main pages (home, profiles, devices, settings) are wrapped by `src/routes/(app)/+layout.svelte`, which renders:
 
 1. `TopBar` — Fixed top bar with "CareHub" title and user avatar. Avatar fetches `GET /api/users/me` and displays the user's initial. Tapping navigates to `/settings`.
 2. `<main>` — Page content with top and bottom padding to clear the fixed bars.
 3. `Toast` — Toast notification component positioned above bottom navigation (z-index 40) to display success, error, and destructive messages. Success/destructive toasts auto-dismiss after 3 seconds; error toasts require manual dismissal.
-4. `BottomNav` — Fixed bottom navigation with four tabs. Active tab is highlighted with primary blue using the `$page` store. Tabs: Calendar (`/`), Profiles (`/profiles`), Devices (`/devices`), Settings (`/settings`).
+4. `BottomNav` — Fixed bottom navigation with four tabs. Active tab is highlighted with primary blue using the `$page` store. Tabs: Home (`/`), Profiles (`/profiles`), Devices (`/devices`), Settings (`/settings`).
 
 ### Profile Detail Page (`/profiles/:id`)
 

@@ -48,7 +48,7 @@ Detailed feature breakdown organized by area. See [phases.md](phases.md) for imp
 - Tap a card to navigate to `/profiles/:id` (profile detail)
 - "Add Profile" button in header when profiles exist; empty state with icon and "Add your first care profile" CTA when no profiles exist
 - Top bar: "CareHub" branding left, user avatar/initial right (navigates to settings)
-- Bottom navigation: Calendar (home at `/`), Profiles, Devices, Settings tabs
+- Bottom navigation: Home (home at `/`), Profiles, Devices (Coming Soon), Settings tabs
 
 ---
 
@@ -70,18 +70,23 @@ Detailed feature breakdown organized by area. See [phases.md](phases.md) for imp
 
 ---
 
-## Calendar
+## Home Page (Upcoming Events)
 
-### Monthly View
+### Event List View
 
-- Calendar grid with event indicator dots
-- Filter by profile or view all
+- Upcoming events grouped by day (Today, Tomorrow, then date labels)
+- Sorted by time within each day
+- Shows all profiles' events combined
+- Configurable range toggle: 7 days (default), 14 days, 30 days
 
-### Events
+### Event Display
 
+- Each event card shows: profile photo + name, event title, time, type indicator (color-coded)
 - Event types: doctor visit, lab work, therapy, general appointment
+- Color-coded event types: blue (doctor visit), purple (lab work), green (therapy), gray (general)
 - Fields: title, date/time, location, notes, linked profile
 - Events linkable to journal entries
+- Empty state: "No upcoming events" with CTA to add one
 - Attach documents to events (pre-visit records, results, etc.)
 - Recurring event support (future)
 

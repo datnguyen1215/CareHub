@@ -13,7 +13,7 @@ Step-by-step workflows for core tasks. Wireframe references point to files in `d
 3. Receive 6-digit OTP via email (`designs/01b-otp-verify.svg`)
 4. Enter OTP to verify; JWT cookie is set on success
 5. Prompted to enter first and last name (`designs/01c-account-setup.svg`)
-6. On submit: profile is saved, a default group named "My Family" is created automatically (no user prompt), welcome toast displays "Welcome to CareHub!", and the user is redirected to `/` (calendar view)
+6. On submit: profile is saved, a default group named "My Family" is created automatically (no user prompt), welcome toast displays "Welcome to CareHub!", and the user is redirected to `/` (Home page showing upcoming events)
 7. Navigate to Profiles tab to add first care profile: enter name, relationship, date of birth, photo
 8. Fill in initial health info: known conditions, current medications, notes
 9. Profile card appears on the profiles page (`designs/02-home-dashboard.svg`)
@@ -26,7 +26,7 @@ Step-by-step workflows for core tasks. Wireframe references point to files in `d
 
 ### Create a profile
 
-1. From the profiles page (`/profiles`), tap "Add Profile"
+1. From the Profiles tab, tap "Add Profile"
 2. A modal dialog opens over the profiles page
 3. Fill in the form: Name (required), Date of Birth (optional date picker), Relationship (optional text — e.g., grandmother, father), Conditions (optional comma-separated tags)
 4. Tap Save; the new profile card appears on the profiles page immediately
@@ -77,11 +77,11 @@ From the profile detail page (`/profiles/:id`):
 **Actor:** Caretaker (Admin), at a doctor's office
 
 1. Doctor provides paper documents (lab results, prescriptions)
-2. Open CareHub on phone, navigate to the profile (`designs/03-profile-detail.svg`)
-3. Tap Calendar tab (`designs/05-calendar.svg`)
-4. Create a calendar event for the visit (date, doctor name, location)
+2. Open CareHub on phone, navigate to Home tab
+3. Tap "+ Add Event" button (or tap an existing event to edit)
+4. Create a calendar event for the visit (date, doctor name, location, event type)
 5. Success toast displays: "Event added"
-6. Tap Journal tab (`designs/06-journal-entry.svg`)
+6. Navigate to the profile and tap Journal tab (`designs/06-journal-entry.svg`)
 7. Tap "+ Add" to create a new journal entry (`designs/06c-journal-modal.svg`)
 8. Enter title (e.g., "Post-Visit Notes"), select the date
 9. Use the "Link to Event" dropdown to connect the entry to the calendar event
@@ -220,7 +220,7 @@ From the profile detail page (`/profiles/:id`):
 4. Select role: Viewer (read-only access)
 5. Tap Send Invite
 6. System sends email invitation with a login link
-7. New user navigates to login, enters email, completes OTP verification, and lands on the calendar view
+7. New user navigates to login, enters email, completes OTP verification, and lands on the Home page
 8. Viewer can navigate to Profiles tab to see all household profiles in read-only mode
 
 ---
@@ -243,8 +243,8 @@ From the profile detail page (`/profiles/:id`):
 
 **Actor:** Caretaker (Admin)
 
-1. From the profiles page, tap a profile card (`designs/02-home-dashboard.svg`)
-2. Profile detail opens with 4 tabs: Overview, Meds, Calendar, Journal (`designs/03-profile-detail.svg`)
+1. From the Profiles tab, tap a profile card
+2. Profile detail opens with tabs: Overview, Meds, Calendar, Journal (`designs/03-profile-detail.svg`)
 3. Tap the Journal tab (`designs/06-journal-entry.svg`)
 4. Tap "+ Add" button
 5. Modal opens (`designs/06c-journal-modal.svg`)
@@ -274,7 +274,8 @@ From the profile detail page (`/profiles/:id`):
 
 **Actor:** Caretaker (Admin or Viewer)
 
-1. Navigate to Calendar tab and view an event
-2. If journal entries are linked to this event, they appear in a "Linked Journal" section
-3. Tap a linked journal entry to view its full content
-4. Cross-linking allows navigating between events and their related notes
+1. From the Home tab, tap an event card to view details
+2. Event details show full information including title, date/time, type, location, notes, and profile
+3. If journal entries are linked to this event, they appear in a "Linked Journal" section
+4. Tap a linked journal entry to view its full content
+5. Cross-linking allows navigating between events and their related notes
