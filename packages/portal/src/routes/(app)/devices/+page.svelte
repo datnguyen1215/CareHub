@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount, onDestroy } from 'svelte';
+	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { listDevices, type Device } from '$lib/api';
 	import { getErrorMessage, isRetryable } from '$lib/error-utils';
@@ -10,8 +10,9 @@
 	let loading = $state(true);
 	let canRetry = $state(false);
 
-	// WebSocket for real-time device status updates
-	let ws: WebSocket | null = null;
+	// TODO: Portal WebSocket requires backend support for user-authenticated connections (Phase 3.5).
+	// Currently the backend WebSocket (/ws) only accepts device token auth for kiosk connections.
+	// For now, device status updates require page refresh.
 
 	async function loadData() {
 		loading = true;
@@ -33,61 +34,8 @@
 		}
 	}
 
-	function connectWebSocket() {
-		const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-		const wsUrl = `${protocol}//${window.location.host}/api/ws`;
-
-		try {
-			ws = new WebSocket(wsUrl);
-
-			ws.onmessage = (event) => {
-				try {
-					const message = JSON.parse(event.data);
-
-					if (message.type === 'device_status') {
-						// Update device status in the list
-						devices = devices.map((d) => {
-							if (d.id === message.deviceId) {
-								return {
-									...d,
-									status: message.status,
-									battery_level: message.battery_level ?? d.battery_level,
-									last_seen_at: message.last_seen_at ?? d.last_seen_at
-								};
-							}
-							return d;
-						});
-					} else if (message.type === 'device_paired') {
-						// Reload devices when a new device is paired
-						loadData();
-					} else if (message.type === 'device_revoked') {
-						// Remove device from list when unpaired
-						devices = devices.filter((d) => d.id !== message.deviceId);
-					}
-				} catch {
-					// Ignore invalid messages
-				}
-			};
-
-			ws.onclose = () => {
-				// Reconnect after 5 seconds
-				setTimeout(connectWebSocket, 5000);
-			};
-		} catch {
-			// Ignore WebSocket errors, fall back to polling
-		}
-	}
-
 	onMount(() => {
 		loadData();
-		connectWebSocket();
-	});
-
-	onDestroy(() => {
-		if (ws) {
-			ws.close();
-			ws = null;
-		}
 	});
 
 	function handleSendPhoto(device: Device) {

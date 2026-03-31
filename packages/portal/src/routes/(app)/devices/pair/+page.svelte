@@ -97,10 +97,9 @@
 				goto('/login');
 				return;
 			}
-			if (apiErr?.status === 400 && apiErr?.message?.includes('expired')) {
-				error = 'QR code expired. Ask them to refresh the tablet screen.';
-			} else if (apiErr?.status === 400 && apiErr?.message?.includes('Invalid')) {
-				error = 'Invalid pairing code. Please try scanning again.';
+			// Backend returns 'Invalid or expired pairing token' for both cases
+			if (apiErr?.status === 400 && apiErr?.message?.includes('Invalid or expired')) {
+				error = 'QR code expired or invalid. Ask them to refresh the tablet screen.';
 			} else {
 				error = getErrorMessage(err, 'pair device');
 			}

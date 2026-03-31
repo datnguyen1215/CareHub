@@ -101,7 +101,9 @@
 
 		savingName = true;
 		try {
-			device = await updateDevice(device.id, { name: editedName.trim() });
+			const updated = await updateDevice(device.id, { name: editedName.trim() });
+			// PATCH returns only device fields without profiles, so preserve existing profiles
+			device = { ...device, name: updated.name };
 			isEditingName = false;
 		} catch (err: unknown) {
 			const apiErr = err as { status?: number };

@@ -12,7 +12,7 @@
 
 	let { device, onSendPhoto, onCall }: Props = $props();
 
-	const isOnline = device.status === 'online';
+	const isOnline = $derived(device.status === 'online');
 
 	function getRelativeTime(dateStr: string | null): string {
 		if (!dateStr) return 'Never';

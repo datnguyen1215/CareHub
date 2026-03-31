@@ -5,8 +5,8 @@
 
 	let { level }: Props = $props();
 
-	const displayLevel = level ?? 0;
-	const isLow = displayLevel <= 20;
+	const displayLevel = $derived(level ?? 0);
+	const isLow = $derived(displayLevel <= 20);
 
 	function getColorClass(lvl: number): string {
 		if (lvl <= 20) return 'bg-danger';
