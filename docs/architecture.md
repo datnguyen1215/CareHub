@@ -345,8 +345,9 @@ Tablet pairing uses a one-time token with a 5-minute expiry. The tablet displays
 2. Kiosk calls `POST /api/devices/pairing-token` to generate QR token (5-min expiry)
 3. Kiosk displays QR code and auto-refreshes every 4 minutes
 4. Caretaker scans QR from portal and calls `POST /api/devices/pair` with token
-5. Server sends `device_paired` event via WebSocket
-6. Kiosk stores device_token and navigates to home screen
+5. Server checks actual WebSocket connection status and sets device status accordingly (online if connected, offline if not)
+6. Server sends `device_paired` event via WebSocket
+7. Kiosk stores device_token and navigates to home screen
 
 ### Device Authentication
 
@@ -367,35 +368,35 @@ Email + OTP passwordless login via Nodemailer + Gmail SMTP.
 
 **API Endpoints**
 
-| Method   | Path                                                       | Auth        | Description                                                                                             |
-| -------- | ---------------------------------------------------------- | ----------- | ------------------------------------------------------------------------------------------------------- |
-| `POST`   | `/api/auth/email`                                          | Public      | Send OTP to email address                                                                               |
-| `POST`   | `/api/auth/verify`                                         | Public      | Verify OTP; issues JWT httpOnly cookie                                                                  |
-| `PATCH`  | `/api/users/me`                                            | Required    | Update authenticated user's first and last name                                                         |
-| `POST`   | `/api/groups`                                              | Required    | Create a group; creator is added as admin                                                               |
-| `PATCH`  | `/api/groups/:id`                                          | Required    | Rename a group (admin only)                                                                             |
-| `GET`    | `/api/groups`                                              | Required    | Return all groups the authenticated user belongs to                                                     |
-| `POST`   | `/api/groups/:groupId/profiles`                            | Admin only  | Create a care profile; `name` required                                                                  |
-| `GET`    | `/api/groups/:groupId/profiles`                            | Member only | List all care profiles in the group                                                                     |
-| `GET`    | `/api/groups/:groupId/profiles/:id`                        | Member only | Get a single care profile                                                                               |
-| `PATCH`  | `/api/groups/:groupId/profiles/:id`                        | Admin only  | Partial update of any care profile field                                                                |
-| `DELETE` | `/api/groups/:groupId/profiles/:id`                        | Admin only  | Delete a care profile                                                                                   |
-| `POST`   | `/api/groups/:groupId/profiles/:profileId/medications`     | Member only | Create a medication; `name` required; optional: `dosage`, `schedule`, `status`                          |
-| `GET`    | `/api/groups/:groupId/profiles/:profileId/medications`     | Member only | List medications; active only by default; add `?include_discontinued=true` to include discontinued ones |
-| `PATCH`  | `/api/groups/:groupId/profiles/:profileId/medications/:id` | Member only | Partial update of any medication field; use `status: "discontinued"` to discontinue                     |
-| `DELETE` | `/api/groups/:groupId/profiles/:profileId/medications/:id` | Member only | Hard delete a medication                                                                                |
-| `GET`    | `/api/health`                                              | Public      | Health check — returns `{ status: "ok" }`; used by Traefik and Docker health checks                     |
-| `POST`   | `/api/devices/register`                                    | Public      | Register new device; returns device_token                                                               |
-| `GET`    | `/api/devices/me`                                          | Device Auth | Validate device token; returns device info with assigned profiles                                       |
-| `POST`   | `/api/devices/pairing-token`                               | Device Auth | Generate QR pairing token (5-min expiry)                                                                |
-| `GET`    | `/api/devices/pairing-status`                              | Device Auth | Poll for pairing completion                                                                             |
-| `GET`    | `/api/devices`                                             | Required    | List devices user has access to                                                                         |
-| `POST`   | `/api/devices/pair`                                        | Required    | Complete pairing by scanning QR token; link device to profiles                                          |
-| `GET`    | `/api/devices/:id`                                         | Required    | Get device details (requires access)                                                                    |
-| `PATCH`  | `/api/devices/:id`                                         | Required    | Update device name                                                                                      |
-| `DELETE` | `/api/devices/:id`                                         | Required    | Unpair/remove device                                                                                    |
-| `POST`   | `/api/devices/:id/profiles`                                | Required    | Assign profiles to device                                                                               |
-| `DELETE` | `/api/devices/:id/profiles/:profileId`                     | Required    | Remove profile from device                                                                              |
+| Method   | Path                                                       | Auth        | Description                                                                                                            |
+| -------- | ---------------------------------------------------------- | ----------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `POST`   | `/api/auth/email`                                          | Public      | Send OTP to email address                                                                                              |
+| `POST`   | `/api/auth/verify`                                         | Public      | Verify OTP; issues JWT httpOnly cookie                                                                                 |
+| `PATCH`  | `/api/users/me`                                            | Required    | Update authenticated user's first and last name                                                                        |
+| `POST`   | `/api/groups`                                              | Required    | Create a group; creator is added as admin                                                                              |
+| `PATCH`  | `/api/groups/:id`                                          | Required    | Rename a group (admin only)                                                                                            |
+| `GET`    | `/api/groups`                                              | Required    | Return all groups the authenticated user belongs to                                                                    |
+| `POST`   | `/api/groups/:groupId/profiles`                            | Admin only  | Create a care profile; `name` required                                                                                 |
+| `GET`    | `/api/groups/:groupId/profiles`                            | Member only | List all care profiles in the group                                                                                    |
+| `GET`    | `/api/groups/:groupId/profiles/:id`                        | Member only | Get a single care profile                                                                                              |
+| `PATCH`  | `/api/groups/:groupId/profiles/:id`                        | Admin only  | Partial update of any care profile field                                                                               |
+| `DELETE` | `/api/groups/:groupId/profiles/:id`                        | Admin only  | Delete a care profile                                                                                                  |
+| `POST`   | `/api/groups/:groupId/profiles/:profileId/medications`     | Member only | Create a medication; `name` required; optional: `dosage`, `schedule`, `status`                                         |
+| `GET`    | `/api/groups/:groupId/profiles/:profileId/medications`     | Member only | List medications; active only by default; add `?include_discontinued=true` to include discontinued ones                |
+| `PATCH`  | `/api/groups/:groupId/profiles/:profileId/medications/:id` | Member only | Partial update of any medication field; use `status: "discontinued"` to discontinue                                    |
+| `DELETE` | `/api/groups/:groupId/profiles/:profileId/medications/:id` | Member only | Hard delete a medication                                                                                               |
+| `GET`    | `/api/health`                                              | Public      | Health check — returns `{ status: "ok" }`; used by Traefik and Docker health checks                                    |
+| `POST`   | `/api/devices/register`                                    | Public      | Register new device; returns device_token                                                                              |
+| `GET`    | `/api/devices/me`                                          | Device Auth | Validate device token; returns device info with assigned profiles                                                      |
+| `POST`   | `/api/devices/pairing-token`                               | Device Auth | Generate QR pairing token (5-min expiry)                                                                               |
+| `GET`    | `/api/devices/pairing-status`                              | Device Auth | Poll for pairing completion                                                                                            |
+| `GET`    | `/api/devices`                                             | Required    | List devices user has access to                                                                                        |
+| `POST`   | `/api/devices/pair`                                        | Required    | Complete pairing by scanning QR token; link device to profiles; sets status based on actual WebSocket connection state |
+| `GET`    | `/api/devices/:id`                                         | Required    | Get device details (requires access)                                                                                   |
+| `PATCH`  | `/api/devices/:id`                                         | Required    | Update device name                                                                                                     |
+| `DELETE` | `/api/devices/:id`                                         | Required    | Unpair/remove device                                                                                                   |
+| `POST`   | `/api/devices/:id/profiles`                                | Required    | Assign profiles to device                                                                                              |
+| `DELETE` | `/api/devices/:id/profiles/:profileId`                     | Required    | Remove profile from device                                                                                             |
 
 **SMTP configuration via environment variables:**
 
