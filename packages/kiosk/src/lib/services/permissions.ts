@@ -1,6 +1,6 @@
 /** Permission handling for camera and microphone access. */
 
-export type PermissionStatus = 'granted' | 'denied' | 'prompt'
+export type PermissionStatus = 'granted' | 'denied' | 'prompt';
 
 /**
  * Check camera permission status.
@@ -10,13 +10,13 @@ export async function checkCameraPermission(): Promise<PermissionStatus> {
 	try {
 		// Use Permissions API if available
 		if (navigator.permissions) {
-			const result = await navigator.permissions.query({ name: 'camera' as PermissionName })
-			return result.state as PermissionStatus
+			const result = await navigator.permissions.query({ name: 'camera' as PermissionName });
+			return result.state as PermissionStatus;
 		}
 		// Fallback: try to access camera briefly
-		return await testMediaAccess({ video: true })
+		return await testMediaAccess({ video: true });
 	} catch {
-		return 'prompt'
+		return 'prompt';
 	}
 }
 
@@ -28,13 +28,13 @@ export async function checkMicrophonePermission(): Promise<PermissionStatus> {
 	try {
 		// Use Permissions API if available
 		if (navigator.permissions) {
-			const result = await navigator.permissions.query({ name: 'microphone' as PermissionName })
-			return result.state as PermissionStatus
+			const result = await navigator.permissions.query({ name: 'microphone' as PermissionName });
+			return result.state as PermissionStatus;
 		}
 		// Fallback: try to access microphone briefly
-		return await testMediaAccess({ audio: true })
+		return await testMediaAccess({ audio: true });
 	} catch {
-		return 'prompt'
+		return 'prompt';
 	}
 }
 
@@ -43,15 +43,15 @@ export async function checkMicrophonePermission(): Promise<PermissionStatus> {
  */
 async function testMediaAccess(constraints: MediaStreamConstraints): Promise<PermissionStatus> {
 	try {
-		const stream = await navigator.mediaDevices.getUserMedia(constraints)
-		stream.getTracks().forEach((track) => track.stop())
-		return 'granted'
+		const stream = await navigator.mediaDevices.getUserMedia(constraints);
+		stream.getTracks().forEach((track) => track.stop());
+		return 'granted';
 	} catch (err) {
-		const error = err as Error
+		const error = err as Error;
 		if (error.name === 'NotAllowedError') {
-			return 'denied'
+			return 'denied';
 		}
-		return 'prompt'
+		return 'prompt';
 	}
 }
 
@@ -65,12 +65,12 @@ export async function requestMediaPermissions(): Promise<boolean> {
 		const stream = await navigator.mediaDevices.getUserMedia({
 			video: true,
 			audio: true
-		})
+		});
 		// Immediately stop tracks - we just needed permission
-		stream.getTracks().forEach((track) => track.stop())
-		return true
+		stream.getTracks().forEach((track) => track.stop());
+		return true;
 	} catch {
-		return false
+		return false;
 	}
 }
 
@@ -80,26 +80,23 @@ export async function requestMediaPermissions(): Promise<boolean> {
  * @returns {Promise<boolean>} True if permissions permanently denied
  */
 export async function arePermissionsPermanentlyDenied(): Promise<boolean> {
-	const camera = await checkCameraPermission()
-	const microphone = await checkMicrophonePermission()
+	const camera = await checkCameraPermission();
+	const microphone = await checkMicrophonePermission();
 	// If either is denied (not prompt), consider it permanent
-	return camera === 'denied' || microphone === 'denied'
+	return camera === 'denied' || microphone === 'denied';
 }
 
 /**
  * Open app settings for permission management.
- * Only works on native Android via Capacitor App plugin.
+ * Currently a no-op - permissions must be granted through system prompts.
+ * On Android, users can go to Settings > Apps > CareHub to manage permissions.
+ * On web, users can click the lock icon in the browser address bar.
+ * @returns {Promise<boolean>} Always false as we cannot programmatically open settings
  */
-export async function openAppSettings(): Promise<void> {
-	// Try Capacitor App plugin if available
-	try {
-		const { App } = await import('@capacitor/app')
-		// Capacitor doesn't have direct settings API, but we can guide user
-		console.log('Capacitor App loaded, but no direct settings API')
-	} catch {
-		// Not on Capacitor or plugin not available
-	}
-
-	// For web, show instructions (handled by PermissionError component)
-	console.log('Please go to browser/app settings to enable camera and microphone')
+export async function openAppSettings(): Promise<boolean> {
+	// Note: Opening app settings programmatically would require:
+	// - capacitor-native-settings plugin for Android
+	// - Or @capacitor/browser with intent URLs
+	// For now, we rely on the PermissionError component to guide users manually
+	return false;
 }

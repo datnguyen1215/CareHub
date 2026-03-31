@@ -1,76 +1,75 @@
 <script lang="ts">
-	import { onMount, onDestroy } from 'svelte'
-	import type { CallParticipant } from '@carehub/shared'
-	import type { CallStatus } from '$lib/stores/call'
-	import { endCall, formatDuration } from '$lib/stores/call'
-	import { attachRemoteStream } from '$lib/services/webrtc'
+	import { onMount, onDestroy } from 'svelte';
+	import type { CallParticipant } from '@carehub/shared';
+	import type { CallStatus } from '$lib/stores/call';
+	import { endCall, formatDuration } from '$lib/stores/call';
+	import { attachRemoteStream } from '$lib/services/webrtc';
 
 	interface Props {
-		status: CallStatus
-		caller: CallParticipant
-		localStream: MediaStream | null
-		remoteStream: MediaStream | null
-		duration: number
+		status: CallStatus;
+		caller: CallParticipant;
+		localStream: MediaStream | null;
+		remoteStream: MediaStream | null;
+		duration: number;
 	}
-	let { status, caller, localStream, remoteStream, duration }: Props = $props()
+	let { status, caller, localStream, remoteStream, duration }: Props = $props();
 
-	let remoteVideoElement: HTMLVideoElement | null = $state(null)
-	let localVideoElement: HTMLVideoElement | null = $state(null)
+	let remoteVideoElement: HTMLVideoElement | null = $state(null);
+	let localVideoElement: HTMLVideoElement | null = $state(null);
 
 	function getDisplayName(): string {
 		if (caller.name) {
-			return caller.name
+			return caller.name;
 		}
-		return 'Unknown Caller'
+		return 'Unknown Caller';
 	}
 
 	function getInitials(): string {
-		const name = getDisplayName()
+		const name = getDisplayName();
 		return name
 			.split(' ')
 			.map((n) => n[0])
 			.join('')
 			.toUpperCase()
-			.slice(0, 2)
+			.slice(0, 2);
 	}
 
 	function handleEndCall() {
-		endCall()
+		endCall();
 	}
 
 	// Attach streams to video elements reactively
 	$effect(() => {
 		if (remoteVideoElement && remoteStream) {
-			attachRemoteStream(remoteVideoElement, remoteStream)
+			// Detach old stream to prevent memory leaks and stale track references
+			if (remoteVideoElement.srcObject && remoteVideoElement.srcObject !== remoteStream) {
+				remoteVideoElement.srcObject = null;
+			}
+			attachRemoteStream(remoteVideoElement, remoteStream);
 		}
-	})
+	});
 
 	$effect(() => {
 		if (localVideoElement && localStream) {
-			localVideoElement.srcObject = localStream
+			// Detach old stream before reassigning
+			if (localVideoElement.srcObject && localVideoElement.srcObject !== localStream) {
+				localVideoElement.srcObject = null;
+			}
+			localVideoElement.srcObject = localStream;
 		}
-	})
+	});
 </script>
 
 <div class="call-screen">
 	<!-- Remote video (full screen) -->
 	<div class="remote-video-container">
 		{#if remoteStream}
-			<video
-				bind:this={remoteVideoElement}
-				autoplay
-				playsinline
-				class="remote-video"
-			></video>
+			<video bind:this={remoteVideoElement} autoplay playsinline class="remote-video"></video>
 		{:else}
 			<!-- Show avatar when no video -->
 			<div class="no-video-placeholder">
 				{#if caller.avatarUrl}
-					<img
-						src={caller.avatarUrl}
-						alt={getDisplayName()}
-						class="placeholder-avatar"
-					/>
+					<img src={caller.avatarUrl} alt={getDisplayName()} class="placeholder-avatar" />
 				{:else}
 					<div class="placeholder-avatar-initials">
 						<span>{getInitials()}</span>
@@ -83,13 +82,7 @@
 	<!-- Local video preview (small corner) -->
 	{#if localStream}
 		<div class="local-video-container">
-			<video
-				bind:this={localVideoElement}
-				autoplay
-				playsinline
-				muted
-				class="local-video"
-			></video>
+			<video bind:this={localVideoElement} autoplay playsinline muted class="local-video"></video>
 		</div>
 	{/if}
 
@@ -111,13 +104,16 @@
 
 		<!-- End call button -->
 		<div class="call-controls">
-			<button
-				class="end-call-button"
-				onclick={handleEndCall}
-				aria-label="End call"
-			>
-				<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="end-call-icon">
-					<path d="M1.5 4.5a3 3 0 0 1 3-3h1.372c.86 0 1.61.586 1.819 1.42l1.105 4.423a1.875 1.875 0 0 1-.694 1.955l-1.293.97c-.135.101-.164.249-.126.352a11.285 11.285 0 0 0 6.697 6.697c.103.038.25.009.352-.126l.97-1.293a1.875 1.875 0 0 1 1.955-.694l4.423 1.105c.834.209 1.42.959 1.42 1.82V19.5a3 3 0 0 1-3 3h-2.25C8.552 22.5 1.5 15.448 1.5 6.75V4.5Z" />
+			<button class="end-call-button" onclick={handleEndCall} aria-label="End call">
+				<svg
+					xmlns="http://www.w3.org/2000/svg"
+					viewBox="0 0 24 24"
+					fill="currentColor"
+					class="end-call-icon"
+				>
+					<path
+						d="M1.5 4.5a3 3 0 0 1 3-3h1.372c.86 0 1.61.586 1.819 1.42l1.105 4.423a1.875 1.875 0 0 1-.694 1.955l-1.293.97c-.135.101-.164.249-.126.352a11.285 11.285 0 0 0 6.697 6.697c.103.038.25.009.352-.126l.97-1.293a1.875 1.875 0 0 1 1.955-.694l4.423 1.105c.834.209 1.42.959 1.42 1.82V19.5a3 3 0 0 1-3 3h-2.25C8.552 22.5 1.5 15.448 1.5 6.75V4.5Z"
+					/>
 				</svg>
 				<span class="end-call-text">End Call</span>
 			</button>
@@ -261,7 +257,9 @@
 	}
 
 	@keyframes connecting-pulse {
-		0%, 80%, 100% {
+		0%,
+		80%,
+		100% {
 			transform: scale(0.6);
 			opacity: 0.5;
 		}
@@ -292,7 +290,9 @@
 		min-height: 80px;
 		min-width: 220px;
 		cursor: pointer;
-		transition: transform 0.2s, box-shadow 0.2s;
+		transition:
+			transform 0.2s,
+			box-shadow 0.2s;
 		box-shadow: 0 8px 24px rgba(239, 68, 68, 0.4);
 	}
 
