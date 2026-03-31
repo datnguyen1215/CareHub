@@ -55,6 +55,11 @@ export function logout() {
 	return request<void>('POST', '/auth/logout');
 }
 
+/** Gets a short-lived ticket for WebSocket authentication */
+export function getWsTicket() {
+	return request<{ ticket: string }>('GET', '/auth/ws-ticket');
+}
+
 // Users
 
 export interface MeResponse {

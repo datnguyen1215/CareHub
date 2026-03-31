@@ -7,6 +7,7 @@ import { devices } from '@carehub/shared'
 import { logger } from '../services/logger'
 import { handleDeviceConnection } from './handlers/device'
 import { handleUserConnection, verifyUserToken } from './handlers/user'
+import { consumeWsTicket } from '../routes/auth'
 import {
   clearAllClients,
   broadcastToDevice,
@@ -43,13 +44,17 @@ export function initWebSocketServer(server: Server): void {
     const url = new URL(req.url ?? '', `http://${req.headers.host}`)
     const deviceToken = url.searchParams.get('token')
     const userJwt = url.searchParams.get('jwt')
+    const wsTicket = url.searchParams.get('ticket')
 
     // Route based on which auth param is provided
     if (deviceToken) {
       // Device authentication
       await handleDeviceAuth(ws, deviceToken)
+    } else if (wsTicket) {
+      // Ticket-based user authentication (Portal)
+      handleTicketAuth(ws, wsTicket)
     } else if (userJwt) {
-      // User authentication
+      // JWT-based user authentication (legacy)
       handleUserAuth(ws, userJwt)
     } else {
       logger.warn('WebSocket connection rejected: no auth token')
@@ -76,10 +81,7 @@ export function initWebSocketServer(server: Server): void {
 /**
  * Authenticate device connection via device token.
  */
-async function handleDeviceAuth(
-  ws: import('ws').WebSocket,
-  deviceToken: string
-): Promise<void> {
+async function handleDeviceAuth(ws: import('ws').WebSocket, deviceToken: string): Promise<void> {
   // Validate device token
   const [device] = await db
     .select()
@@ -99,10 +101,7 @@ async function handleDeviceAuth(
 /**
  * Authenticate user connection via JWT.
  */
-function handleUserAuth(
-  ws: import('ws').WebSocket,
-  jwt: string
-): void {
+function handleUserAuth(ws: import('ws').WebSocket, jwt: string): void {
   const payload = verifyUserToken(jwt)
 
   if (!payload) {
@@ -112,4 +111,19 @@ function handleUserAuth(
   }
 
   handleUserConnection(ws, payload.userId)
+}
+
+/**
+ * Authenticate user connection via one-time ticket (Portal).
+ */
+function handleTicketAuth(ws: import('ws').WebSocket, ticket: string): void {
+  const userId = consumeWsTicket(ticket)
+
+  if (!userId) {
+    logger.warn('WebSocket connection rejected: invalid or expired ticket')
+    ws.close(4004, 'Invalid or expired ticket')
+    return
+  }
+
+  handleUserConnection(ws, userId)
 }
