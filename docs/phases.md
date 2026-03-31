@@ -66,33 +66,48 @@ Add scheduling, journaling, and AI-powered document management.
 
 Enable the tablet kiosk experience, Capacitor mobile app, and real-time communication.
 
-### Key Deliverables
+### Phase 3.0: Kiosk Foundation ✅
 
-- **Capacitor native apps** -- Wrap SvelteKit in Capacitor for both caretaker phone APK and tablet kiosk APK (same codebase, no separate mobile development)
-- **Firebase Cloud Messaging** -- FCM integration for high-priority push notifications (call alerts, medication reminders) on both caretaker phones and tablets
-- **Native incoming call UI** -- Full-screen call notification on caretaker's phone with ringtone, vibration, caller photo, and Accept/Decline buttons (phone-style experience, works over lock screen)
-- **Tablet kiosk APK** -- Capacitor app with Lock Task Mode (prevents exit), auto-launch on boot, foreground service for persistent WebSocket
-- **Capgo OTA updates** -- Over-the-air web bundle updates for all Capacitor apps; tablets and phones update automatically without manual APK reinstall
-- **Tablet kiosk UI** -- Elderly-friendly interface with 80px+ touch targets, no text input
-- **Kiosk home screen** -- Personalized greeting, caretaker cards, today's schedule
-- **QR-based pairing** -- Tablet displays QR, caretaker scans from portal, one-time token with 5-minute expiry
-- **Device management** -- Device list in portal with status, battery, last seen
-- **Device access sharing** -- Share device control with other caretakers via email
-- **Remote unpair** -- Remove tablet pairing from portal
-- **WebRTC video calling** -- Caretaker-to-tablet and tablet-to-caretaker calls with foreground service to keep calls alive
-- **Incoming call screen (tablet)** -- Full-screen display with large Accept/Decline buttons on tablet
-- **Missed call handling** -- "No answer" timeout state on tablet, missed call indicator for caretaker
-- **Remote content push** -- Send photos, appointments, and messages to tablet from portal
-- **Real-time device status** -- Online/offline and battery via WebSocket connection
-- **Auto-reconnect** -- Tablet app reconnects automatically on network interruption; FCM serves as fallback wake mechanism
+**Completed:**
+
+- [x] **Device database schema** -- devices, device_care_profiles, device_access, device_pairing_tokens tables with migrations
+- [x] **Device API endpoints** -- Registration, pairing, validation, management (12 endpoints)
+- [x] **Device authentication** -- deviceAuth middleware validates device_token (separate from user JWT)
+- [x] **WebSocket server** -- Real-time communication on `/ws` path with device token authentication
+- [x] **WebSocket events** -- device_paired, device_revoked, profiles_updated, heartbeat, status_update
+- [x] **Kiosk package** -- `packages/kiosk` SvelteKit app (port 9393)
+- [x] **Kiosk pairing screen** -- QR code display with auto-refresh (4-min interval)
+- [x] **Kiosk home screen** -- Profile card grid for multi-profile devices
+- [x] **Kiosk profile dashboard** -- Greeting, caretaker cards, appointments list
+- [x] **Kiosk design system** -- 80px touch targets, 20px base font, high contrast
+- [x] **Connection management** -- Auto-reconnect with exponential backoff, online/offline indicator
+- [x] **Device management UI** -- Portal device list, pairing flow, profile assignment, unpair
+- [x] **Remote unpair** -- Sends device_revoked event to clear kiosk data
+
+### Phase 3.5: Video Calling (Planned)
+
+- **WebRTC video calling** -- Caretaker-to-tablet and tablet-to-caretaker calls
+- **Incoming call screen (tablet)** -- Full-screen display with large Accept/Decline buttons
+- **Call state management** -- Call stores and UI on both kiosk and portal
+- **Missed call handling** -- "No answer" timeout state
+
+### Phase 3.6: Capacitor Native (Planned)
+
+- **Capacitor native apps** -- Wrap SvelteKit in Capacitor for both caretaker phone APK and tablet kiosk APK
+- **Firebase Cloud Messaging** -- FCM integration for high-priority push notifications
+- **Native incoming call UI** -- Full-screen call notification on caretaker's phone with ringtone
+- **Tablet kiosk APK** -- Capacitor app with Lock Task Mode, auto-launch on boot, foreground service
+- **Capgo OTA updates** -- Over-the-air web bundle updates; automatic updates without APK reinstall
 
 ### Screens Implemented
 
-- Devices (`designs/09-devices.svg`)
-- Pair Tablet (`designs/10-pair-tablet.svg`)
-- Tablet Home (`designs/11-tablet-home.svg`)
-- Tablet Incoming Call (`designs/12-tablet-incoming-call.svg`)
-- Tablet QR Pairing (`designs/13-tablet-qr-pairing.svg`)
+- Devices — Portal device list ✅
+- Pair Tablet — QR scanning flow ✅
+- Tablet QR Pairing — Kiosk pairing screen ✅
+- Tablet Home — Profile selection ✅
+- Tablet Profile Dashboard — Caretaker cards and appointments ✅
+- Tablet Incoming Call — (Phase 3.5)
+- Portal Call UI — (Phase 3.5)
 
 ---
 

@@ -30,10 +30,10 @@
 
 ```
 packages/
-  frontend/    # SvelteKit + Tailwind CSS web app
-  backend/     # Express API server
+  frontend/    # SvelteKit + Tailwind CSS caretaker portal web app
+  backend/     # Express API server with WebSocket support
   shared/      # Shared types, utilities, and Drizzle schema
-  mobile/      # Capacitor mobile wrapper (Phase 3 placeholder)
+  kiosk/       # SvelteKit elderly tablet kiosk app (Capacitor wrapper planned)
 ```
 
 ---
@@ -63,7 +63,7 @@ src/
         [id]/
           +page.svelte     # Profile detail — custom top bar, Overview/Meds tabs
       devices/
-        +page.svelte       # Devices placeholder (Phase 3)
+        +page.svelte       # Device management UI — list, pair, unpair devices
       settings/
         +page.svelte       # Settings — group rename, member management
 ```
@@ -212,7 +212,7 @@ All entities are defined as Drizzle ORM schemas in `packages/shared`.
 **Device**
 
 - `id` (UUID, primary key)
-- `device_identifier` (unique hardware/browser ID)
+- `device_token` (unique, used for device authentication)
 - `name`
 - `status` (enum: online, offline)
 - `battery_level` (integer, nullable)
@@ -222,16 +222,24 @@ All entities are defined as Drizzle ORM schemas in `packages/shared`.
 
 **DeviceCareProfile** (join table)
 
-- `device_id` (FK -> Device)
-- `care_profile_id` (FK -> CareProfile)
+- `device_id` (FK -> Device, cascade delete)
+- `care_profile_id` (FK -> CareProfile, cascade delete)
 
 **DeviceAccess**
 
 - `id` (UUID, primary key)
-- `device_id` (FK -> Device)
-- `user_id` (FK -> User)
+- `device_id` (FK -> Device, cascade delete)
+- `user_id` (FK -> User, cascade delete)
 - `granted_at`
 - `granted_by` (FK -> User)
+
+**DevicePairingToken**
+
+- `id` (UUID, primary key)
+- `token` (varchar, unique) - QR code content
+- `device_id` (FK -> Device, nullable) - Null until device claims it
+- `expires_at` (timestamp) - 5 minute expiry
+- `created_at` (timestamp)
 
 ---
 
@@ -252,6 +260,28 @@ The frontend (SvelteKit) and backend (Express) are separate packages in the mono
 ### Real-Time via WebSockets
 
 Tablet push notifications, device status monitoring, and video call signaling all use persistent WebSocket connections managed by the Express backend.
+
+**WebSocket Server Architecture:**
+
+- Mounted on `/ws` path alongside REST API
+- Connection authenticated via device_token query parameter
+- Server tracks connected devices in memory (Map<deviceId, WebSocket>)
+- Ping/pong for connection health (30s interval)
+- Updates `last_seen_at` and `status` on connect/disconnect
+
+**Events (Server → Kiosk):**
+
+- `device_paired` - Pairing completed, includes assigned profiles
+- `device_revoked` - Device unpaired, kiosk should clear data
+- `profiles_updated` - Profile assignments changed
+- `incoming_call` - Caretaker initiating video call (Phase 3.5)
+- `call_ended` - Call terminated (Phase 3.5)
+
+**Events (Kiosk → Server):**
+
+- `heartbeat` - Periodic ping with battery level
+- `status_update` - Online/offline state changes
+- `call_request` - Elderly initiating call to caretaker (Phase 3.5)
 
 ### Peer-to-Peer Video
 
@@ -303,6 +333,19 @@ Documents are processed through OCR immediately on upload. The extracted text is
 
 Tablet pairing uses a one-time token with a 5-minute expiry. The tablet displays the token as a QR code. The caretaker scans it with their phone camera from the portal. This avoids manual code entry and prevents stale pairing sessions.
 
+**Pairing Flow:**
+
+1. Kiosk calls `POST /api/devices/register` to create device record and get device_token
+2. Kiosk calls `POST /api/devices/pairing-token` to generate QR token (5-min expiry)
+3. Kiosk displays QR code and auto-refreshes every 4 minutes
+4. Caretaker scans QR from portal and calls `POST /api/devices/pair` with token
+5. Server sends `device_paired` event via WebSocket
+6. Kiosk stores device_token and navigates to home screen
+
+### Device Authentication
+
+Devices use device tokens (not user JWTs) for authentication. The `deviceAuth` middleware validates `Authorization: Bearer <device_token>` headers on kiosk-specific endpoints. Device tokens are stored securely on the kiosk and never expire (until device is unpaired).
+
 ### Authentication
 
 Email + OTP passwordless login via Nodemailer + Gmail SMTP.
@@ -336,6 +379,17 @@ Email + OTP passwordless login via Nodemailer + Gmail SMTP.
 | `PATCH`  | `/api/groups/:groupId/profiles/:profileId/medications/:id` | Member only | Partial update of any medication field; use `status: "discontinued"` to discontinue                     |
 | `DELETE` | `/api/groups/:groupId/profiles/:profileId/medications/:id` | Member only | Hard delete a medication                                                                                |
 | `GET`    | `/api/health`                                              | Public      | Health check — returns `{ status: "ok" }`; used by Traefik and Docker health checks                     |
+| `POST`   | `/api/devices/register`                                    | Public      | Register new device; returns device_token                                                               |
+| `GET`    | `/api/devices/me`                                          | Device Auth | Validate device token; returns device info with assigned profiles                                       |
+| `POST`   | `/api/devices/pairing-token`                               | Device Auth | Generate QR pairing token (5-min expiry)                                                                |
+| `GET`    | `/api/devices/pairing-status`                              | Device Auth | Poll for pairing completion                                                                             |
+| `GET`    | `/api/devices`                                             | Required    | List devices user has access to                                                                         |
+| `POST`   | `/api/devices/pair`                                        | Required    | Complete pairing by scanning QR token; link device to profiles                                          |
+| `GET`    | `/api/devices/:id`                                         | Required    | Get device details (requires access)                                                                    |
+| `PATCH`  | `/api/devices/:id`                                         | Required    | Update device name                                                                                      |
+| `DELETE` | `/api/devices/:id`                                         | Required    | Unpair/remove device                                                                                    |
+| `POST`   | `/api/devices/:id/profiles`                                | Required    | Assign profiles to device                                                                               |
+| `DELETE` | `/api/devices/:id/profiles/:profileId`                     | Required    | Remove profile from device                                                                              |
 
 **SMTP configuration via environment variables:**
 

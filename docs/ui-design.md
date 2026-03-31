@@ -84,16 +84,58 @@ Styles are implemented with Tailwind CSS within the SvelteKit frontend package. 
 
 ## Tablet Kiosk Design
 
-- Runs as Capacitor APK in Android Lock Task Mode -- user cannot exit the app
-- Auto-launches on device boot; updates automatically via Capgo OTA
-- Minimum 80px touch targets for all buttons and interactive elements
-- No text input fields anywhere -- all interactions are taps
-- Maximum 2-3 taps to reach any function
-- Large profile photos and names for easy recognition
-- Current time and date displayed prominently
-- Personalized greeting ("Good morning, Grandma")
-- Auto-reconnect on network interruption with visible status indicator
-- Incoming call screen uses near-full-screen Accept (green) and Decline (red) buttons
+### Runtime
+
+- Runs as SvelteKit web app (Capacitor APK wrapper planned for Phase 3.6)
+- Separate package: `packages/kiosk` on port 9393
+- Persistent WebSocket connection for real-time updates
+- Device token authentication (stored in localStorage, will migrate to Capacitor Secure Storage)
+
+### Design System
+
+- **Touch targets:** Minimum 80px (Tailwind `unit-10`)
+- **Typography:** Base 20px, headings 32-48px (scaled up from portal)
+- **Colors:** Inherited from portal with high contrast
+- **Spacing:** Increased base spacing for large touch targets
+- **No text input:** All interactions are taps only
+- **Maximum depth:** 2-3 taps to reach any function
+
+### Screens
+
+**Pairing Screen (`/pairing`):**
+
+- Large centered QR code (auto-refreshes every 4 minutes)
+- Instructions: "Scan this code from your CareHub portal"
+- Waits for `device_paired` WebSocket event
+- On paired: stores device_token, navigates to home
+
+**Home Screen (`/home`):**
+
+- Displays if multiple profiles assigned (redirects to dashboard if single profile)
+- Greeting and current time/date
+- Profile card grid with large photos and names
+- Tap profile → navigate to `/profile/[id]`
+
+**Profile Dashboard (`/profile/[id]`):**
+
+- Back button (if multiple profiles) → `/home`
+- Personalized greeting: "Good morning, [Name]!"
+- Current time and date display
+- Caretaker cards grid (large photos, names)
+- Today's appointments section
+- Tap caretaker → initiate call (Phase 3.5)
+
+**Connection Status:**
+
+- Subtle indicator in top corner
+- Shows "Reconnecting..." when WebSocket disconnected
+- Auto-reconnects with exponential backoff
+
+### Future Enhancements (Phase 3.5+)
+
+- Incoming call screen with near-full-screen Accept (green) and Decline (red) buttons
+- Active call UI with end call button
+- Missed call notifications
 
 ---
 

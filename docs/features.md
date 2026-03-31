@@ -138,30 +138,34 @@ Detailed feature breakdown organized by area. See [phases.md](phases.md) for imp
 ### Tablet Registration
 
 - Register Android tablets as managed devices
-- Tablet runs Capacitor APK with Lock Task Mode and auto-boot
-- Over-the-air updates via Capgo (no manual APK reinstall for UI/logic changes)
-- Device metadata: name, assigned profiles, status
+- Each device gets a unique device_token for authentication
+- Tablet runs as web app in browser (Capacitor APK wrapper planned)
+- Device metadata: name, assigned profiles, status, battery, last seen
+- Remote unpair clears device data and returns to pairing screen
 
 ### QR-Based Pairing
 
-- Portal initiates pairing session, generating a one-time token (5-minute expiry)
-- Tablet displays QR code on its pairing screen
-- Caretaker scans QR with phone camera
-- Caretaker selects which profiles to assign
-- Confirmation completes pairing; tablet enters kiosk mode
+- Kiosk generates one-time pairing token (5-minute expiry)
+- Kiosk displays QR code on pairing screen with auto-refresh
+- Caretaker scans QR from portal device management page
+- Caretaker selects which profiles to assign during pairing
+- Confirmation completes pairing; kiosk receives notification via WebSocket
+- Kiosk stores device_token securely and navigates to home screen
 
 ### Device Status
 
-- Online/offline indicator
-- Battery level
+- Online/offline indicator (real-time via WebSocket)
+- Battery level (updated via heartbeat messages)
 - Last seen timestamp
-- Real-time status via WebSocket connection
+- Device name (editable by caretakers)
+- Assigned profiles list
 
 ### Access Control
 
-- Multiple tablets per profile, multiple profiles per tablet
-- Share device access with other caretakers via email
-- Remote unpair from portal
+- Multiple devices per profile, multiple profiles per device
+- Caretakers with device access can manage profiles and unpair
+- Device token authentication separate from user JWT authentication
+- Remote unpair sends `device_revoked` event to clear kiosk data
 
 ---
 
@@ -169,46 +173,61 @@ Detailed feature breakdown organized by area. See [phases.md](phases.md) for imp
 
 ### Runtime
 
-- Capacitor APK with Android Lock Task Mode -- user cannot exit the app, access home screen, or open notification shade
-- Auto-launch on device boot -- app starts automatically after power on or reboot
-- Foreground service keeps WebSocket connection alive for incoming calls and content pushes
-- FCM fallback wakes app if foreground service is killed
-- Over-the-air updates via Capgo -- UI/logic updates applied automatically, no manual APK reinstall
+- SvelteKit web app running in browser (Capacitor APK wrapper planned for Phase 3.5)
+- Persistent WebSocket connection for real-time features
+- Auto-reconnect on network interruption
+- Device token stored securely (localStorage for now, Capacitor Secure Storage when native)
+- Offline state shows cached data with "Reconnecting..." indicator
 
 ### Design Principles
 
-- Minimum 80px touch targets for all interactive elements
+- Minimum 80px touch targets for all interactive elements (Tailwind `unit-10` = 80px)
 - No text input required anywhere -- everything is tap-based
 - Maximum 2-3 taps for any action
-- Auto-reconnect on network interruption
+- Large font sizes (base 20px, headings 32-48px)
+- High contrast colors for visibility
 - Personalized greeting with current time and date
+
+### Pairing Screen
+
+- Large centered QR code display
+- Auto-refreshes token every 4 minutes (before 5-min expiry)
+- Listens for `device_paired` WebSocket event
+- On paired: stores device_token and navigates to home
 
 ### Home Screen
 
-- Large caretaker cards with photos for one-tap video calling
-- Today's schedule/appointments (pushed from portal)
-- Shared content area (photos, messages from family)
+- Displays if multiple profiles assigned
+- Large profile cards with photos and names
+- Greeting and current time/date display
+- Tap profile card to navigate to profile dashboard
 
-### Incoming Calls
+### Profile Dashboard
 
-- Full-screen incoming call display
-- Large Accept and Decline buttons
-- Caller name and photo prominently displayed
+- Shows if single profile or after selecting from home
+- Back button to home (if multiple profiles)
+- Personalized greeting ("Good morning, [Name]!")
+- Current time and date
+- Large caretaker cards (all group members with profile access)
+- Today's appointments list
+- Tap caretaker card to initiate call (Phase 3.5)
 
-### Content Display
+### Connection Status
 
-- Photos and messages pushed by caretakers
-- Appointment reminders
-- Rotating family photo slideshow (future)
+- Subtle online/offline indicator
+- Shows "Reconnecting..." when WebSocket disconnected
+- Auto-reconnects with exponential backoff
 
 ---
 
 ## Remote Tablet Control
 
-- Push content to tablet from portal: photos, appointments, messages
-- Initiate video call to tablet from portal
-- Adjust display settings remotely (brightness, content rotation)
-- Show specific content on demand
+- Manage device from portal: rename, assign/remove profiles, unpair
+- View device status: online/offline, battery level, last seen
+- Profile updates pushed to kiosk via `profiles_updated` WebSocket event
+- Remote unpair sends `device_revoked` event to clear kiosk data
+- Video calling (Phase 3.5)
+- Content push: photos, appointments, messages (Phase 4)
 
 ---
 
