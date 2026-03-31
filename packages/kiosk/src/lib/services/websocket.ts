@@ -24,8 +24,8 @@ let isConnected = false;
  * Device token in query param is acceptable for kiosk-only deployment;
  * tokens are device-bound and not user credentials.
  */
-function getWsUrl(): string | null {
-	const creds = getDeviceCredentials();
+async function getWsUrl(): Promise<string | null> {
+	const creds = await getDeviceCredentials();
 	if (!creds) return null;
 
 	const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -36,8 +36,8 @@ function getWsUrl(): string | null {
 /**
  * Connect to WebSocket server.
  */
-export function connect(): void {
-	const url = getWsUrl();
+export async function connect(): Promise<void> {
+	const url = await getWsUrl();
 	if (!url) {
 		console.warn('Cannot connect WebSocket: no device credentials');
 		return;

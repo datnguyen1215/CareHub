@@ -59,7 +59,7 @@ export interface RegistrationResponse {
  * Make authenticated request with device token.
  */
 async function deviceFetch(path: string, options: RequestInit = {}): Promise<Response> {
-	const creds = getDeviceCredentials();
+	const creds = await getDeviceCredentials();
 	const headers: HeadersInit = {
 		'Content-Type': 'application/json',
 		...(options.headers || {})

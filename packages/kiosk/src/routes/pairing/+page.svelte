@@ -30,13 +30,13 @@
 	});
 
 	async function initialize() {
-		let creds = getDeviceCredentials();
+		let creds = await getDeviceCredentials();
 
 		// Register device if no credentials
 		if (!creds) {
 			try {
 				const result = await registerDevice();
-				saveDeviceCredentials(result.deviceId, result.deviceToken);
+				await saveDeviceCredentials(result.deviceId, result.deviceToken);
 				creds = { deviceId: result.deviceId, deviceToken: result.deviceToken };
 			} catch (err) {
 				error = 'Failed to register device. Please try again.';
@@ -63,7 +63,7 @@
 
 		// Generate pairing token and start listening
 		await generateToken();
-		setupListeners();
+		await setupListeners();
 	}
 
 	async function generateToken() {
@@ -89,9 +89,9 @@
 		}
 	}
 
-	function setupListeners() {
+	async function setupListeners() {
 		// Try WebSocket first
-		connect();
+		await connect();
 		unsubscribe = onMessage((message) => {
 			if (message.type === 'device_paired') {
 				handlePaired();
