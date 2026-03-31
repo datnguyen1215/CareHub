@@ -258,8 +258,12 @@ const handleCallEnded = async (
   // Clear ring timeout
   clearRingTimeout(callId)
 
-  // End call
-  await endCall(callId, reason)
+  // End call — returns false if already ended (prevents duplicate notifications)
+  const wasEnded = await endCall(callId, reason)
+  if (!wasEnded) {
+    logger.debug({ callId, reason }, 'Call already ended, not notifying')
+    return
+  }
 
   // Notify the other party
   if (senderType === 'user') {

@@ -1,7 +1,7 @@
 /** Call service — manages call session database operations. */
 import { eq, and, notInArray } from 'drizzle-orm'
 import { db } from '../db'
-import { callSessions, deviceAccess, users } from '@carehub/shared'
+import { callSessions, deviceAccess, users, devices } from '@carehub/shared'
 import type { CallStatus, CallEndReason, CallParticipant } from '@carehub/shared'
 import { logger } from './logger'
 
@@ -73,24 +73,32 @@ export const updateCallStatus = async (sessionId: string, status: CallStatus): P
 /**
  * End a call session with reason.
  * Uses a transaction to atomically read answeredAt and update the session.
+ * Returns true if the call was ended, false if already in terminal state.
  */
-export const endCall = async (sessionId: string, reason: CallEndReason): Promise<void> => {
+export const endCall = async (sessionId: string, reason: CallEndReason): Promise<boolean> => {
   const endedAt = new Date()
 
-  const durationSeconds = await db.transaction(async (tx) => {
+  const result = await db.transaction(async (tx) => {
     // Get current session to calculate duration (within transaction)
+    // Also check status to prevent duplicate endings
     const [session] = await tx
-      .select({ answeredAt: callSessions.answered_at })
+      .select({ answeredAt: callSessions.answered_at, status: callSessions.status })
       .from(callSessions)
       .where(eq(callSessions.id, sessionId))
       .limit(1)
 
+    // Already in terminal state — no-op
+    if (!session || TERMINAL_STATUSES.includes(session.status)) {
+      return { updated: false, duration: null }
+    }
+
     let duration: number | null = null
-    if (session?.answeredAt) {
+    if (session.answeredAt) {
       duration = Math.round((endedAt.getTime() - session.answeredAt.getTime()) / 1000)
     }
 
-    await tx
+    // Only update if status is not already terminal (race protection)
+    const updateResult = await tx
       .update(callSessions)
       .set({
         status: 'ended',
@@ -98,15 +106,25 @@ export const endCall = async (sessionId: string, reason: CallEndReason): Promise
         end_reason: reason,
         duration_seconds: duration,
       })
-      .where(eq(callSessions.id, sessionId))
+      .where(
+        and(eq(callSessions.id, sessionId), notInArray(callSessions.status, TERMINAL_STATUSES))
+      )
 
-    return duration
+    // Check if any rows were actually updated
+    const rowsAffected = (updateResult as unknown as { rowCount?: number }).rowCount ?? 1
+    return { updated: rowsAffected > 0, duration }
   })
 
   // Clear any pending ring timeout
   clearRingTimeout(sessionId)
 
-  logger.info({ callId: sessionId, reason, durationSeconds }, 'Call ended')
+  if (result.updated) {
+    logger.info({ callId: sessionId, reason, durationSeconds: result.duration }, 'Call ended')
+  } else {
+    logger.debug({ callId: sessionId, reason }, 'Call already ended, skipping')
+  }
+
+  return result.updated
 }
 
 /**
@@ -262,13 +280,24 @@ export type TryCreateCallResult =
 
 /**
  * Atomically check for existing active calls and create a new session.
- * Uses a database transaction to prevent race conditions (TOCTOU).
+ * Uses SELECT FOR UPDATE on the device row to prevent TOCTOU race conditions.
+ * The row lock ensures only one transaction can check/insert at a time.
  */
 export const tryCreateCallSession = async (
   params: CreateCallSessionParams
 ): Promise<TryCreateCallResult> => {
   return db.transaction(async (tx) => {
-    // Check no active call on device (within transaction)
+    // Lock the device row to serialize concurrent call attempts to this device.
+    // This prevents the TOCTOU race where two transactions both see no active call
+    // and both insert. The FOR UPDATE lock blocks the second transaction until
+    // the first commits.
+    await tx
+      .select({ id: devices.id })
+      .from(devices)
+      .where(eq(devices.id, params.calleeDeviceId))
+      .for('update')
+
+    // Now check for active calls — with the device locked, this is safe
     const [existingDeviceCall] = await tx
       .select({ id: callSessions.id })
       .from(callSessions)
@@ -285,6 +314,7 @@ export const tryCreateCallSession = async (
     }
 
     // Check no active call for user (within transaction)
+    // We could also lock the user row, but user_busy is a softer constraint
     const [existingUserCall] = await tx
       .select({ id: callSessions.id })
       .from(callSessions)
