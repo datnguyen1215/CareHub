@@ -30,7 +30,7 @@
 
 ```
 packages/
-  portal/      # SvelteKit + Tailwind CSS caretaker portal web app
+  portal/      # SvelteKit + Tailwind CSS caretaker portal web app with Capacitor (Android APK)
   backend/     # Express API server with WebSocket support
   shared/      # Shared types, utilities, and Drizzle schema
   kiosk/       # SvelteKit elderly tablet kiosk app with Capacitor (Android only)

@@ -113,10 +113,10 @@ Enable the tablet kiosk experience, Capacitor mobile app, and real-time communic
 - [x] **Secure storage** -- Capacitor Preferences for device token with localStorage fallback
 - [x] **Android project** -- Capacitor Android platform with Lock Task Mode, auto-launch on boot, foreground service permissions
 - [x] **Build workflow** -- Scripts for `cap:sync`, `cap:open`, `cap:build`
+- [x] **Capacitor portal integration** -- Portal configured with adapter-static, Capacitor Android platform, and client-side auth
 
 **Planned:**
 
-- **Capacitor caretaker phone app** -- Wrap caretaker portal in Capacitor for native Android APK
 - **Firebase Cloud Messaging** -- FCM integration for high-priority push notifications
 - **Native incoming call UI** -- Full-screen call notification on caretaker's phone with ringtone
 - **Foreground service implementation** -- Keep WebSocket alive on tablet

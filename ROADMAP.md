@@ -86,16 +86,17 @@ Enable tablet kiosk experience and real-time communication.
 - [ ] Call state management (call stores on kiosk and portal)
 - [ ] Missed call handling ("no answer" timeout state)
 
-### Phase 3.6: Capacitor Native Apps — Planned
+### Phase 3.6: Capacitor Native Apps — In Progress
 
-- [ ] Capacitor wrapper for kiosk (Android APK)
-- [ ] Lock Task Mode (prevent app exit)
-- [ ] Auto-launch on boot
+- [x] Capacitor wrapper for kiosk (Android APK)
+- [x] Lock Task Mode (prevent app exit)
+- [x] Auto-launch on boot
+- [x] Secure storage migration (device_token to Capacitor Preferences)
+- [x] Capacitor wrapper for portal (Android APK with client-side auth)
 - [ ] Foreground service for persistent WebSocket
 - [ ] Firebase Cloud Messaging (FCM for push notifications)
 - [ ] Native incoming call UI on caretaker phones
 - [ ] Capgo OTA updates (over-the-air web bundle updates)
-- [ ] Secure storage migration (device_token to Capacitor Preferences)
 
 **Screens**:
 
