@@ -14,6 +14,7 @@
 	import { initialDeviceState } from '$lib/stores/device';
 	import ConnectionStatus from '$lib/components/ConnectionStatus.svelte';
 	import CallOverlay from '$lib/components/call/CallOverlay.svelte';
+	import Toast from '$lib/components/ui/Toast.svelte';
 
 	interface Props {
 		children?: import('svelte').Snippet;
@@ -161,4 +162,7 @@
 	{#if deviceState.isPaired}
 		<CallOverlay />
 	{/if}
+
+	<!-- Global toast notifications -->
+	<Toast />
 </div>
