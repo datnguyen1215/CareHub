@@ -336,6 +336,15 @@ Tablet push notifications, device status monitoring, and video call signaling al
 - Ring timeout handling (marks calls as 'missed' after 30 seconds)
 - Terminal state protection (prevents overwriting ended calls)
 
+**Portal WebSocket Client:**
+
+Portal connects to WebSocket on app mount via JWT authentication (`/ws?jwt={token}`). Connection features:
+
+- Automatic reconnection with exponential backoff (1s → 2s → 4s → max 30s)
+- Auth failure detection (close code 4001) triggers redirect to login
+- Real-time signaling message routing for video call coordination
+- Connection state management (connecting/connected/disconnected)
+
 ### Peer-to-Peer Video
 
 Video calls use WebRTC for direct peer-to-peer connections, avoiding the cost and complexity of a media server. STUN servers handle NAT traversal. A TURN relay serves as fallback when direct connection fails.
@@ -347,6 +356,30 @@ The kiosk operates as the callee (receiver) in all video calls:
 - `packages/kiosk/src/lib/services/webrtc.ts` — WebRTC manager for peer connections, SDP handling, ICE candidate exchange, and media stream management
 - `packages/kiosk/src/lib/services/websocket.ts` — Extended with call signaling message handlers and methods to send call responses
 - `packages/kiosk/src/lib/stores/call.ts` — Svelte 5 runes-based call state store managing call lifecycle (idle → incoming → connecting → connected → ended), duration tracking, and race condition guards
+
+**Portal WebRTC Implementation:**
+
+The portal operates as the caller (initiator) in all video calls:
+
+**WebRTC Manager (`packages/portal/src/lib/services/webrtc.ts`):**
+
+- Peer connection lifecycle with ICE server configuration (Google STUN)
+- Local media stream acquisition with 720p video and echo cancellation
+- SDP offer/answer negotiation for call setup
+- ICE candidate gathering with 10-second timeout
+- Remote stream attachment to video elements
+- Audio/video track toggle without reconnection
+- Connection state monitoring with automatic failure detection
+
+**Call State Store (`packages/portal/src/lib/stores/call.ts`):**
+
+- Svelte 5 runes-based reactive store for UI state management
+- Call status tracking: idle → initiating → ringing → connecting → connected → ended/failed
+- Local and remote stream management
+- Call duration counter (updates every second when connected)
+- Mute and video toggle controls
+- WebSocket signaling integration (ICE candidates, SDP exchange)
+- Automatic cleanup on call end or error
 
 ### Capacitor Native Apps
 

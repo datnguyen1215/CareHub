@@ -84,11 +84,24 @@ Enable the tablet kiosk experience, Capacitor mobile app, and real-time communic
 - [x] **Device management UI** -- Portal device list, pairing flow, profile assignment, unpair
 - [x] **Remote unpair** -- Sends device_revoked event to clear kiosk data
 
-### Phase 3.5: Video Calling (Planned)
+### Phase 3.5: Video Calling (In Progress)
 
-- **WebRTC video calling** -- Caretaker-to-tablet and tablet-to-caretaker calls
+**Completed:**
+
+- [x] **Portal WebSocket client** -- Real-time signaling connection with JWT auth (`/ws?jwt={token}`)
+- [x] **Auto-reconnect** -- Exponential backoff (1s → 2s → 4s → max 30s), auth failure handling
+- [x] **WebRTC peer manager** -- Local media (720p, echo cancel), SDP negotiation, ICE gathering
+- [x] **Call state store** -- Svelte 5 runes-based store with reactive UI state
+- [x] **Call actions** -- `initiateCall()`, `endCall()`, `toggleMute()`, `toggleVideo()`
+- [x] **Signaling integration** -- WebSocket message routing, ICE candidate exchange
+- [x] **Error handling** -- getUserMedia errors, ICE failure detection, WebSocket disconnect
+- [x] **Layout integration** -- WebSocket connects on app mount, handlers auto-initialized
+
+**Planned:**
+
+- **Call UI components** -- Full-screen call interface on portal and kiosk
 - **Incoming call screen (tablet)** -- Full-screen display with large Accept/Decline buttons
-- **Call state management** -- Call stores and UI on both kiosk and portal
+- **Kiosk call initiation** -- Tap caretaker card to start call
 - **Missed call handling** -- "No answer" timeout state
 
 ### Phase 3.6: Capacitor Native (In Progress)
