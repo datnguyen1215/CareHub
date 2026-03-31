@@ -195,6 +195,7 @@
 			pendingEventData = null;
 		} catch (err) {
 			console.error('Failed to create event', err);
+			toast.error('Failed to create event');
 		}
 	}
 
@@ -260,12 +261,6 @@
 		};
 		return colors[type] ?? 'bg-gray-50 text-gray-700 border-gray-200';
 	}
-
-	// Reload events when range changes
-	$effect(() => {
-		// Just watching selectedRange for UI filtering - no need to reload
-		selectedRange;
-	});
 </script>
 
 <div class="max-w-4xl mx-auto px-unit-3 py-unit-3">
