@@ -131,13 +131,13 @@ From the profile detail page (`/profiles/:id`):
 
 ### Completion
 
-16. Server validates token, updates device, assigns profiles, grants access
+16. Server validates token, checks actual WebSocket connection status, updates device with correct online/offline status, assigns profiles, and grants access
 17. Server sends `device_paired` WebSocket event to kiosk
 18. Portal shows success screen with checkmark animation
 19. Auto-redirect to devices list after 2 seconds (or tap "Go to Devices")
 20. Kiosk stores device_token securely
 21. Kiosk navigates to `/home` (or `/profile/[id]` if single profile)
-22. Device appears in portal device list with "online" status
+22. Device appears in portal device list with accurate status (online if WebSocket connected, offline if not)
 23. Kiosk displays home screen with assigned profile cards
 
 ---

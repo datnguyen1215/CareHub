@@ -14,7 +14,7 @@ import {
 import { requireAuth } from '../middleware/auth'
 import { requireDeviceAuth } from '../middleware/deviceAuth'
 import { logger } from '../services/logger'
-import { broadcastToDevice } from '../websocket'
+import { broadcastToDevice, isDeviceConnected } from '../websocket'
 
 export const devicesRouter = Router()
 
@@ -284,11 +284,14 @@ devicesRouter.post('/pair', requireAuth, async (req: Request, res: Response): Pr
       validProfileIds.push(...userProfiles.map((p) => p.id))
     }
 
+    // Check actual WebSocket connection status
+    const status = isDeviceConnected(deviceId) ? 'online' : 'offline'
+
     await db.transaction(async (tx) => {
       // Update device as paired
       await tx
         .update(devices)
-        .set({ paired_at: now, status: 'offline' })
+        .set({ paired_at: now, status })
         .where(eq(devices.id, deviceId))
 
       // Grant user access to device
