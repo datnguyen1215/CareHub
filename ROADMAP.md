@@ -8,8 +8,14 @@ Project milestones and progress tracking for CareHub healthcare management platf
 
 ## Current Status
 
-**Phase 1: Foundation (MVP)** — ✅ Complete
-Core authentication, profiles, medications, and deployment infrastructure are live.
+**Phase 2: Calendar and Documents** — 🚧 In Progress
+Journal entries, attachments, and OCR complete. Calendar view remaining.
+
+**Phase 3: Tablet and Communication** — 🚧 Partially Complete
+
+- ✅ Phase 3.0: Kiosk Foundation (device management, pairing, kiosk UI)
+- 📅 Phase 3.5: Video Calling (planned)
+- 📅 Phase 3.6: Capacitor Native Apps (planned)
 
 ---
 
@@ -52,25 +58,54 @@ Add scheduling, journaling, and AI-powered document management.
 
 ---
 
-## 📅 Phase 3: Tablet and Communication — Planned
+## 🚧 Phase 3: Tablet and Communication — In Progress
 
 Enable tablet kiosk experience and real-time communication.
 
-### Key Deliverables
+### Phase 3.0: Kiosk Foundation — ✅ Complete
 
-- Capacitor native apps (caretaker phone + tablet kiosk)
-- Firebase Cloud Messaging (FCM for push notifications)
-- Native incoming call UI (full-screen call notifications on phones)
-- Tablet kiosk APK (Lock Task Mode, auto-launch on boot)
-- Capgo OTA updates (over-the-air updates without APK reinstall)
-- Tablet kiosk UI (elderly-friendly interface, 80px+ touch targets)
-- QR-based pairing (one-time token with 5-minute expiry)
-- Device management (status, battery, last seen)
-- WebRTC video calling (caretaker-to-tablet and tablet-to-caretaker)
-- Remote content push (photos, appointments, messages to tablet)
-- Real-time device status (online/offline via WebSocket)
+- [x] Database schema (devices, device_care_profiles, device_access, device_pairing_tokens)
+- [x] Migrations (0007_devices.sql)
+- [x] Device API endpoints (12 endpoints: register, validate, pair, manage)
+- [x] Device authentication middleware (deviceAuth with device_token)
+- [x] WebSocket server (mounted on /ws with device token auth)
+- [x] WebSocket events (device_paired, device_revoked, profiles_updated, heartbeat)
+- [x] Kiosk package (packages/kiosk SvelteKit app on port 9393)
+- [x] Kiosk pairing screen (QR display with auto-refresh)
+- [x] Kiosk home screen (profile card grid for multi-profile devices)
+- [x] Kiosk profile dashboard (greeting, caretaker cards, appointments)
+- [x] Kiosk design system (80px touch targets, 20px base font, high contrast)
+- [x] Connection management (auto-reconnect, online/offline indicator)
+- [x] Portal device management (list, pair, assign profiles, rename, unpair)
+- [x] Remote unpair (device_revoked event clears kiosk data)
 
-**Screens**: Devices, Pair Tablet, Tablet Home, Tablet Incoming Call, Tablet QR Pairing
+### Phase 3.5: Video Calling — Planned
+
+- [ ] WebRTC video calling (caretaker-to-tablet and tablet-to-caretaker)
+- [ ] Incoming call screen on tablet (large Accept/Decline buttons)
+- [ ] Call state management (call stores on kiosk and portal)
+- [ ] Missed call handling ("no answer" timeout state)
+
+### Phase 3.6: Capacitor Native Apps — Planned
+
+- [ ] Capacitor wrapper for kiosk (Android APK)
+- [ ] Lock Task Mode (prevent app exit)
+- [ ] Auto-launch on boot
+- [ ] Foreground service for persistent WebSocket
+- [ ] Firebase Cloud Messaging (FCM for push notifications)
+- [ ] Native incoming call UI on caretaker phones
+- [ ] Capgo OTA updates (over-the-air web bundle updates)
+- [ ] Secure storage migration (device_token to Capacitor Preferences)
+
+**Screens**:
+
+- ✅ Devices (portal device list)
+- ✅ Pair Tablet (QR scanning flow)
+- ✅ Tablet QR Pairing (kiosk pairing screen)
+- ✅ Tablet Home (profile selection)
+- ✅ Tablet Profile Dashboard (caretaker cards)
+- 📅 Tablet Incoming Call (Phase 3.5)
+- 📅 Portal Call UI (Phase 3.5)
 
 ---
 
@@ -100,4 +135,4 @@ Refine experience with collaboration, AI improvements, and notifications.
 
 ---
 
-**Last Updated**: 2026-03-30
+**Last Updated**: 2026-03-31

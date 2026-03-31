@@ -48,5 +48,35 @@ export interface Task {
   updatedAt: string
 }
 
+/** Device status values */
+export type DeviceStatus = 'online' | 'offline'
+
+/** A kiosk device */
+export interface Device {
+  id: string
+  deviceToken: string
+  name: string
+  status: DeviceStatus
+  batteryLevel: number | null
+  lastSeenAt: string | null
+  pairedAt: string | null
+  createdAt: string
+}
+
+/** Device with assigned care profiles */
+export interface DeviceWithProfiles extends Device {
+  profiles: {
+    id: string
+    name: string
+    avatarUrl: string | null
+  }[]
+}
+
+/** Device pairing token */
+export interface DevicePairingToken {
+  token: string
+  expiresAt: string
+}
+
 // Re-export Drizzle schema
 export * from './schema'

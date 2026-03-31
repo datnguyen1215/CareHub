@@ -11,6 +11,7 @@ import { eventsRouter } from './routes/events'
 import { journalRouter } from './routes/journal'
 import { attachmentsRouter } from './routes/attachments'
 import { uploadRouter } from './routes/upload'
+import { devicesRouter } from './routes/devices'
 import healthRouter from './routes/health'
 import { logger } from './services/logger'
 
@@ -29,7 +30,22 @@ export function createApp() {
     })
   )
 
-  app.use(cors({ origin: process.env.FRONTEND_URL ?? 'http://localhost:5173', credentials: true }))
+  // Allow multiple origins for portal and kiosk apps
+  const allowedOrigins = [
+    process.env.FRONTEND_URL ?? 'http://localhost:9390',
+    process.env.KIOSK_URL ?? 'http://localhost:9393',
+  ]
+  app.use(
+    cors({
+      origin: (origin, callback) => {
+        // Allow requests with no origin (mobile apps, curl, etc.)
+        if (!origin) return callback(null, true)
+        if (allowedOrigins.includes(origin)) return callback(null, true)
+        callback(null, false)
+      },
+      credentials: true,
+    })
+  )
   app.use(express.json())
   app.use(cookieParser())
 
@@ -46,6 +62,7 @@ export function createApp() {
   app.use('/api/profiles/:profileId/events', eventsRouter)
   app.use('/api/profiles/:profileId/journal', journalRouter)
   app.use('/api/profiles/:profileId/attachments', attachmentsRouter)
+  app.use('/api/devices', devicesRouter)
 
   return app
 }

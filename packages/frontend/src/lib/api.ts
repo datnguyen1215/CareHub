@@ -421,3 +421,52 @@ export function updateAttachment(
 export function deleteAttachment(profileId: string, attachmentId: string) {
 	return request<void>('DELETE', `/profiles/${profileId}/attachments/${attachmentId}`);
 }
+
+// Devices
+
+export interface DeviceProfile {
+	id: string;
+	name: string;
+	avatar_url: string | null;
+}
+
+export interface Device {
+	id: string;
+	name: string;
+	status: 'online' | 'offline';
+	battery_level: number | null;
+	last_seen_at: string | null;
+	paired_at: string | null;
+	created_at: string;
+	profiles: DeviceProfile[];
+}
+
+export function listDevices() {
+	return request<Device[]>('GET', '/devices');
+}
+
+export function getDevice(id: string) {
+	return request<Device>('GET', `/devices/${id}`);
+}
+
+export function pairDevice(token: string, profileIds: string[]) {
+	return request<Device>('POST', '/devices/pair', { token, profileIds });
+}
+
+export function updateDevice(id: string, data: { name: string }) {
+	return request<Device>('PATCH', `/devices/${id}`, data);
+}
+
+export function unpairDevice(id: string) {
+	return request<void>('DELETE', `/devices/${id}`);
+}
+
+export function assignProfilesToDevice(deviceId: string, profileIds: string[]) {
+	return request<{ profiles: DeviceProfile[] }>('POST', `/devices/${deviceId}/profiles`, {
+		profileIds
+	});
+}
+
+export function removeProfileFromDevice(deviceId: string, profileId: string) {
+	return request<void>('DELETE', `/devices/${deviceId}/profiles/${profileId}`);
+}

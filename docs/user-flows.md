@@ -94,73 +94,123 @@ From the profile detail page (`/profiles/:id`):
 
 ---
 
-## 5. Setting Up and Pairing a Tablet
+## 5. Device Pairing Flow
 
 **Actor:** Caretaker (Admin), with physical access to the tablet
 
-1. Sideload the CareHub kiosk APK onto the tablet
-2. Open the app; it launches in Lock Task Mode (full-screen, no exit)
-3. Tablet displays a QR code on its pairing screen (`designs/13-tablet-qr-pairing.svg`)
-4. On phone: navigate to Devices section in portal (`designs/09-devices.svg`)
-5. Tap "Pair New Tablet" (`designs/10-pair-tablet.svg`)
-6. Phone camera opens
-7. Walk to the tablet and scan the QR code displayed on screen
-8. Portal shows confirmation: select which care profiles to assign to this tablet
-9. Tap Confirm
-10. Tablet receives pairing confirmation via WebSocket
-11. Tablet transitions to kiosk home screen (`designs/11-tablet-home.svg`)
-12. Device appears in portal device list with online status
-13. Future updates are delivered automatically via Capgo OTA -- no manual reinstall needed
+### Tablet Setup
+
+1. Navigate to kiosk URL in tablet browser (e.g., `http://kiosk.carehub.local:9393`)
+2. Kiosk app launches and checks for device_token in storage
+3. No token found → navigates to `/pairing` screen
+4. Kiosk calls `POST /api/devices/register` to create device record
+5. Kiosk calls `POST /api/devices/pairing-token` to generate QR token
+6. Large QR code displays centered on screen
+7. Token auto-refreshes every 4 minutes (before 5-min expiry)
+8. Instructions: "Scan this code from your CareHub portal"
+
+### Portal Pairing
+
+9. On phone/computer: navigate to Devices section in portal
+10. Tap "Pair New Device" button
+11. QR scanner opens (uses device camera or QR scanning library)
+12. Scan the QR code displayed on tablet screen
+13. Portal shows profile selection: "Assign profiles to this device"
+14. Select one or more care profiles from your group
+15. Tap "Confirm Pairing"
+16. Portal calls `POST /api/devices/pair` with token and profile IDs
+
+### Completion
+
+17. Server validates token, updates device, assigns profiles, grants access
+18. Server sends `device_paired` WebSocket event to kiosk
+19. Kiosk stores device_token securely
+20. Kiosk navigates to `/home` (or `/profile/[id]` if single profile)
+21. Device appears in portal device list with "online" status
+22. Kiosk displays home screen with assigned profile cards
 
 ---
 
-## 6. Calling Grandparent from Portal
-
-**Actor:** Caretaker (Admin or Viewer)
-
-1. From the profiles page, tap the grandparent's profile card
-2. On profile detail page, tap "Call Tablet" button
-3. Portal requests microphone and camera permissions (first time only)
-4. WebRTC signaling initiates; call request sent to tablet via WebSocket (or FCM if WebSocket is disconnected)
-5. Tablet app displays incoming call screen with caretaker's name and photo (`designs/12-tablet-incoming-call.svg`)
-6. Grandparent taps the large Accept button
-7. Video call connects; both sides see and hear each other
-8. Either party can end the call
-
----
-
-## 7. Grandparent Calling Caretaker
+## 6. Kiosk Navigation Flow
 
 **Actor:** Elderly family member (Tablet user)
 
-1. Grandparent sees kiosk home screen with caretaker photo cards (`designs/11-tablet-home.svg`)
-2. Taps a caretaker's photo card
-3. Tablet shows "Calling..." state; call request sent to server via WebSocket
-4. Server sends a high-priority FCM data message to caretaker's phone
-5. Caretaker's phone displays a **full-screen incoming call notification** (over lock screen) with grandparent's name, photo, ringtone, and vibration
-6. Caretaker taps the large Accept button
-7. App opens (or foregrounds); WebRTC video call connects full-screen on both sides
-8. Either party can end the call
-9. If caretaker does not answer within timeout, tablet shows "No Answer" and returns to home screen
+### After Pairing
+
+1. Kiosk navigates to `/home` if multiple profiles assigned
+2. Large greeting displays: "Good morning!" with current time and date
+3. Profile cards show photos and names
+4. Tap a profile card → navigate to `/profile/[id]`
+
+### Single Profile
+
+- If only one profile assigned, kiosk redirects directly to `/profile/[id]`
+- No profile selection needed
+
+### Profile Dashboard
+
+5. Profile dashboard shows:
+   - Personalized greeting: "Good morning, [Name]!"
+   - Current time and date
+   - Large caretaker photo cards (all group members)
+   - Today's appointments section
+6. Tap caretaker card → (will initiate call in Phase 3.5)
+7. Back button (if multiple profiles) → return to `/home`
+
+### Remote Unpair
+
+8. When caretaker unpairs device from portal
+9. Server sends `device_revoked` WebSocket event
+10. Kiosk clears all stored data (device_token, profiles)
+11. Kiosk navigates back to `/pairing` screen
+12. Ready for re-pairing
 
 ---
 
-## 8. Pushing Content to Tablet
+## 7. Managing Devices from Portal
 
-**Actor:** Caretaker (Admin)
+**Actor:** Caretaker (Admin or Viewer)
 
-1. Navigate to Devices section in portal (`designs/09-devices.svg`)
-2. Select the target tablet
-3. Tap "Push Content"
-4. Choose content type: photo, appointment reminder, or text message
-5. Select or compose the content
-6. Tap Send
-7. Content is delivered to the tablet via WebSocket (or FCM if WebSocket is disconnected)
-8. Tablet app displays the content immediately (photo fills screen, appointment shows as card, message displays with large text)
+### View Devices
+
+1. Navigate to Devices tab in portal
+2. Device list shows all paired devices with:
+   - Device name
+   - Online/offline status (real-time via WebSocket)
+   - Battery level
+   - Last seen timestamp
+   - Assigned profiles count
+
+### Rename Device
+
+3. Tap device name or edit icon
+4. Enter new name (e.g., "Living Room Tablet")
+5. Tap Save
+6. Device name updates in list
+
+### Manage Profiles
+
+7. Tap device to view details
+8. See list of assigned profiles
+9. Tap "Assign Profiles" to add more
+10. Select profiles from dropdown
+11. Tap "Remove" on a profile to unassign
+12. Changes pushed to kiosk via `profiles_updated` WebSocket event
+13. Kiosk updates home screen profile cards immediately
+
+### Unpair Device
+
+14. Tap device to view details
+15. Tap "Unpair Device" button
+16. Confirmation dialog: "Are you sure?"
+17. Tap "Unpair" to confirm
+18. Server sends `device_revoked` event to kiosk
+19. Device removed from portal list
+20. Kiosk clears data and returns to pairing screen
 
 ---
 
-## 9. Inviting a New Viewer
+## 8. Inviting a New Viewer
 
 **Actor:** Caretaker (Admin)
 
@@ -175,7 +225,7 @@ From the profile detail page (`/profiles/:id`):
 
 ---
 
-## 10. Searching Attachments
+## 9. Searching Attachments
 
 **Actor:** Caretaker (Admin or Viewer)
 
@@ -189,7 +239,7 @@ From the profile detail page (`/profiles/:id`):
 
 ---
 
-## 11. Creating a Journal Entry
+## 10. Creating a Journal Entry
 
 **Actor:** Caretaker (Admin)
 
@@ -206,7 +256,7 @@ From the profile detail page (`/profiles/:id`):
 
 ---
 
-## 12. Searching Journal Entries
+## 11. Searching Journal Entries
 
 **Actor:** Caretaker (Admin or Viewer)
 
@@ -220,7 +270,7 @@ From the profile detail page (`/profiles/:id`):
 
 ---
 
-## 13. Viewing Event Details
+## 12. Viewing Linked Journal from Event
 
 **Actor:** Caretaker (Admin or Viewer)
 

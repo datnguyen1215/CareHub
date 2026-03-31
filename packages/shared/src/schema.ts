@@ -9,10 +9,12 @@ import {
   primaryKey,
   index,
   boolean,
+  integer,
 } from 'drizzle-orm/pg-core'
 
 // Enums
 export const medicationStatusEnum = pgEnum('medication_status', ['active', 'discontinued'])
+export const deviceStatusEnum = pgEnum('device_status', ['online', 'offline'])
 export const eventTypeEnum = pgEnum('event_type', [
   'doctor_visit',
   'lab_work',
@@ -161,5 +163,73 @@ export const otps = pgTable(
   },
   (table) => ({
     emailCodeIdx: index('otps_email_code_idx').on(table.email, table.code),
+  })
+)
+
+// Devices — kiosk tablets paired via QR code
+export const devices = pgTable(
+  'devices',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    device_token: varchar('device_token').notNull().unique(),
+    name: varchar('name').notNull(),
+    status: deviceStatusEnum('status').default('offline').notNull(),
+    battery_level: integer('battery_level'),
+    last_seen_at: timestamp('last_seen_at'),
+    paired_at: timestamp('paired_at'),
+    created_at: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => ({
+    tokenIdx: index('devices_token_idx').on(table.device_token),
+  })
+)
+
+// Device Care Profiles — links devices to care profiles they can access
+export const deviceCareProfiles = pgTable(
+  'device_care_profiles',
+  {
+    device_id: uuid('device_id')
+      .notNull()
+      .references(() => devices.id, { onDelete: 'cascade' }),
+    care_profile_id: uuid('care_profile_id')
+      .notNull()
+      .references(() => careProfiles.id, { onDelete: 'cascade' }),
+  },
+  (table) => ({
+    pk: primaryKey({ columns: [table.device_id, table.care_profile_id] }),
+  })
+)
+
+// Device Access — tracks which caretakers can manage a device
+export const deviceAccess = pgTable(
+  'device_access',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    device_id: uuid('device_id')
+      .notNull()
+      .references(() => devices.id, { onDelete: 'cascade' }),
+    user_id: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    granted_by: uuid('granted_by').references(() => users.id),
+    granted_at: timestamp('granted_at').defaultNow().notNull(),
+  },
+  (table) => ({
+    deviceUserIdx: index('device_access_device_user_idx').on(table.device_id, table.user_id),
+  })
+)
+
+// Device Pairing Tokens — temporary QR tokens for pairing
+export const devicePairingTokens = pgTable(
+  'device_pairing_tokens',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    token: varchar('token').notNull().unique(),
+    device_id: uuid('device_id').references(() => devices.id, { onDelete: 'cascade' }),
+    expires_at: timestamp('expires_at').notNull(),
+    created_at: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => ({
+    tokenIdx: index('device_pairing_tokens_token_idx').on(table.token),
   })
 )
