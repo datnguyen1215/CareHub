@@ -1,42 +1,39 @@
-/** WebSocket server for kiosk real-time communication. */
-import { WebSocketServer, WebSocket } from 'ws'
+/** WebSocket server for kiosk and portal real-time communication. */
+import { WebSocketServer } from 'ws'
 import { Server } from 'http'
 import { eq } from 'drizzle-orm'
 import { db } from '../db'
 import { devices } from '@carehub/shared'
 import { logger } from '../services/logger'
+import { handleDeviceConnection } from './handlers/device'
+import { handleUserConnection, verifyUserToken } from './handlers/user'
+import {
+  clearAllClients,
+  broadcastToDevice,
+  broadcastToUser,
+  broadcastToAllDevices,
+  isDeviceConnected,
+  isUserConnected,
+  getConnectedDeviceCount,
+  getConnectedUserCount,
+} from './clients'
 
-/** Connected devices map: deviceId → WebSocket */
-const connectedDevices = new Map<string, WebSocket>()
-
-/** WebSocket message types */
-export interface WsMessage {
-  type: string
-  payload?: unknown
+// Re-export types and utilities for external use
+export type { WsMessage, SignalingMessage } from './types'
+export {
+  broadcastToDevice,
+  broadcastToUser,
+  broadcastToAllDevices,
+  isDeviceConnected,
+  isUserConnected,
+  getConnectedDeviceCount,
+  getConnectedUserCount,
 }
-
-/** Heartbeat message from device */
-interface HeartbeatMessage {
-  type: 'heartbeat'
-  payload: {
-    batteryLevel?: number
-  }
-}
-
-/** Status update from device */
-interface StatusMessage {
-  type: 'status_update'
-  payload: {
-    status: 'online' | 'offline'
-  }
-}
-
-type DeviceMessage = HeartbeatMessage | StatusMessage
-
-const PING_INTERVAL = 30000 // 30 seconds
 
 /**
- * Initialize WebSocket server.
+ * Initialize WebSocket server with dual authentication support.
+ * - Devices connect with `token` query param (device token)
+ * - Users connect with `jwt` query param (JWT token)
  * @param {Server} server - HTTP server instance
  */
 export function initWebSocketServer(server: Server): void {
@@ -45,173 +42,74 @@ export function initWebSocketServer(server: Server): void {
   wss.on('connection', async (ws, req) => {
     const url = new URL(req.url ?? '', `http://${req.headers.host}`)
     const deviceToken = url.searchParams.get('token')
+    const userJwt = url.searchParams.get('jwt')
 
-    if (!deviceToken) {
-      logger.warn('WebSocket connection rejected: no device token')
-      ws.close(4001, 'Device token required')
-      return
+    // Route based on which auth param is provided
+    if (deviceToken) {
+      // Device authentication
+      await handleDeviceAuth(ws, deviceToken)
+    } else if (userJwt) {
+      // User authentication
+      handleUserAuth(ws, userJwt)
+    } else {
+      logger.warn('WebSocket connection rejected: no auth token')
+      ws.close(4001, 'Authentication required')
     }
+  })
 
-    // Validate device token
-    const [device] = await db
-      .select()
-      .from(devices)
-      .where(eq(devices.device_token, deviceToken))
-      .limit(1)
+  // Handle server shutdown
+  process.on('SIGTERM', () => {
+    logger.info('WebSocket server shutting down')
+    clearAllClients()
+    wss.close()
+  })
 
-    if (!device) {
-      logger.warn('WebSocket connection rejected: invalid device token')
-      ws.close(4002, 'Invalid device token')
-      return
-    }
-
-    const deviceId = device.id
-    logger.info({ deviceId }, 'Device connected via WebSocket')
-
-    // Store connection
-    connectedDevices.set(deviceId, ws)
-
-    // Update device status to online
-    await db
-      .update(devices)
-      .set({ status: 'online', last_seen_at: new Date() })
-      .where(eq(devices.id, deviceId))
-
-    // Setup ping interval
-    const pingInterval = setInterval(() => {
-      if (ws.readyState === WebSocket.OPEN) {
-        ws.ping()
-      }
-    }, PING_INTERVAL)
-
-    // Handle messages from device
-    ws.on('message', async (data) => {
-      try {
-        const message = JSON.parse(data.toString()) as DeviceMessage
-
-        switch (message.type) {
-          case 'heartbeat':
-            await handleHeartbeat(deviceId, message.payload)
-            break
-
-          case 'status_update':
-            await handleStatusUpdate(deviceId, message.payload)
-            break
-
-          default:
-            logger.warn({ deviceId, message }, 'Unknown message type from device')
-        }
-      } catch (err) {
-        logger.error({ err, deviceId }, 'Error processing device message')
-      }
-    })
-
-    // Handle pong (confirms connection is alive)
-    ws.on('pong', () => {
-      // Update last_seen_at on pong
-      db.update(devices)
-        .set({ last_seen_at: new Date() })
-        .where(eq(devices.id, deviceId))
-        .catch((err) => logger.error({ err, deviceId }, 'Error updating last_seen_at'))
-    })
-
-    // Handle disconnect
-    ws.on('close', async () => {
-      clearInterval(pingInterval)
-      connectedDevices.delete(deviceId)
-      logger.info({ deviceId }, 'Device disconnected')
-
-      // Update device status to offline
-      await db.update(devices).set({ status: 'offline' }).where(eq(devices.id, deviceId))
-    })
-
-    // Handle errors
-    ws.on('error', (err) => {
-      logger.error({ err, deviceId }, 'WebSocket error')
-    })
-
-    // Send connected confirmation
-    ws.send(JSON.stringify({ type: 'connected', payload: { deviceId } }))
+  process.on('SIGINT', () => {
+    logger.info('WebSocket server shutting down')
+    clearAllClients()
+    wss.close()
   })
 
   logger.info('WebSocket server initialized on /ws')
 }
 
 /**
- * Handle heartbeat message from device.
+ * Authenticate device connection via device token.
  */
-async function handleHeartbeat(
-  deviceId: string,
-  payload: { batteryLevel?: number }
+async function handleDeviceAuth(
+  ws: import('ws').WebSocket,
+  deviceToken: string
 ): Promise<void> {
-  const updates: { last_seen_at: Date; battery_level?: number } = {
-    last_seen_at: new Date(),
+  // Validate device token
+  const [device] = await db
+    .select()
+    .from(devices)
+    .where(eq(devices.device_token, deviceToken))
+    .limit(1)
+
+  if (!device) {
+    logger.warn('WebSocket connection rejected: invalid device token')
+    ws.close(4002, 'Invalid device token')
+    return
   }
 
-  if (typeof payload.batteryLevel === 'number') {
-    updates.battery_level = payload.batteryLevel
+  handleDeviceConnection(ws, device.id)
+}
+
+/**
+ * Authenticate user connection via JWT.
+ */
+function handleUserAuth(
+  ws: import('ws').WebSocket,
+  jwt: string
+): void {
+  const payload = verifyUserToken(jwt)
+
+  if (!payload) {
+    logger.warn('WebSocket connection rejected: invalid JWT')
+    ws.close(4003, 'Invalid JWT token')
+    return
   }
 
-  await db.update(devices).set(updates).where(eq(devices.id, deviceId))
-}
-
-/**
- * Handle status update from device.
- */
-async function handleStatusUpdate(
-  deviceId: string,
-  payload: { status: 'online' | 'offline' }
-): Promise<void> {
-  await db
-    .update(devices)
-    .set({ status: payload.status, last_seen_at: new Date() })
-    .where(eq(devices.id, deviceId))
-}
-
-/**
- * Broadcast message to a specific device.
- * @param {string} deviceId - Target device ID
- * @param {WsMessage} message - Message to send
- * @returns {boolean} True if message was sent
- */
-export function broadcastToDevice(deviceId: string, message: WsMessage): boolean {
-  const ws = connectedDevices.get(deviceId)
-  if (ws && ws.readyState === WebSocket.OPEN) {
-    ws.send(JSON.stringify(message))
-    return true
-  }
-  return false
-}
-
-/**
- * Broadcast message to all connected devices.
- * @param {WsMessage} message - Message to send
- */
-export function broadcastToAllDevices(message: WsMessage): void {
-  const messageStr = JSON.stringify(message)
-  for (const [deviceId, ws] of connectedDevices) {
-    if (ws.readyState === WebSocket.OPEN) {
-      ws.send(messageStr)
-    } else {
-      connectedDevices.delete(deviceId)
-    }
-  }
-}
-
-/**
- * Check if a device is connected.
- * @param {string} deviceId - Device ID to check
- * @returns {boolean} True if device is connected
- */
-export function isDeviceConnected(deviceId: string): boolean {
-  const ws = connectedDevices.get(deviceId)
-  return ws !== undefined && ws.readyState === WebSocket.OPEN
-}
-
-/**
- * Get count of connected devices.
- * @returns {number} Number of connected devices
- */
-export function getConnectedDeviceCount(): number {
-  return connectedDevices.size
+  handleUserConnection(ws, payload.userId)
 }

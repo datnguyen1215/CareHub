@@ -1,0 +1,409 @@
+/** Call signaling handlers — WebRTC offer/answer/ICE exchange. */
+import { WebSocket } from 'ws'
+import { RING_TIMEOUT_MS } from '@carehub/shared'
+import { logger } from '../../services/logger'
+import {
+  createCallSession,
+  updateCallStatus,
+  endCall,
+  getActiveCallForDevice,
+  getActiveCallForUser,
+  validateCallPermission,
+  getCallerInfo,
+  startRingTimeout,
+  clearRingTimeout,
+  getCallSession,
+} from '../../services/call'
+import { broadcastToDevice, broadcastToUser, isDeviceConnected } from '../clients'
+import type { ClientType } from '../clients'
+import type {
+  SignalingMessage,
+  CallInitiateMessage,
+  CallAcceptedMessage,
+  CallDeclinedMessage,
+  CallEndedMessage,
+  CallOfferMessage,
+  CallAnswerMessage,
+  IceCandidateMessage,
+} from '../types'
+
+/**
+ * Route incoming call message to appropriate handler.
+ */
+export const handleCallMessage = async (
+  ws: WebSocket,
+  senderId: string,
+  senderType: ClientType,
+  message: SignalingMessage
+): Promise<void> => {
+  switch (message.type) {
+    case 'call:initiate':
+      await handleCallInitiate(ws, senderId, message)
+      break
+
+    case 'call:accepted':
+      await handleCallAccepted(ws, senderId, message)
+      break
+
+    case 'call:declined':
+      await handleCallDeclined(ws, senderId, message)
+      break
+
+    case 'call:ended':
+      await handleCallEnded(ws, senderId, senderType, message)
+      break
+
+    case 'call:offer':
+      await handleOffer(ws, senderId, message)
+      break
+
+    case 'call:answer':
+      await handleAnswer(ws, senderId, message)
+      break
+
+    case 'call:ice-candidate':
+      await handleIceCandidate(ws, senderId, senderType, message)
+      break
+
+    default:
+      logger.warn({ senderId, senderType, message }, 'Unknown call message type')
+  }
+}
+
+/**
+ * Handle call initiation from user (portal).
+ */
+const handleCallInitiate = async (
+  ws: WebSocket,
+  userId: string,
+  message: CallInitiateMessage
+): Promise<void> => {
+  const { deviceId, profileId } = message
+
+  logger.info({ userId, deviceId, profileId }, 'Call initiate request')
+
+  // Validate user has access to device
+  const hasPermission = await validateCallPermission(userId, deviceId)
+  if (!hasPermission) {
+    sendError(ws, message.callId, 'You do not have permission to call this device')
+    return
+  }
+
+  // Check device is online
+  if (!isDeviceConnected(deviceId)) {
+    sendError(ws, message.callId, 'Device is offline')
+    return
+  }
+
+  // Check no active call on device
+  const existingDeviceCall = await getActiveCallForDevice(deviceId)
+  if (existingDeviceCall) {
+    sendError(ws, message.callId, 'Device is busy with another call')
+    return
+  }
+
+  // Check user doesn't have an active call from another tab
+  const existingUserCall = await getActiveCallForUser(userId)
+  if (existingUserCall) {
+    sendError(ws, message.callId, 'You already have an active call')
+    return
+  }
+
+  // Create call session
+  const session = await createCallSession({
+    callerUserId: userId,
+    calleeDeviceId: deviceId,
+    profileId,
+  })
+
+  // Get caller info for device display
+  const caller = await getCallerInfo(userId)
+  if (!caller) {
+    await endCall(session.id, 'failed')
+    sendError(ws, session.id, 'Failed to get caller information')
+    return
+  }
+
+  // Send incoming call to device
+  const sent = broadcastToDevice(deviceId, {
+    type: 'call:incoming',
+    callId: session.id,
+    caller,
+    profileId,
+  })
+
+  if (!sent) {
+    await endCall(session.id, 'failed')
+    sendError(ws, session.id, 'Failed to reach device')
+    return
+  }
+
+  // Update status to ringing
+  await updateCallStatus(session.id, 'ringing')
+
+  // Start ring timeout
+  startRingTimeout(session.id, RING_TIMEOUT_MS, () => {
+    // Notify user that call was missed
+    broadcastToUser(userId, {
+      type: 'call:ended',
+      callId: session.id,
+      reason: 'missed',
+    })
+  })
+
+  // Confirm to caller that call is ringing
+  ws.send(
+    JSON.stringify({
+      type: 'call:ringing',
+      callId: session.id,
+    })
+  )
+
+  logger.info({ callId: session.id, userId, deviceId }, 'Call initiated, ringing device')
+}
+
+/**
+ * Handle call accepted by device.
+ */
+const handleCallAccepted = async (
+  _ws: WebSocket,
+  deviceId: string,
+  message: CallAcceptedMessage
+): Promise<void> => {
+  const { callId } = message
+
+  logger.info({ callId, deviceId }, 'Call accepted by device')
+
+  // Get call session
+  const session = await getCallSession(callId)
+  if (!session || session.calleeDeviceId !== deviceId) {
+    logger.warn({ callId, deviceId }, 'Invalid call accept - session not found or wrong device')
+    return
+  }
+
+  // Clear ring timeout
+  clearRingTimeout(callId)
+
+  // Update status to connecting
+  await updateCallStatus(callId, 'connecting')
+
+  // Forward to caller
+  broadcastToUser(session.callerUserId, {
+    type: 'call:accepted',
+    callId,
+  })
+
+  logger.info({ callId, userId: session.callerUserId, deviceId }, 'Call accepted, notified caller')
+}
+
+/**
+ * Handle call declined by device.
+ */
+const handleCallDeclined = async (
+  _ws: WebSocket,
+  deviceId: string,
+  message: CallDeclinedMessage
+): Promise<void> => {
+  const { callId } = message
+
+  logger.info({ callId, deviceId }, 'Call declined by device')
+
+  // Get call session
+  const session = await getCallSession(callId)
+  if (!session || session.calleeDeviceId !== deviceId) {
+    logger.warn({ callId, deviceId }, 'Invalid call decline - session not found or wrong device')
+    return
+  }
+
+  // Clear ring timeout
+  clearRingTimeout(callId)
+
+  // End call with declined reason
+  await endCall(callId, 'declined')
+
+  // Forward to caller
+  broadcastToUser(session.callerUserId, {
+    type: 'call:declined',
+    callId,
+  })
+
+  logger.info({ callId, userId: session.callerUserId, deviceId }, 'Call declined, notified caller')
+}
+
+/**
+ * Handle call ended by either party.
+ */
+const handleCallEnded = async (
+  _ws: WebSocket,
+  senderId: string,
+  senderType: ClientType,
+  message: CallEndedMessage
+): Promise<void> => {
+  const { callId, reason } = message
+
+  logger.info({ callId, senderId, senderType, reason }, 'Call ended')
+
+  // Get call session
+  const session = await getCallSession(callId)
+  if (!session) {
+    logger.warn({ callId }, 'Call end for unknown session')
+    return
+  }
+
+  // Validate sender is part of the call
+  const isValidSender =
+    (senderType === 'user' && session.callerUserId === senderId) ||
+    (senderType === 'device' && session.calleeDeviceId === senderId)
+
+  if (!isValidSender) {
+    logger.warn({ callId, senderId, senderType }, 'Unauthorized call end attempt')
+    return
+  }
+
+  // Clear ring timeout
+  clearRingTimeout(callId)
+
+  // End call
+  await endCall(callId, reason)
+
+  // Notify the other party
+  if (senderType === 'user') {
+    broadcastToDevice(session.calleeDeviceId, {
+      type: 'call:ended',
+      callId,
+      reason,
+    })
+  } else {
+    broadcastToUser(session.callerUserId, {
+      type: 'call:ended',
+      callId,
+      reason,
+    })
+  }
+
+  logger.info({ callId, reason }, 'Call ended, notified other party')
+}
+
+/**
+ * Handle SDP offer from user (caller).
+ */
+const handleOffer = async (
+  ws: WebSocket,
+  userId: string,
+  message: CallOfferMessage
+): Promise<void> => {
+  const { callId, sdp } = message
+
+  logger.debug({ callId, userId }, 'Received SDP offer from user')
+
+  // Get call session
+  const session = await getCallSession(callId)
+  if (!session || session.callerUserId !== userId) {
+    sendError(ws, callId, 'Invalid call session')
+    return
+  }
+
+  // Forward offer to device
+  const sent = broadcastToDevice(session.calleeDeviceId, {
+    type: 'call:offer',
+    callId,
+    sdp,
+  })
+
+  if (!sent) {
+    sendError(ws, callId, 'Failed to send offer to device')
+  }
+}
+
+/**
+ * Handle SDP answer from device (callee).
+ */
+const handleAnswer = async (
+  ws: WebSocket,
+  deviceId: string,
+  message: CallAnswerMessage
+): Promise<void> => {
+  const { callId, sdp } = message
+
+  logger.debug({ callId, deviceId }, 'Received SDP answer from device')
+
+  // Get call session
+  const session = await getCallSession(callId)
+  if (!session || session.calleeDeviceId !== deviceId) {
+    sendError(ws, callId, 'Invalid call session')
+    return
+  }
+
+  // Update status to connected
+  await updateCallStatus(callId, 'connected')
+
+  // Forward answer to user
+  broadcastToUser(session.callerUserId, {
+    type: 'call:answer',
+    callId,
+    sdp,
+  })
+
+  logger.info({ callId }, 'Call connected')
+}
+
+/**
+ * Handle ICE candidate from either party.
+ */
+const handleIceCandidate = async (
+  ws: WebSocket,
+  senderId: string,
+  senderType: ClientType,
+  message: IceCandidateMessage
+): Promise<void> => {
+  const { callId, candidate } = message
+
+  logger.debug({ callId, senderId, senderType }, 'Received ICE candidate')
+
+  // Get call session
+  const session = await getCallSession(callId)
+  if (!session) {
+    sendError(ws, callId, 'Invalid call session')
+    return
+  }
+
+  // Validate sender is part of the call
+  const isValidSender =
+    (senderType === 'user' && session.callerUserId === senderId) ||
+    (senderType === 'device' && session.calleeDeviceId === senderId)
+
+  if (!isValidSender) {
+    logger.warn({ callId, senderId, senderType }, 'Unauthorized ICE candidate')
+    return
+  }
+
+  // Forward to the other party
+  if (senderType === 'user') {
+    broadcastToDevice(session.calleeDeviceId, {
+      type: 'call:ice-candidate',
+      callId,
+      candidate,
+    })
+  } else {
+    broadcastToUser(session.callerUserId, {
+      type: 'call:ice-candidate',
+      callId,
+      candidate,
+    })
+  }
+}
+
+/**
+ * Send error message to WebSocket client.
+ */
+const sendError = (ws: WebSocket, callId: string, error: string): void => {
+  if (ws.readyState === WebSocket.OPEN) {
+    ws.send(
+      JSON.stringify({
+        type: 'call:error',
+        callId,
+        error,
+      })
+    )
+  }
+}
