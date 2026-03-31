@@ -63,9 +63,10 @@ Styles are implemented with Tailwind CSS within the SvelteKit frontend package. 
 
 ### Navigation -- Portal
 
-- **Bottom navigation bar** with four items: Calendar, Profiles, Devices, Settings
+- **Bottom navigation bar** with four items: Home, Profiles, Devices, Settings
 - Active tab highlighted with primary color
 - Icons with labels below
+- Home tab uses house icon instead of calendar icon
 
 ### Navigation -- Profile Detail
 
@@ -101,23 +102,23 @@ Styles are implemented with Tailwind CSS within the SvelteKit frontend package. 
 
 All wireframes are in the `designs/` directory.
 
-| File                          | Screen                | Description                                                                             |
-| ----------------------------- | --------------------- | --------------------------------------------------------------------------------------- |
-| `01-login.svg`                | Login — Email Entry   | Email input and "Send Code" button; entry point for OTP authentication                  |
-| `01b-otp-verify.svg`          | Login — OTP Verify    | 6-digit code input, 60-second resend cooldown, and "Use a different email" link         |
-| `01c-account-setup.svg`       | Login — Account Setup | First and last name inputs shown to new users after their first OTP verification        |
-| `02-home-dashboard.svg`       | Home Dashboard        | Grid of care profile cards showing name, relationship, conditions, and medication count |
-| `03-profile-detail.svg`       | Profile Detail        | Profile header with health summary and tab navigation                                   |
-| `04-medications.svg`          | Medications           | List of active and discontinued medications with time-of-day badges                     |
-| `05-calendar.svg`             | Calendar              | Monthly calendar view with event dots and upcoming appointments                         |
-| `06-journal-entry.svg`        | Journal Tab           | Journal entries list with search, sort, and starred entries                             |
-| `06b-journal-detail.svg`      | Journal Entry Detail  | Full entry view with key takeaways section and linked event navigation                  |
-| `06c-journal-modal.svg`       | Journal Entry Modal   | Add/edit modal with title, date, event linking, key takeaways, and notes                |
-| `07-documents.svg`            | Documents Tab         | Search/browse view across all profile attachments with categories and filters           |
-| `08-document-detail.svg`      | Attachment Detail     | Original image alongside extracted OCR text, description, and parent context link       |
-| `09-devices.svg`              | Devices               | List of paired tablets with status, battery, and last seen                              |
-| `10-pair-tablet.svg`          | Pair Tablet           | QR scanning interface for pairing a new tablet                                          |
-| `11-tablet-home.svg`          | Tablet Home (Kiosk)   | Large caretaker cards, today's schedule, greeting                                       |
-| `12-tablet-incoming-call.svg` | Tablet Incoming Call  | Full-screen caller info with large Accept/Decline buttons                               |
-| `13-tablet-qr-pairing.svg`    | Tablet QR Pairing     | QR code display on tablet during pairing flow                                           |
-| `14-flow-diagram.svg`         | Flow Diagram          | Overall system flow showing user journeys between screens                               |
+| File                          | Screen                 | Description                                                                               |
+| ----------------------------- | ---------------------- | ----------------------------------------------------------------------------------------- |
+| `01-login.svg`                | Login — Email Entry    | Email input and "Send Code" button; entry point for OTP authentication                    |
+| `01b-otp-verify.svg`          | Login — OTP Verify     | 6-digit code input, 60-second resend cooldown, and "Use a different email" link           |
+| `01c-account-setup.svg`       | Login — Account Setup  | First and last name inputs shown to new users after their first OTP verification          |
+| `02-home-dashboard.svg`       | Home (Upcoming Events) | Upcoming events grouped by day with profile indicators, time, and color-coded event types |
+| `03-profile-detail.svg`       | Profile Detail         | Profile header with health summary and tab navigation                                     |
+| `04-medications.svg`          | Medications            | List of active and discontinued medications with time-of-day badges                       |
+| `05-calendar.svg`             | Calendar               | Monthly calendar view with event dots and upcoming appointments                           |
+| `06-journal-entry.svg`        | Journal Tab            | Journal entries list with search, sort, and starred entries                               |
+| `06b-journal-detail.svg`      | Journal Entry Detail   | Full entry view with key takeaways section and linked event navigation                    |
+| `06c-journal-modal.svg`       | Journal Entry Modal    | Add/edit modal with title, date, event linking, key takeaways, and notes                  |
+| `07-documents.svg`            | Documents Tab          | Search/browse view across all profile attachments with categories and filters             |
+| `08-document-detail.svg`      | Attachment Detail      | Original image alongside extracted OCR text, description, and parent context link         |
+| `09-devices.svg`              | Devices                | List of paired tablets with status, battery, and last seen                                |
+| `10-pair-tablet.svg`          | Pair Tablet            | QR scanning interface for pairing a new tablet                                            |
+| `11-tablet-home.svg`          | Tablet Home (Kiosk)    | Large caretaker cards, today's schedule, greeting                                         |
+| `12-tablet-incoming-call.svg` | Tablet Incoming Call   | Full-screen caller info with large Accept/Decline buttons                                 |
+| `13-tablet-qr-pairing.svg`    | Tablet QR Pairing      | QR code display on tablet during pairing flow                                             |
+| `14-flow-diagram.svg`         | Flow Diagram           | Overall system flow showing user journeys between screens                                 |
