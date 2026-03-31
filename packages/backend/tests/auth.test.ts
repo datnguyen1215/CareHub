@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeAll } from 'vitest'
+import { describe, it, expect, vi, beforeAll, beforeEach } from 'vitest'
 import request from 'supertest'
 import jwt from 'jsonwebtoken'
 import { createApp } from '../src/app'
@@ -7,6 +7,7 @@ import { createUser } from './factories'
 import { db } from '../src/db'
 import { otps } from '@carehub/shared'
 import { eq } from 'drizzle-orm'
+import { consumeWsTicket } from '../src/routes/auth'
 
 // Mock email service
 vi.mock('../src/services/email', () => ({
@@ -64,7 +65,9 @@ describe('POST /api/auth/request-otp', () => {
     })
 
     // Request should succeed since cooldown expired
-    const res = await request(app).post('/api/auth/request-otp').send({ email: 'expired@example.com' })
+    const res = await request(app)
+      .post('/api/auth/request-otp')
+      .send({ email: 'expired@example.com' })
     expect(res.status).toBe(200)
     expect(res.body.message).toBe('OTP sent')
   })
@@ -185,5 +188,60 @@ describe('GET /api/users/me', () => {
   it('returns 401 with invalid token', async () => {
     const res = await request(app).get('/api/users/me').set('Cookie', 'token=invalid')
     expect(res.status).toBe(401)
+  })
+})
+
+describe('GET /api/auth/ws-ticket', () => {
+  it('returns 401 without auth cookie', async () => {
+    const res = await request(app).get('/api/auth/ws-ticket')
+    expect(res.status).toBe(401)
+  })
+
+  it('returns a ticket when authenticated', async () => {
+    // Create user and get auth token
+    const user = await createUser({ email: 'wsticket@example.com' })
+    const token = jwt.sign({ userId: user.id, email: user.email }, process.env.JWT_SECRET!)
+
+    const res = await request(app).get('/api/auth/ws-ticket').set('Cookie', `token=${token}`)
+
+    expect(res.status).toBe(200)
+    expect(res.body.ticket).toBeDefined()
+    expect(typeof res.body.ticket).toBe('string')
+    expect(res.body.ticket.length).toBe(32) // 16 bytes = 32 hex chars
+  })
+
+  it('returns different tickets on each request', async () => {
+    const user = await createUser({ email: 'wsticket2@example.com' })
+    const token = jwt.sign({ userId: user.id, email: user.email }, process.env.JWT_SECRET!)
+
+    const res1 = await request(app).get('/api/auth/ws-ticket').set('Cookie', `token=${token}`)
+    const res2 = await request(app).get('/api/auth/ws-ticket').set('Cookie', `token=${token}`)
+
+    expect(res1.body.ticket).not.toBe(res2.body.ticket)
+  })
+})
+
+describe('consumeWsTicket', () => {
+  it('returns null for invalid ticket', () => {
+    const result = consumeWsTicket('invalidticket123')
+    expect(result).toBeNull()
+  })
+
+  it('returns userId for valid ticket and deletes it (single-use)', async () => {
+    const user = await createUser({ email: 'consume@example.com' })
+    const token = jwt.sign({ userId: user.id, email: user.email }, process.env.JWT_SECRET!)
+
+    // Get a ticket
+    const res = await request(app).get('/api/auth/ws-ticket').set('Cookie', `token=${token}`)
+
+    const ticket = res.body.ticket
+
+    // First consumption should return userId
+    const userId = consumeWsTicket(ticket)
+    expect(userId).toBe(user.id)
+
+    // Second consumption should return null (single-use)
+    const secondResult = consumeWsTicket(ticket)
+    expect(secondResult).toBeNull()
   })
 })
