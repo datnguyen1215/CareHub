@@ -264,6 +264,16 @@ Detailed feature breakdown organized by area. See [phases.md](phases.md) for imp
 ### Capabilities
 
 - Caretaker initiates call to tablet from portal (phone or desktop)
+  - Call button on device detail page (`/devices/[id]`)
+  - Alternative: Call button on device card in Profile Overview tab
+  - Button disabled when device offline or call already in progress
+  - Button shows "Calling..." text during initiating/ringing states
+- Full-screen CallModal displays during active calls
+  - Call status indicators: Calling → Ringing → Connecting → Connected
+  - Remote video fills screen, local video in picture-in-picture corner
+  - Duration timer in MM:SS format
+  - Mute (M key), video toggle (V key), end call (Escape key) controls
+  - Error messages with retry option for retryable errors
 - Elderly family member initiates call from tablet by tapping caretaker photo
 - Full-screen video display on tablet
 - Audio and video with microphone/camera permissions (720p ideal, echo cancellation, noise suppression)

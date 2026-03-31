@@ -293,25 +293,28 @@ From the profile detail page (`/profiles/:id`):
 
 ---
 
-## 13. Calling from Profile Detail
+## 13. Calling from Device Detail
 
 **Actor:** Caretaker (Admin)
 
-1. From the Profiles tab, tap a profile row to view profile detail
-2. Profile Overview tab shows linked device card(s) below the avatar header
-3. Each device card displays: device name, online/offline status, battery level
-4. If device is online, tap "📞 Call" button to initiate a video call
-5. Portal WebSocket sends `call:initiate` message to backend
-6. Local camera/microphone permission prompt appears (first time only)
+1. From the Devices tab, tap a device card to view device detail page
+2. Device detail page displays device name, online/offline status, battery level
+3. If device is online, tap "📞 Call" button to initiate a video call
+4. Portal WebSocket sends `call:initiate` message to backend
+5. Local camera/microphone permission prompt appears (first time only)
+6. Full-screen CallModal appears with call status
 7. Call state transitions: initiating → ringing (waiting for device to accept)
-8. Backend forwards signaling to device via WebSocket
-9. Device accepts call → Portal receives `call:accepted` and creates SDP offer
-10. WebRTC peer connection established → Call state becomes connected
-11. Full-screen video call interface shows remote stream from device
-12. Controls available: mute/unmute audio, toggle video, end call
-13. Call duration counter displays in MM:SS format
-14. Tap "End Call" → WebSocket sends `call:ended`, connection closes, UI returns to profile
-15. If device is offline, Call button is disabled (grayed out)
-16. Alternative: tap "📷 Send Photo" to share a photo with the device (Phase 4)
-17. Tap "⚙️" to navigate to device settings page for management options
-18. If no device is linked, "No device linked" message displays with "+ Link Device" CTA
+8. CallModal shows "Calling {deviceName}..." with animated spinner during initiating
+9. CallModal shows "Ringing..." during ringing state
+10. Backend forwards signaling to device via WebSocket
+11. Device accepts call → Portal receives `call:accepted` and creates SDP offer
+12. CallModal shows "Connecting..." while WebRTC negotiation occurs
+13. WebRTC peer connection established → Call state becomes connected
+14. CallModal displays remote video stream from device (full screen) and local video preview (picture-in-picture corner)
+15. Controls available: mute/unmute audio (M key), toggle video (V key), end call (Escape key)
+16. Call duration counter displays in MM:SS format in status bar
+17. Tap "End Call" button or press Escape → WebSocket sends `call:ended`, connection closes, modal closes
+18. If call fails or is declined, error message displays with "Try Again" (if retryable) or "Close" button
+19. If device is offline, Call button is disabled (grayed out)
+20. If a call is already in progress, Call button is disabled
+21. Alternative from profile detail: tap "📞 Call" on device card in Profile Overview tab to initiate call

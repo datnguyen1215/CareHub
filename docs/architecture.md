@@ -344,6 +344,7 @@ Portal connects to WebSocket on app mount via JWT authentication (`/ws?jwt={toke
 - Auth failure detection (close code 4001) triggers redirect to login
 - Real-time signaling message routing for video call coordination
 - Connection state management (connecting/connected/disconnected)
+- Initialized in `(app)/+layout.svelte` on mount for all authenticated pages
 
 ### Peer-to-Peer Video
 
@@ -380,6 +381,22 @@ The portal operates as the caller (initiator) in all video calls:
 - Mute and video toggle controls
 - WebSocket signaling integration (ICE candidates, SDP exchange)
 - Automatic cleanup on call end or error
+
+**Call UI Components:**
+
+- `packages/portal/src/lib/components/call/CallModal.svelte` - Full-screen modal for active calls
+  - Displays call status with appropriate UI for each state (initiating/ringing/connecting/connected/ended/failed)
+  - Remote video fills screen, local video in picture-in-picture corner
+  - Status bar shows device name, connection status, and duration timer (MM:SS format)
+  - Error handling with retry option for retryable errors
+  - Focus trap and Escape key to end call
+  - Accessibility: keyboard navigation, screen reader announcements
+- `packages/portal/src/lib/components/call/CallControls.svelte` - Control buttons for active calls
+  - Mute/unmute microphone (M key, shows red when muted)
+  - Toggle video on/off (V key, shows red when off, hides local preview)
+  - End call button (red background, Escape key)
+  - Controls disabled during initiating/connecting states
+  - Integrated into device detail page (`/devices/[id]`) via CallModal
 
 ### Capacitor Native Apps
 
