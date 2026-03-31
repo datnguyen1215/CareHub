@@ -276,14 +276,21 @@ Tablet push notifications, device status monitoring, and video call signaling al
 - `device_paired` - Pairing completed, includes assigned profiles
 - `device_revoked` - Device unpaired, kiosk should clear data
 - `profiles_updated` - Profile assignments changed
-- `incoming_call` - Caretaker initiating video call (Phase 3.5)
-- `call_ended` - Call terminated (Phase 3.5)
+- `call:incoming` - Incoming call notification with caller info
+- `call:offer` - SDP offer for WebRTC connection
+- `call:ice-candidate` - ICE candidate from caller
+- `call:ended` - Call terminated by caller
+- `call:error` - Call error notification
 
 **Events (Kiosk → Server):**
 
 - `heartbeat` - Periodic ping with battery level
 - `status_update` - Online/offline state changes
-- `call_request` - Elderly initiating call to caretaker (Phase 3.5)
+- `call:accepted` - Kiosk accepted incoming call
+- `call:declined` - Kiosk declined incoming call
+- `call:answer` - SDP answer for WebRTC connection
+- `call:ice-candidate` - ICE candidate from kiosk
+- `call:ended` - Call ended by kiosk user
 
 **Portal WebSocket Integration:**
 
@@ -292,6 +299,14 @@ Portal WebSocket integration is deferred to Phase 3.5. The backend WebSocket end
 ### Peer-to-Peer Video
 
 Video calls use WebRTC for direct peer-to-peer connections, avoiding the cost and complexity of a media server. STUN servers handle NAT traversal. A TURN relay serves as fallback when direct connection fails.
+
+**Kiosk WebRTC Implementation:**
+
+The kiosk operates as the callee (receiver) in all video calls:
+
+- `packages/kiosk/src/lib/services/webrtc.ts` — WebRTC manager for peer connections, SDP handling, ICE candidate exchange, and media stream management
+- `packages/kiosk/src/lib/services/websocket.ts` — Extended with call signaling message handlers and methods to send call responses
+- `packages/kiosk/src/lib/stores/call.ts` — Svelte 5 runes-based call state store managing call lifecycle (idle → incoming → connecting → connected → ended), duration tracking, and race condition guards
 
 ### Capacitor Native Apps
 
