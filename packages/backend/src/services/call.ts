@@ -110,8 +110,8 @@ export const endCall = async (sessionId: string, reason: CallEndReason): Promise
         and(eq(callSessions.id, sessionId), notInArray(callSessions.status, TERMINAL_STATUSES))
       )
 
-    // Check if any rows were actually updated
-    const rowsAffected = (updateResult as unknown as { rowCount?: number }).rowCount ?? 1
+    // Check if any rows were actually updated (use 0 as safe fallback)
+    const rowsAffected = (updateResult as unknown as { rowCount?: number }).rowCount ?? 0
     return { updated: rowsAffected > 0, duration }
   })
 

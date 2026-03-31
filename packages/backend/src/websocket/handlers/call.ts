@@ -176,6 +176,15 @@ const handleCallAccepted = async (
     return
   }
 
+  // Validate call is still in ringing state (prevents overwriting ended/timed-out calls)
+  if (session.status !== 'ringing') {
+    logger.warn(
+      { callId, deviceId, status: session.status },
+      'Call accept ignored - not in ringing state'
+    )
+    return
+  }
+
   // Clear ring timeout
   clearRingTimeout(callId)
 
@@ -207,6 +216,15 @@ const handleCallDeclined = async (
   const session = await getCallSession(callId)
   if (!session || session.calleeDeviceId !== deviceId) {
     logger.warn({ callId, deviceId }, 'Invalid call decline - session not found or wrong device')
+    return
+  }
+
+  // Validate call is still in ringing state (prevents declining already-ended calls)
+  if (session.status !== 'ringing') {
+    logger.warn(
+      { callId, deviceId, status: session.status },
+      'Call decline ignored - not in ringing state'
+    )
     return
   }
 
@@ -330,6 +348,15 @@ const handleAnswer = async (
   const session = await getCallSession(callId)
   if (!session || session.calleeDeviceId !== deviceId) {
     sendError(ws, callId, 'Invalid call session')
+    return
+  }
+
+  // Validate call is in connecting state (prevents overwriting ended calls)
+  if (session.status !== 'connecting') {
+    logger.warn(
+      { callId, deviceId, status: session.status },
+      'Call answer ignored - not in connecting state'
+    )
     return
   }
 
