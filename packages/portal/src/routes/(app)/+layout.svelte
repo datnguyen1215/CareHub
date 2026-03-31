@@ -5,7 +5,7 @@
 	import Toast from '$lib/Toast.svelte';
 	import type { Snippet } from 'svelte';
 	import * as websocket from '$lib/services/websocket';
-	import { initializeCallHandlers } from '$lib/stores/call';
+	import { initializeCallHandlers } from '$lib/stores/call.svelte';
 
 	let { children }: { children: Snippet } = $props();
 

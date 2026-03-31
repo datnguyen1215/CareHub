@@ -16,7 +16,13 @@
 	import DeviceStatusDot from '$lib/DeviceStatusDot.svelte';
 	import BatteryIndicator from '$lib/BatteryIndicator.svelte';
 	import CallModal from '$lib/components/call/CallModal.svelte';
-	import { callState, initiateCall, endCall, toggleMute, toggleVideo } from '$lib/stores/call';
+	import {
+		callState,
+		initiateCall,
+		endCall,
+		toggleMute,
+		toggleVideo
+	} from '$lib/stores/call.svelte';
 
 	let device = $state<Device | null>(null);
 	let allProfiles = $state<CareProfile[]>([]);
