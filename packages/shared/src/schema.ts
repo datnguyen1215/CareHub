@@ -30,6 +30,22 @@ export const attachmentCategoryEnum = pgEnum('attachment_category', [
   'imaging',
   'other',
 ])
+export const callStatusEnum = pgEnum('call_status', [
+  'initiating',
+  'ringing',
+  'connecting',
+  'connected',
+  'ended',
+  'failed',
+])
+export const callEndReasonEnum = pgEnum('call_end_reason', [
+  'completed',
+  'declined',
+  'missed',
+  'cancelled',
+  'failed',
+  'timeout',
+])
 
 // Users
 export const users = pgTable('users', {
@@ -231,5 +247,32 @@ export const devicePairingTokens = pgTable(
   },
   (table) => ({
     tokenIdx: index('device_pairing_tokens_token_idx').on(table.token),
+  })
+)
+
+// Call Sessions — tracks WebRTC video calls between portal and kiosk
+export const callSessions = pgTable(
+  'call_sessions',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    caller_user_id: uuid('caller_user_id')
+      .notNull()
+      .references(() => users.id),
+    callee_device_id: uuid('callee_device_id')
+      .notNull()
+      .references(() => devices.id),
+    callee_profile_id: uuid('callee_profile_id').references(() => careProfiles.id),
+    status: callStatusEnum('status').notNull(),
+    initiated_at: timestamp('initiated_at', { withTimezone: true }).defaultNow().notNull(),
+    answered_at: timestamp('answered_at', { withTimezone: true }),
+    ended_at: timestamp('ended_at', { withTimezone: true }),
+    end_reason: callEndReasonEnum('end_reason'),
+    duration_seconds: integer('duration_seconds'),
+    ice_connection_state: varchar('ice_connection_state', { length: 30 }),
+  },
+  (table) => ({
+    callerIdx: index('idx_call_sessions_caller').on(table.caller_user_id),
+    deviceIdx: index('idx_call_sessions_device').on(table.callee_device_id),
+    statusIdx: index('idx_call_sessions_status').on(table.status),
   })
 )
