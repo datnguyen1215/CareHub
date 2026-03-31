@@ -163,13 +163,15 @@ Styles are implemented with Tailwind CSS within the SvelteKit portal package. Mo
 
 ### Components
 
-| Component                 | File       | Purpose                                                                                                                  |
-| ------------------------- | ---------- | ------------------------------------------------------------------------------------------------------------------------ |
-| `DeviceCard.svelte`       | `src/lib/` | Device card with name, status dot, battery indicator, assigned profiles, and action buttons (Send Photo, Call, Settings) |
-| `DeviceStatusDot.svelte`  | `src/lib/` | Reusable online (green) / offline (gray) status indicator                                                                |
-| `BatteryIndicator.svelte` | `src/lib/` | Battery level progress bar with percentage (color-coded: green > 50%, yellow 20-50%, red < 20%)                          |
-| `QRScanner.svelte`        | `src/lib/` | Camera-based QR scanner using html5-qrcode with corner bracket overlay and manual code entry fallback                    |
-| `ProfileSelector.svelte`  | `src/lib/` | Checkbox list for selecting profiles with avatars                                                                        |
+| Component                 | File                       | Purpose                                                                                                                  |
+| ------------------------- | -------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `DeviceCard.svelte`       | `src/lib/`                 | Device card with name, status dot, battery indicator, assigned profiles, and action buttons (Send Photo, Call, Settings) |
+| `DeviceStatusDot.svelte`  | `src/lib/`                 | Reusable online (green) / offline (gray) status indicator                                                                |
+| `BatteryIndicator.svelte` | `src/lib/`                 | Battery level progress bar with percentage (color-coded: green > 50%, yellow 20-50%, red < 20%)                          |
+| `QRScanner.svelte`        | `src/lib/`                 | Camera-based QR scanner using html5-qrcode with corner bracket overlay and manual code entry fallback                    |
+| `ProfileSelector.svelte`  | `src/lib/`                 | Checkbox list for selecting profiles with avatars                                                                        |
+| `CallModal.svelte`        | `src/lib/components/call/` | Full-screen modal for active video calls with local/remote video, call status, and controls                              |
+| `CallControls.svelte`     | `src/lib/components/call/` | Control buttons for mute, video toggle, and end call with keyboard shortcuts (M, V, Escape)                              |
 
 ### Devices Page (`/devices`)
 
@@ -208,7 +210,11 @@ Styles are implemented with Tailwind CSS within the SvelteKit portal package. Mo
 
 - Header with back arrow and inline-editable device name (pencil icon)
 - Status section: online/offline dot, battery progress bar, last active timestamp
-- Actions section: "Send Photo" and "Call" buttons (disabled when offline)
+- Actions section: "Send Photo" and "Call" buttons (disabled when offline or call in progress)
+- Call button shows "Calling..." text during initiating/ringing states
+- Clicking Call button initiates video call and opens full-screen CallModal
+- CallModal displays during active calls with call status, local/remote video streams, duration timer, and controls
+- CallControls provides mute (M key), video toggle (V key), and end call (Escape key) buttons
 - Assigned Profiles section: grid of profile cards with remove (×) button, "+ Add" link
 - Danger Zone: "Unpair Device" button with confirmation modal
 
@@ -224,7 +230,7 @@ All wireframes are in the `designs/` directory.
 | `01b-otp-verify.svg`          | Login — OTP Verify     | 6-digit code input, 60-second resend cooldown, and "Use a different email" link           |
 | `01c-account-setup.svg`       | Login — Account Setup  | First and last name inputs shown to new users after their first OTP verification          |
 | `02-home-dashboard.svg`       | Home (Upcoming Events) | Upcoming events grouped by day with profile indicators, time, and color-coded event types |
-| `02b-profile-list.svg`        | Profile List           | Full-width profile rows with avatar, info, device status, conditions, and chevron        |
+| `02b-profile-list.svg`        | Profile List           | Full-width profile rows with avatar, info, device status, conditions, and chevron         |
 | `03-profile-detail.svg`       | Profile Detail         | Profile header with health summary and tab navigation                                     |
 | `04-medications.svg`          | Medications            | List of active and discontinued medications with time-of-day badges                       |
 | `05-calendar.svg`             | Calendar               | Monthly calendar view with event dots and upcoming appointments                           |

@@ -15,6 +15,8 @@
 	import { getErrorMessage, isRetryable } from '$lib/error-utils';
 	import DeviceStatusDot from '$lib/DeviceStatusDot.svelte';
 	import BatteryIndicator from '$lib/BatteryIndicator.svelte';
+	import CallModal from '$lib/components/call/CallModal.svelte';
+	import { callState, initiateCall, endCall, toggleMute, toggleVideo } from '$lib/stores/call';
 
 	let device = $state<Device | null>(null);
 	let allProfiles = $state<CareProfile[]>([]);
@@ -214,9 +216,18 @@
 	}
 
 	function handleCall() {
-		// Initiates call to device - placeholder for now
-		console.log('Call device:', device?.id);
+		if (!device || device.status !== 'online') return;
+		initiateCall(device.id, device.name);
 	}
+
+	function handleRetryCall() {
+		if (!device || device.status !== 'online') return;
+		initiateCall(device.id, device.name);
+	}
+
+	// Derived state for call button
+	const isCallInProgress = $derived(callState.status !== 'idle' && callState.status !== 'ended');
+	const showCallModal = $derived(callState.status !== 'idle');
 </script>
 
 <div class="max-w-2xl mx-auto px-unit-3 py-unit-3">
@@ -381,13 +392,17 @@
 				<button
 					type="button"
 					onclick={handleCall}
-					disabled={device.status !== 'online'}
+					disabled={device.status !== 'online' || isCallInProgress}
 					class="flex-1 px-3 py-2 rounded-card border border-gray-300 font-medium
-						{device.status === 'online'
+						{device.status === 'online' && !isCallInProgress
 						? 'text-text-primary hover:bg-gray-50'
 						: 'text-gray-400 cursor-not-allowed'} transition-colors"
 				>
-					📞 Call
+					{#if callState.status === 'initiating' || callState.status === 'ringing'}
+						Calling...
+					{:else}
+						📞 Call
+					{/if}
 				</button>
 			</div>
 		</div>
@@ -591,4 +606,22 @@
 			</button>
 		</div>
 	</div>
+{/if}
+
+<!-- Call Modal -->
+{#if showCallModal}
+	<CallModal
+		status={callState.status}
+		deviceName={callState.targetDeviceName}
+		localStream={callState.localStream}
+		remoteStream={callState.remoteStream}
+		duration={callState.duration}
+		error={callState.error}
+		isMuted={callState.isMuted}
+		isVideoOff={callState.isVideoOff}
+		onToggleMute={toggleMute}
+		onToggleVideo={toggleVideo}
+		onEndCall={endCall}
+		onRetry={handleRetryCall}
+	/>
 {/if}
