@@ -20,7 +20,11 @@ export async function truncateAll(): Promise<void> {
       events,
       journal_entries,
       attachments,
-      otps
+      otps,
+      devices,
+      device_care_profiles,
+      device_access,
+      device_pairing_tokens
     CASCADE
   `)
 }

@@ -11,6 +11,10 @@ import {
   events,
   journalEntries,
   attachments,
+  devices,
+  deviceAccess,
+  deviceCareProfiles,
+  devicePairingTokens,
 } from '@carehub/shared'
 
 /**
@@ -118,4 +122,52 @@ export async function createAttachment(data: {
 }) {
   const [attachment] = await db.insert(attachments).values(data).returning()
   return attachment
+}
+
+/**
+ * Create a device in the test database.
+ */
+export async function createDevice(data: {
+  id?: string
+  device_token: string
+  name: string
+  status?: 'online' | 'offline'
+  battery_level?: number | null
+  last_seen_at?: Date | null
+  paired_at?: Date | null
+}) {
+  const [device] = await db.insert(devices).values(data).returning()
+  return device
+}
+
+/**
+ * Grant a user access to a device.
+ */
+export async function createDeviceAccess(data: {
+  device_id: string
+  user_id: string
+  granted_by?: string | null
+}) {
+  const [access] = await db.insert(deviceAccess).values(data).returning()
+  return access
+}
+
+/**
+ * Assign a care profile to a device.
+ */
+export async function createDeviceCareProfile(data: { device_id: string; care_profile_id: string }) {
+  const [assignment] = await db.insert(deviceCareProfiles).values(data).returning()
+  return assignment
+}
+
+/**
+ * Create a device pairing token.
+ */
+export async function createDevicePairingToken(data: {
+  token: string
+  device_id?: string | null
+  expires_at: Date
+}) {
+  const [pairingToken] = await db.insert(devicePairingTokens).values(data).returning()
+  return pairingToken
 }
