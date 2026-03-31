@@ -22,8 +22,7 @@
 		endCall,
 		toggleMute,
 		toggleVideo,
-		initializeCallHandlers,
-		formattedDuration
+		initializeCallHandlers
 	} from '$lib/stores/call';
 	import * as websocket from '$lib/services/websocket';
 
@@ -238,7 +237,7 @@
 	}
 
 	function handleRetryCall() {
-		if (!device) return;
+		if (!device || device.status !== 'online') return;
 		initiateCall(device.id, device.name);
 	}
 

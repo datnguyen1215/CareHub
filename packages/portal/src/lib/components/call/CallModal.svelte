@@ -4,24 +4,24 @@
 	 * Displays local/remote video streams, call status, and controls.
 	 */
 
-	import { onMount } from 'svelte'
-	import { createFocusTrap } from '$lib/focusTrap'
-	import CallControls from './CallControls.svelte'
-	import type { CallStatusType } from '$lib/stores/call'
+	import { onMount } from 'svelte';
+	import { createFocusTrap } from '$lib/focusTrap';
+	import CallControls from './CallControls.svelte';
+	import type { CallStatusType } from '$lib/stores/call';
 
 	interface Props {
-		status: CallStatusType
-		deviceName: string | null
-		localStream: MediaStream | null
-		remoteStream: MediaStream | null
-		duration: number
-		error: string | null
-		isMuted: boolean
-		isVideoOff: boolean
-		onToggleMute: () => void
-		onToggleVideo: () => void
-		onEndCall: () => void
-		onRetry?: () => void
+		status: CallStatusType;
+		deviceName: string | null;
+		localStream: MediaStream | null;
+		remoteStream: MediaStream | null;
+		duration: number;
+		error: string | null;
+		isMuted: boolean;
+		isVideoOff: boolean;
+		onToggleMute: () => void;
+		onToggleVideo: () => void;
+		onEndCall: () => void;
+		onRetry?: () => void;
 	}
 
 	let {
@@ -37,83 +37,80 @@
 		onToggleVideo,
 		onEndCall,
 		onRetry
-	}: Props = $props()
+	}: Props = $props();
 
-	let modalElement: HTMLDivElement | null = $state(null)
-	let localVideoElement: HTMLVideoElement | null = $state(null)
-	let remoteVideoElement: HTMLVideoElement | null = $state(null)
-	let cleanupFocusTrap: (() => void) | null = null
+	let modalElement: HTMLDivElement | null = $state(null);
+	let localVideoElement: HTMLVideoElement | null = $state(null);
+	let remoteVideoElement: HTMLVideoElement | null = $state(null);
+	let cleanupFocusTrap: (() => void) | null = null;
 
 	// Format duration as MM:SS
 	function formatDuration(seconds: number): string {
-		const mins = Math.floor(seconds / 60)
-		const secs = seconds % 60
-		return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
+		const mins = Math.floor(seconds / 60);
+		const secs = seconds % 60;
+		return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
 	}
 
 	// Attach local stream to video element
 	$effect(() => {
 		if (localVideoElement && localStream) {
-			localVideoElement.srcObject = localStream
+			localVideoElement.srcObject = localStream;
 		}
-	})
+	});
 
 	// Attach remote stream to video element
 	$effect(() => {
 		if (remoteVideoElement && remoteStream) {
-			remoteVideoElement.srcObject = remoteStream
+			remoteVideoElement.srcObject = remoteStream;
 		}
-	})
+	});
 
 	// Setup focus trap on mount
 	onMount(() => {
 		if (modalElement) {
-			cleanupFocusTrap = createFocusTrap(modalElement, onEndCall)
+			cleanupFocusTrap = createFocusTrap(modalElement, onEndCall);
 		}
 
 		return () => {
 			if (cleanupFocusTrap) {
-				cleanupFocusTrap()
+				cleanupFocusTrap();
 			}
-		}
-	})
+		};
+	});
 
 	// Computed states
 	const isConnecting = $derived(
 		status === 'initiating' || status === 'ringing' || status === 'connecting'
-	)
-	const isConnected = $derived(status === 'connected')
-	const isFailed = $derived(status === 'failed')
-	const isEnded = $derived(status === 'ended')
-	const controlsDisabled = $derived(status === 'initiating' || status === 'connecting')
+	);
+	const isConnected = $derived(status === 'connected');
+	const isFailed = $derived(status === 'failed');
+	const isEnded = $derived(status === 'ended');
+	const controlsDisabled = $derived(status === 'initiating' || status === 'connecting');
 
 	// Status display text
 	const statusText = $derived.by(() => {
 		switch (status) {
 			case 'initiating':
-				return `Calling ${deviceName ?? 'device'}...`
+				return `Calling ${deviceName ?? 'device'}...`;
 			case 'ringing':
-				return 'Ringing...'
+				return 'Ringing...';
 			case 'connecting':
-				return 'Connecting...'
+				return 'Connecting...';
 			case 'connected':
-				return formatDuration(duration)
+				return formatDuration(duration);
 			case 'ended':
-				return 'Call ended'
+				return 'Call ended';
 			case 'failed':
-				return error ?? 'Call failed'
+				return error ?? 'Call failed';
 			default:
-				return ''
+				return '';
 		}
-	})
+	});
 
 	// Check if error is retryable
 	const canRetry = $derived(
-		isFailed &&
-			error !== null &&
-			!error.includes('declined') &&
-			!error.includes('permission')
-	)
+		isFailed && error !== null && !error.includes('declined') && !error.includes('permission')
+	);
 </script>
 
 <!-- Full-screen modal overlay -->
@@ -191,7 +188,7 @@
 							/>
 						</svg>
 					</div>
-					<p class="text-xl font-semibold mb-2">Call ended</p>
+					<p class="text-xl font-semibold mb-2">{error ?? 'Call ended'}</p>
 				{/if}
 
 				<div class="flex gap-3 mt-6">
