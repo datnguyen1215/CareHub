@@ -25,10 +25,10 @@ services:
       timeout: 10s
       retries: 3
 
-  frontend:
+  portal:
     build:
       context: .
-      dockerfile: packages/frontend/Dockerfile
+      dockerfile: packages/portal/Dockerfile
     restart: unless-stopped
     environment:
       BACKEND_URL: http://backend:9391
@@ -38,12 +38,12 @@ services:
       - backend
     labels:
       - traefik.enable=true
-      - traefik.http.routers.frontend.rule=Host(`${APP_DOMAIN}`)
-      - traefik.http.routers.frontend.entrypoints=websecure
-      - traefik.http.routers.frontend.tls=true
-      - traefik.http.routers.frontend.tls.certresolver=letsencrypt
-      - traefik.http.services.frontend.loadbalancer.server.port=9390
-      - traefik.http.services.frontend.loadbalancer.healthcheck.path=/
+      - traefik.http.routers.portal.rule=Host(`${APP_DOMAIN}`)
+      - traefik.http.routers.portal.entrypoints=websecure
+      - traefik.http.routers.portal.tls=true
+      - traefik.http.routers.portal.tls.certresolver=letsencrypt
+      - traefik.http.services.portal.loadbalancer.server.port=9390
+      - traefik.http.services.portal.loadbalancer.healthcheck.path=/
     healthcheck:
       test: ['CMD', 'wget', '--quiet', '--spider', 'http://localhost:9390/']
       interval: 30s

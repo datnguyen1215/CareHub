@@ -111,7 +111,7 @@ Copy `.env.example` to `.env` and configure the following:
 See individual package READMEs:
 
 - [Backend README](./packages/backend/README.md)
-- [Frontend README](./packages/frontend/README.md)
+- [Portal README](./packages/portal/README.md)
 
 ## Project Structure
 
@@ -119,7 +119,7 @@ See individual package READMEs:
 carehub/
 ├── packages/
 │   ├── backend/      # Express REST API
-│   ├── frontend/     # SvelteKit application
+│   ├── portal/       # SvelteKit caretaker portal
 │   ├── shared/       # Drizzle schema and shared types
 │   ├── kiosk/        # SvelteKit kiosk app with Capacitor (Android)
 │   └── mobile/       # (placeholder)
@@ -161,7 +161,7 @@ Or use different ports by updating `.env`:
 PORT=3001  # Backend port
 ```
 
-And `packages/frontend/vite.config.ts` for frontend.
+And `packages/portal/vite.config.ts` for portal.
 
 ### JWT_SECRET Not Loading
 

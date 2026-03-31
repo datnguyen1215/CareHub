@@ -19,7 +19,7 @@
 | OCR/AI             | Google Vision API or AWS Textract                                 | Document text extraction; Tesseract as self-hosted alternative                                                                                                                   |
 | Search             | PostgreSQL full-text search                                       | Search over OCR-extracted text, no extra infrastructure                                                                                                                          |
 | Hosting            | Self-hosted via Docker — Traefik reverse proxy, Let's Encrypt SSL | Full control, no cloud vendor dependency                                                                                                                                         |
-| Testing            | Vitest + Supertest                                                | Integration tests only; no unit or frontend tests                                                                                                                                |
+| Testing            | Vitest + Supertest                                                | Integration tests only; no unit or portal tests                                                                                                                                  |
 | TypeScript         | Default SvelteKit config                                          | Standard configuration, no custom overrides                                                                                                                                      |
 | Linting            | ESLint + Prettier (SvelteKit defaults)                            | Consistent code style with minimal setup                                                                                                                                         |
 | Tablet Runtime     | Capacitor APK with Android Lock Task Mode                         | Native app shell prevents exit, auto-restarts on boot, receives FCM push even if backgrounded                                                                                    |
@@ -30,7 +30,7 @@
 
 ```
 packages/
-  frontend/    # SvelteKit + Tailwind CSS caretaker portal web app
+  portal/      # SvelteKit + Tailwind CSS caretaker portal web app
   backend/     # Express API server with WebSocket support
   shared/      # Shared types, utilities, and Drizzle schema
   kiosk/       # SvelteKit elderly tablet kiosk app with Capacitor (Android only)
@@ -38,9 +38,9 @@ packages/
 
 ---
 
-## Frontend Route Structure
+## Portal Route Structure
 
-The SvelteKit frontend uses a route group `(app)` to wrap all authenticated main pages with a shared layout.
+The SvelteKit portal uses a route group `(app)` to wrap all authenticated main pages with a shared layout.
 
 ```
 src/
@@ -255,9 +255,9 @@ All interfaces are built with SvelteKit as web applications. Both the caretaker 
 
 The caretaker portal is designed mobile-first since most interactions (photo capture at doctor visits, quick medication checks) happen on phones. Desktop layout adapts from the mobile base.
 
-### Separate Frontend and Backend Services
+### Separate Portal and Backend Services
 
-The frontend (SvelteKit) and backend (Express) are separate packages in the monorepo. The Express backend exposes a REST API consumed by the frontend. This separation allows independent deployment, clearer API boundaries, and straightforward integration testing with Supertest.
+The portal (SvelteKit) and backend (Express) are separate packages in the monorepo. The Express backend exposes a REST API consumed by the portal. This separation allows independent deployment, clearer API boundaries, and straightforward integration testing with Supertest.
 
 ### Real-Time via WebSockets
 
@@ -356,7 +356,7 @@ Email + OTP passwordless login via Nodemailer + Gmail SMTP.
 - Server generates a 6-digit OTP, stores it in the `Otp` table with a 15-minute expiry, and sends it via email
 - User submits the OTP; server verifies it and issues a JWT stored in an httpOnly cookie (no expiration)
 - First-time login creates a new `User` record and redirects to `/login/setup`
-- On the setup page the user enters their `first_name` and `last_name`; on submit the frontend:
+- On the setup page the user enters their `first_name` and `last_name`; on submit the portal:
   1. Calls `PATCH /api/users/me` to save the profile
   2. Calls `POST /api/groups` with `{ name: "My Family" }` to auto-create a default group (creator is assigned the `admin` role via `GroupMember`)
   3. Redirects to `/` (dashboard)
@@ -411,7 +411,7 @@ Data access is enforced at the application layer in the Express backend. Users c
 
 ### Production Deployment
 
-Production runs via `docker-compose.prod.yml` with 4 services: Traefik, frontend, backend, and PostgreSQL.
+Production runs via `docker-compose.prod.yml` with 4 services: Traefik, portal, backend, and PostgreSQL.
 
 **Traefik reverse proxy:**
 
@@ -421,7 +421,7 @@ Production runs via `docker-compose.prod.yml` with 4 services: Traefik, frontend
 
 **Container setup:**
 
-- Frontend and backend are separate Docker images built with multi-stage builds
+- Portal and backend are separate Docker images built with multi-stage builds
 - PostgreSQL data persisted via named Docker volume
 - All containers configured with health checks and `restart: unless-stopped` for reliability
 
@@ -453,4 +453,4 @@ Production runs via `docker-compose.prod.yml` with 4 services: Traefik, frontend
 
 ### Testing Strategy
 
-Integration tests only, using Vitest + Supertest against the Express API. No unit tests or frontend component tests. This keeps the test suite lean while covering the critical API surface.
+Integration tests only, using Vitest + Supertest against the Express API. No unit tests or portal component tests. This keeps the test suite lean while covering the critical API surface.

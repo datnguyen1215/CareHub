@@ -4,7 +4,7 @@
 
 ## Planned Stack
 
-- [Capacitor](https://capacitorjs.com/) wrapping the SvelteKit frontend
+- [Capacitor](https://capacitorjs.com/) wrapping the SvelteKit portal
 - iOS and Android targets
 - Native plugins for push notifications and camera (medication photos)
 
