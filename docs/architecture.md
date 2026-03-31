@@ -22,7 +22,7 @@
 | Testing            | Vitest + Supertest                                                | Integration tests only; no unit or portal tests                                                                                                                                  |
 | TypeScript         | Default SvelteKit config                                          | Standard configuration, no custom overrides                                                                                                                                      |
 | Linting            | ESLint + Prettier (SvelteKit defaults)                            | Consistent code style with minimal setup                                                                                                                                         |
-| Tablet Runtime     | Capacitor APK with Android Lock Task Mode                         | Native app shell prevents exit, auto-restarts on boot, receives FCM push even if backgrounded                                                                                    |
+| Tablet Runtime     | Capacitor APK with Android Lock Task Mode                         | Native app shell prevents exit, auto-restarts on boot; WebSocket stays alive via foreground service                                                                              |
 
 ---
 
@@ -305,10 +305,14 @@ Both the caretaker phone app and the elderly tablet kiosk are Capacitor APKs bui
 
 **Tablet kiosk app enables:**
 
-- **Lock Task Mode** -- Android API that pins the app to the screen. The elderly user cannot exit to the home screen, open the notification shade, or switch apps. This is what commercial kiosk devices use.
-- **Auto-restart on boot** -- App launches automatically when the tablet powers on (e.g., after a power outage or reboot).
+- **Device Owner mode** -- One-time ADB provisioning (`adb shell dpm set-device-owner`) grants system-level permissions for:
+  - Lock Task Mode (pins app to screen, prevents exit)
+  - Power button interception (dims screen instead of locking device)
+  - Keyguard disabled (no lock screen)
+  - Auto-restart on crash
+- **Auto-launch on boot** -- App starts automatically when the tablet powers on (e.g., after a power outage or reboot).
 - **Foreground service** -- Keeps the WebSocket connection alive so the tablet is always reachable for incoming calls and content pushes.
-- **FCM fallback** -- If the foreground service is killed by Android, a high-priority FCM message can wake the app back up for incoming calls.
+- **Power management** -- Screen dims to near-black (1-5% brightness) when idle, instant wake on touch or incoming call. Device never truly sleeps, avoiding the need for FCM push notifications.
 
 **No separate codebase** -- The entire UI remains Svelte 5 running in a web view. Capacitor only provides the native bridge for push notifications, call UI, kiosk lock-down, and background services.
 
@@ -322,7 +326,23 @@ All Capacitor apps (caretaker phones and elderly tablets) receive UI and logic u
 - APK rebuild is only needed when native plugins or Capacitor configuration change (rare after initial setup).
 - Elderly tablets update automatically with zero intervention.
 
-### Push Notification Flow (Incoming Calls)
+### Push Notification Strategy (FCM for Portal Only)
+
+**Decision:** FCM is only used for the caretaker phone app (portal), NOT the kiosk tablet.
+
+**Rationale:**
+
+- **Caretaker phone:** The app gets backgrounded or killed by Android's aggressive power management. FCM high-priority data messages are the only reliable way to wake the device for incoming calls, even when the screen is off or the app is closed. Without FCM, the caretaker would miss calls.
+
+- **Kiosk tablet:** Runs in Device Owner mode with a persistent foreground service. The WebSocket connection stays alive continuously. The device never truly sleeps (screen dims instead), so push notifications are not needed. The tablet is always reachable via WebSocket for incoming calls and content updates.
+
+**Firebase project structure:**
+
+- Single Android app registration: `us.dnguyen.carehub.portal`
+- Only one `google-services.json` file needed (for portal package)
+- FCM tokens stored in `users` table (not `devices` table)
+
+**Incoming call flow:**
 
 1. Elderly family member taps a caretaker's photo on the tablet kiosk app.
 2. Tablet app sends a call request to the server via WebSocket (kept alive by foreground service).
@@ -330,6 +350,31 @@ All Capacitor apps (caretaker phones and elderly tablets) receive UI and logic u
 4. Capacitor FCM plugin receives the message and triggers a **full-screen incoming call notification** with ringtone and vibration.
 5. Caretaker taps Accept -- app opens (or foregrounds) and WebRTC call connects.
 6. If the caretaker does not answer within a timeout, the tablet shows a "no answer" state.
+
+### Kiosk Power Management (Device Owner + Screen Dimming)
+
+**Decision:** Use Device Owner mode with screen dimming instead of letting the device sleep.
+
+**Rationale:**
+
+Elderly users are energy-conscious and may expect the screen to be "off" when not in use. However, allowing the device to truly sleep would break the WebSocket connection and require FCM for waking, adding unnecessary complexity.
+
+**Solution:**
+
+- Screen dims to near-black (1-5% brightness) when idle, giving the appearance of being "off"
+- Instant wake on touch or incoming call
+- Device remains fully active underneath, WebSocket stays alive
+- No need for FCM push notifications on the kiosk
+
+**Device Owner mode enables:**
+
+- **Power button interception** -- Power button dims the screen instead of locking the device
+- **Lock Task Mode** -- Prevents app exit, notification shade access, or app switching
+- **Keyguard disabled** -- No lock screen ever appears
+- **Auto-restart on crash** -- App automatically restarts if it crashes
+- **Auto-launch on boot** -- Already configured via Capacitor
+
+**Trade-off accepted:** Requires one-time `adb shell dpm set-device-owner` command during initial tablet setup (see Kiosk Device Setup section below).
 
 ### OCR at Upload Time
 
@@ -455,6 +500,45 @@ Production runs via `docker-compose.prod.yml` with 4 services: Traefik, portal, 
 | `SMTP_USER`         | SMTP username             | `carehub.notifications@gmail.com` |
 | `SMTP_PASS`         | SMTP app password         | (secret)                          |
 | `SMTP_FROM_NAME`    | Email sender display name | `CareHub`                         |
+
+### Kiosk Device Setup
+
+The tablet kiosk requires one-time Device Owner provisioning to enable Lock Task Mode, power button interception, and other system-level kiosk features.
+
+**Prerequisites:**
+
+- Factory-reset tablet (or a tablet with no Google accounts signed in)
+- USB cable
+- Computer with ADB installed
+
+**Provisioning steps:**
+
+1. Enable Developer Options on the tablet:
+   - Go to Settings → About tablet
+   - Tap "Build number" 7 times
+   - Return to Settings → Developer options
+   - Enable "USB debugging"
+
+2. Connect the tablet to a computer via USB and authorize the ADB connection when prompted.
+
+3. Run the Device Owner provisioning command:
+   ```bash
+   adb shell dpm set-device-owner us.dnguyen.carehub.kiosk/.DeviceAdminReceiver
+   ```
+
+4. Verify the command succeeds (output should confirm device owner is set).
+
+5. Disconnect USB cable. The kiosk app now has Device Owner privileges.
+
+**What Device Owner mode enables:**
+
+- Power button dims the screen instead of locking
+- Lock Task Mode (app is pinned, cannot exit)
+- Keyguard is disabled (no lock screen)
+- Auto-restart on app crash
+- Persistent foreground service (WebSocket stays alive)
+
+**Important:** Device Owner mode can only be set on a device with no accounts signed in. If the command fails, factory reset the tablet and try again before signing into any Google accounts.
 
 ### Testing Strategy
 
