@@ -1,0 +1,59 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Kiosk-specific base styles */
+@layer base {
+	html {
+		/* Prevent text selection for touch interface */
+		-webkit-user-select: none;
+		user-select: none;
+		/* Prevent pull-to-refresh */
+		overscroll-behavior: none;
+	}
+
+	body {
+		@apply bg-background text-text-primary min-h-screen;
+		/* Prevent zooming on double-tap */
+		touch-action: manipulation;
+	}
+
+	/* Ensure buttons have minimum touch target size */
+	button,
+	a {
+		min-height: 80px;
+		min-width: 80px;
+	}
+}
+
+@layer components {
+	.kiosk-card {
+		@apply bg-surface rounded-card shadow-card p-unit-4;
+	}
+
+	.kiosk-button {
+		@apply bg-primary text-white rounded-button font-semibold;
+		@apply flex items-center justify-center;
+		@apply min-h-[80px] px-unit-4;
+		@apply active:opacity-80 transition-opacity;
+	}
+
+	.kiosk-button-secondary {
+		@apply bg-surface border-2 border-primary text-primary rounded-button font-semibold;
+		@apply flex items-center justify-center;
+		@apply min-h-[80px] px-unit-4;
+		@apply active:opacity-80 transition-opacity;
+	}
+
+	.profile-card {
+		@apply kiosk-card flex flex-col items-center justify-center;
+		@apply min-h-[200px] cursor-pointer;
+		@apply active:scale-95 transition-transform;
+	}
+
+	.caretaker-card {
+		@apply kiosk-card flex items-center gap-unit-3;
+		@apply min-h-[100px] cursor-pointer;
+		@apply active:scale-95 transition-transform;
+	}
+}
