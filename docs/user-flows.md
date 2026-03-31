@@ -303,18 +303,19 @@ From the profile detail page (`/profiles/:id`):
 4. Portal WebSocket sends `call:initiate` message to backend
 5. Local camera/microphone permission prompt appears (first time only)
 6. Full-screen CallModal appears with call status
-7. Call state transitions: initiating → ringing (waiting for device to accept)
+7. Call state machine transitions: idle → initiating → signaling.waitingForAccept (ringing)
 8. CallModal shows "Calling {deviceName}..." with animated spinner during initiating
-9. CallModal shows "Ringing..." during ringing state
+9. CallModal shows "Ringing..." during signaling.waitingForAccept state
 10. Backend forwards signaling to device via WebSocket
-11. Device accepts call → Portal receives `call:accepted` and creates SDP offer
-12. CallModal shows "Connecting..." while WebRTC negotiation occurs
-13. WebRTC peer connection established → Call state becomes connected
-14. CallModal displays remote video stream from device (full screen) and local video preview (picture-in-picture corner)
-15. Controls available: mute/unmute audio (M key), toggle video (V key), end call (Escape key)
-16. Call duration counter displays in MM:SS format in status bar
-17. Tap "End Call" button or press Escape → WebSocket sends `call:ended`, connection closes, modal closes
-18. If call fails or is declined, error message displays with "Try Again" (if retryable) or "Close" button
-19. If device is offline, Call button is disabled (grayed out)
-20. If a call is already in progress, Call button is disabled
-21. Alternative from profile detail: tap "📞 Call" on device card in Profile Overview tab to initiate call
+11. Device accepts call → Portal state machine transitions to signaling.creatingOffer and creates SDP offer
+12. After offer sent, state transitions to signaling.exchangingIce then connecting
+13. CallModal shows "Connecting..." during connecting state while ICE negotiation occurs
+14. ICE connection established → State machine transitions to connected
+15. CallModal displays remote video stream from device (full screen) and local video preview (picture-in-picture corner)
+16. Controls available: mute/unmute audio (M key), toggle video (V key), end call (Escape key)
+17. Call duration counter displays in MM:SS format in status bar
+18. Tap "End Call" button or press Escape → State machine transitions to ending, WebSocket sends `call:ended`, connection closes, modal closes
+19. If call fails or is declined, state transitions to failed, error message displays with "Try Again" (if retryable) or "Close" button
+20. If device is offline, Call button is disabled (grayed out)
+21. If a call is already in progress, Call button is disabled
+22. Alternative from profile detail: tap "📞 Call" on device card in Profile Overview tab to initiate call

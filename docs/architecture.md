@@ -12,7 +12,7 @@
 | Auth               | Email + OTP (Nodemailer + Gmail SMTP)                             | Passwordless email login without third-party auth service                                                                                                                        |
 | File Storage       | TBD                                                               | To be decided in a future phase                                                                                                                                                  |
 | Real-time          | WebSockets (custom)                                               | Tablet push, device status, call signaling                                                                                                                                       |
-| Video Calling      | WebRTC (PeerJS or LiveKit)                                        | Peer-to-peer video, minimal server cost                                                                                                                                          |
+| Video Calling      | WebRTC + @datnguyen1215/hsmjs                                     | Peer-to-peer video with hierarchical state machines for call lifecycle management                                                                                                |
 | Push Notifications | Firebase Cloud Messaging (FCM)                                    | High-priority data messages for call notifications; reliable delivery even when app is closed                                                                                    |
 | Native App Shell   | Capacitor                                                         | Wraps SvelteKit web app in native Android shell for both caretaker phones and elderly tablets; enables native push, full-screen call intent, foreground services, lock task mode |
 | OTA Updates        | Capgo (self-hosted)                                               | Over-the-air web bundle updates for all Capacitor apps; no manual APK reinstall for UI/logic changes                                                                             |
@@ -356,7 +356,8 @@ The kiosk operates as the callee (receiver) in all video calls:
 
 - `packages/kiosk/src/lib/services/webrtc.ts` — WebRTC manager for peer connections, SDP handling, ICE candidate exchange, and media stream management
 - `packages/kiosk/src/lib/services/websocket.ts` — Extended with call signaling message handlers and methods to send call responses
-- `packages/kiosk/src/lib/stores/call.ts` — Svelte 5 runes-based call state store managing call lifecycle (idle → incoming → connecting → connected → ended), duration tracking, and race condition guards
+- `packages/kiosk/src/lib/stores/call.ts` — Call state store using hierarchical state machine for lifecycle management
+- `packages/shared/src/webrtc/call-state-machine.ts` — Shared state machine configuration, event definitions, and context types
 
 **Portal WebRTC Implementation:**
 
@@ -374,8 +375,13 @@ The portal operates as the caller (initiator) in all video calls:
 
 **Call State Store (`packages/portal/src/lib/stores/call.ts`):**
 
-- Svelte 5 runes-based reactive store for UI state management
-- Call status tracking: idle → initiating → ringing → connecting → connected → ended/failed
+- Call state store using hierarchical state machine for lifecycle management
+- State flow: idle → initiating → signaling → connecting → connected → ending/failed → idle
+- Signaling sub-states ensure proper sequencing (waitingForAccept → creatingOffer → exchangingIce)
+- Guards prevent invalid transitions (e.g., sending ICE candidates before peer connection exists)
+- All state transitions logged with timestamps for debugging
+- Call only marked "connected" when ICE connection actually established
+- Pending ICE candidates queued and flushed when appropriate
 - Local and remote stream management
 - Call duration counter (updates every second when connected)
 - Mute and video toggle controls
@@ -397,6 +403,48 @@ The portal operates as the caller (initiator) in all video calls:
   - End call button (red background, Escape key)
   - Controls disabled during initiating/connecting states
   - Integrated into device detail page (`/devices/[id]`) via CallModal
+
+**Call State Machine (`packages/shared/src/webrtc/call-state-machine.ts`):**
+
+Both Portal and Kiosk use hierarchical state machines (via `@datnguyen1215/hsmjs`) for call lifecycle management:
+
+**State Flow:**
+
+- Top-level states: `idle → initiating → signaling → connecting → connected → ending → idle`
+- Failed states branch from `connecting` or `connected` to `failed → idle`
+
+**Signaling Sub-States:**
+
+- Caller (Portal): `waitingForAccept → creatingOffer → exchangingIce`
+- Callee (Kiosk): `incoming → waitingForOffer → creatingAnswer → exchangingIce`
+
+**Key Guards:**
+
+- Cannot send ICE candidates unless in `signaling` or `connecting` state
+- Cannot create offer unless peer connection exists and local stream attached
+- Cannot transition to `connected` unless ICE connection state is `connected`
+- Cannot accept call unless in `incoming` state
+- ICE candidates received before peer connection ready are queued in `pendingIceCandidates` and flushed when entering `connecting` state
+
+**Logging:**
+
+- All state transitions logged with format: `[Call:TIMESTAMP] oldState → newState (trigger: eventName)`
+- WebRTC events logged: ICE state changes, connection state changes, SDP offer/answer
+- Signaling messages logged: sent/received with direction and type
+
+**Events:**
+
+- User actions: `INITIATE`, `ACCEPT`, `DECLINE`, `END`, `CANCEL`
+- Signaling: `INCOMING_CALL`, `CALL_ACCEPTED`, `CALL_DECLINED`, `CALL_ENDED`, `CALL_ERROR`
+- SDP: `OFFER_CREATED`, `OFFER_RECEIVED`, `ANSWER_CREATED`, `ANSWER_RECEIVED`
+- ICE: `ICE_CANDIDATE`, `ICE_CONNECTED`, `ICE_DISCONNECTED`, `ICE_FAILED`
+- Media: `LOCAL_STREAM_READY`, `REMOTE_STREAM_READY`, `MEDIA_ERROR`
+- Internal: `CLEANUP_COMPLETE`
+
+**Context:**
+
+- Shared context between Portal and Kiosk includes: `callId`, `targetDeviceId`, `caller`, `profileId`, `localStream`, `remoteStream`, `startedAt`, `duration`, `error`, `endReason`, `isMuted`, `isVideoOff`, `pendingIceCandidates`
+- Context is reset to initial state when returning to `idle` after cleanup
 
 ### Capacitor Native Apps
 

@@ -8,5 +8,9 @@ export default defineConfig({
 		proxy: {
 			'/api': 'http://localhost:9391'
 		}
+	},
+	ssr: {
+		// Externalize @carehub/shared to avoid issues with commonjs re-exports
+		noExternal: ['@carehub/shared']
 	}
 });

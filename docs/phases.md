@@ -91,11 +91,14 @@ Enable the tablet kiosk experience, Capacitor mobile app, and real-time communic
 - [x] **Portal WebSocket client** -- Real-time signaling connection with JWT auth (`/ws?jwt={token}`)
 - [x] **Auto-reconnect** -- Exponential backoff (1s → 2s → 4s → max 30s), auth failure handling
 - [x] **WebRTC peer manager** -- Local media (720p, echo cancel), SDP negotiation, ICE gathering
-- [x] **Call state store** -- Svelte 5 runes-based store with reactive UI state
+- [x] **Call state machine** -- Hierarchical state machine (@datnguyen1215/hsmjs) with guards, logging, and ICE candidate queueing
+- [x] **Call state store** -- State machine-based store with reactive UI state mapping
 - [x] **Call actions** -- `initiateCall()`, `endCall()`, `toggleMute()`, `toggleVideo()`
 - [x] **Signaling integration** -- WebSocket message routing, ICE candidate exchange
 - [x] **Error handling** -- getUserMedia errors, ICE failure detection, WebSocket disconnect
 - [x] **Layout integration** -- WebSocket connects on app mount, handlers auto-initialized
+- [x] **State machine guards** -- Prevent invalid transitions, queue ICE candidates before peer connection ready
+- [x] **Debug logging** -- All state transitions and WebRTC events logged with timestamps
 
 **Planned:**
 
