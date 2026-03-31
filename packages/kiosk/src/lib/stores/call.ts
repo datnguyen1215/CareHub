@@ -1,6 +1,13 @@
 /** Call state store for managing video call lifecycle. Uses Svelte 5 runes. */
 
-import type { CallParticipant, CallEndReason, CallIncomingMessage, CallOfferMessage, IceCandidateMessage, CallEndedMessage } from '@carehub/shared'
+import type {
+	CallParticipant,
+	CallEndReason,
+	CallIncomingMessage,
+	CallOfferMessage,
+	IceCandidateMessage,
+	CallEndedMessage
+} from '@carehub/shared';
 import {
 	setCallHandlers,
 	sendCallAccepted,
@@ -8,24 +15,24 @@ import {
 	sendCallAnswer,
 	sendIceCandidate,
 	sendCallEnded
-} from '$lib/services/websocket'
-import * as webrtc from '$lib/services/webrtc'
+} from '$lib/services/websocket';
+import * as webrtc from '$lib/services/webrtc';
 
 /** Call status values */
-export type CallStatus = 'idle' | 'incoming' | 'connecting' | 'connected' | 'ended'
+export type CallStatus = 'idle' | 'incoming' | 'connecting' | 'connected' | 'ended';
 
 /** Call state structure */
 export interface CallState {
-	status: CallStatus
-	callId: string | null
-	caller: CallParticipant | null
-	profileId: string | null
-	localStream: MediaStream | null
-	remoteStream: MediaStream | null
-	connectedAt: Date | null
-	duration: number
-	error: string | null
-	endReason: CallEndReason | null
+	status: CallStatus;
+	callId: string | null;
+	caller: CallParticipant | null;
+	profileId: string | null;
+	localStream: MediaStream | null;
+	remoteStream: MediaStream | null;
+	connectedAt: Date | null;
+	duration: number;
+	error: string | null;
+	endReason: CallEndReason | null;
 }
 
 /** Initial call state */
@@ -40,20 +47,20 @@ const initialState: CallState = {
 	duration: 0,
 	error: null,
 	endReason: null
-}
+};
 
 /** Reactive call state using Svelte 5 runes */
-let callState = $state<CallState>({ ...initialState })
+let callState = $state<CallState>({ ...initialState });
 
 /** Duration timer interval */
-let durationTimer: ReturnType<typeof setInterval> | null = null
+let durationTimer: ReturnType<typeof setInterval> | null = null;
 
 /**
  * Get current call state.
  * @returns {CallState} Current call state
  */
 export function getCallState(): CallState {
-	return callState
+	return callState;
 }
 
 /**
@@ -63,16 +70,16 @@ export function getCallState(): CallState {
 function handleIncomingCall(message: CallIncomingMessage): void {
 	// Ignore if already in a call
 	if (callState.status !== 'idle') {
-		console.warn('Ignoring incoming call: already in call')
-		return
+		console.warn('Ignoring incoming call: already in call');
+		return;
 	}
 
-	callState.status = 'incoming'
-	callState.callId = message.callId
-	callState.caller = message.caller
-	callState.profileId = message.profileId
-	callState.error = null
-	callState.endReason = null
+	callState.status = 'incoming';
+	callState.callId = message.callId;
+	callState.caller = message.caller;
+	callState.profileId = message.profileId;
+	callState.error = null;
+	callState.endReason = null;
 }
 
 /**
@@ -81,18 +88,24 @@ function handleIncomingCall(message: CallIncomingMessage): void {
  */
 async function handleCallOffer(message: CallOfferMessage): Promise<void> {
 	if (callState.callId !== message.callId) {
-		console.warn('Ignoring offer for different call')
-		return
+		console.warn('Ignoring offer for different call');
+		return;
+	}
+
+	// Guard against offer arriving after call ended (network reordering)
+	if (callState.status !== 'connecting') {
+		console.warn('Ignoring offer: call not in connecting state');
+		return;
 	}
 
 	try {
-		await webrtc.handleOffer(message.sdp)
-		const answerSdp = await webrtc.createAnswer()
-		sendCallAnswer(message.callId, answerSdp)
+		await webrtc.handleOffer(message.sdp);
+		const answerSdp = await webrtc.createAnswer();
+		sendCallAnswer(message.callId, answerSdp);
 	} catch (err) {
-		console.error('Failed to handle offer:', err)
-		callState.error = 'Failed to establish connection'
-		endCallInternal()
+		console.error('Failed to handle offer:', err);
+		callState.error = 'Failed to establish connection';
+		endCallInternal();
 	}
 }
 
@@ -101,10 +114,15 @@ async function handleCallOffer(message: CallOfferMessage): Promise<void> {
  */
 async function handleIceCandidate(message: IceCandidateMessage): Promise<void> {
 	if (callState.callId !== message.callId) {
-		return
+		return;
 	}
 
-	await webrtc.addIceCandidate(message.candidate)
+	// Guard against ICE candidates arriving after call ended
+	if (callState.status !== 'connecting' && callState.status !== 'connected') {
+		return;
+	}
+
+	await webrtc.addIceCandidate(message.candidate);
 }
 
 /**
@@ -112,12 +130,12 @@ async function handleIceCandidate(message: IceCandidateMessage): Promise<void> {
  */
 function handleCallEnded(message: CallEndedMessage): void {
 	if (callState.callId !== message.callId) {
-		return
+		return;
 	}
 
-	callState.endReason = message.reason
-	callState.status = 'ended'
-	cleanup()
+	callState.endReason = message.reason;
+	callState.status = 'ended';
+	cleanup();
 }
 
 /**
@@ -126,53 +144,61 @@ function handleCallEnded(message: CallEndedMessage): void {
  */
 export async function acceptCall(): Promise<void> {
 	if (callState.status !== 'incoming' || !callState.callId) {
-		console.warn('Cannot accept: no incoming call')
-		return
+		console.warn('Cannot accept: no incoming call');
+		return;
 	}
 
-	callState.status = 'connecting'
-	callState.error = null
+	callState.status = 'connecting';
+	callState.error = null;
 
 	try {
 		// Create peer connection first
-		webrtc.createPeerConnection()
+		webrtc.createPeerConnection();
 
 		// Set up ICE candidate handler
 		webrtc.onIceCandidate((candidate) => {
 			if (callState.callId) {
-				sendIceCandidate(callState.callId, candidate)
+				sendIceCandidate(callState.callId, candidate);
 			}
-		})
+		});
 
 		// Set up remote track handler
 		webrtc.onTrack((stream) => {
-			callState.remoteStream = stream
-		})
+			callState.remoteStream = stream;
+		});
 
 		// Monitor connection state
 		webrtc.onConnectionStateChange((state) => {
 			if (state === 'connected') {
-				callState.status = 'connected'
-				callState.connectedAt = new Date()
-				startDurationTimer()
+				callState.status = 'connected';
+				callState.connectedAt = new Date();
+				startDurationTimer();
 			} else if (state === 'failed' || state === 'disconnected') {
-				callState.error = 'Connection lost'
-				endCallInternal()
+				callState.error = 'Connection lost';
+				endCallInternal();
 			}
-		})
+		});
 
 		// Get local media stream
-		const stream = await webrtc.getLocalStream()
-		callState.localStream = stream
+		const stream = await webrtc.getLocalStream();
+
+		// Check if call was ended while awaiting media permissions
+		if (callState.status !== 'connecting') {
+			// Call ended during await, clean up the stream
+			stream.getTracks().forEach((track) => track.stop());
+			return;
+		}
+
+		callState.localStream = stream;
 
 		// Notify server we accepted
-		sendCallAccepted(callState.callId)
+		sendCallAccepted(callState.callId);
 	} catch (err) {
-		const error = err as Error
-		console.error('Failed to accept call:', error)
-		callState.error = error.message || 'Failed to start video'
-		callState.status = 'ended'
-		cleanup()
+		const error = err as Error;
+		console.error('Failed to accept call:', error);
+		callState.error = error.message || 'Failed to start video';
+		callState.status = 'ended';
+		cleanup();
 	}
 }
 
@@ -182,13 +208,13 @@ export async function acceptCall(): Promise<void> {
  */
 export function declineCall(): void {
 	if (!callState.callId) {
-		return
+		return;
 	}
 
-	sendCallDeclined(callState.callId)
-	callState.endReason = 'declined'
-	callState.status = 'ended'
-	cleanup()
+	sendCallDeclined(callState.callId);
+	callState.endReason = 'declined';
+	callState.status = 'ended';
+	cleanup();
 }
 
 /**
@@ -197,13 +223,13 @@ export function declineCall(): void {
  */
 export function endCall(): void {
 	if (!callState.callId) {
-		return
+		return;
 	}
 
-	sendCallEnded(callState.callId)
-	callState.endReason = 'completed'
-	callState.status = 'ended'
-	cleanup()
+	sendCallEnded(callState.callId);
+	callState.endReason = 'completed';
+	callState.status = 'ended';
+	cleanup();
 }
 
 /**
@@ -211,8 +237,8 @@ export function endCall(): void {
  * Used when caller ends or on error.
  */
 function endCallInternal(): void {
-	callState.status = 'ended'
-	cleanup()
+	callState.status = 'ended';
+	cleanup();
 }
 
 /**
@@ -220,7 +246,8 @@ function endCallInternal(): void {
  * Call this after showing "call ended" UI.
  */
 export function resetCallState(): void {
-	callState = { ...initialState }
+	stopDurationTimer();
+	callState = { ...initialState };
 }
 
 /**
@@ -228,12 +255,12 @@ export function resetCallState(): void {
  * Increments duration every second while connected.
  */
 function startDurationTimer(): void {
-	stopDurationTimer()
+	stopDurationTimer();
 	durationTimer = setInterval(() => {
 		if (callState.status === 'connected') {
-			callState.duration += 1
+			callState.duration += 1;
 		}
-	}, 1000)
+	}, 1000);
 }
 
 /**
@@ -241,8 +268,8 @@ function startDurationTimer(): void {
  */
 function stopDurationTimer(): void {
 	if (durationTimer) {
-		clearInterval(durationTimer)
-		durationTimer = null
+		clearInterval(durationTimer);
+		durationTimer = null;
 	}
 }
 
@@ -250,8 +277,8 @@ function stopDurationTimer(): void {
  * Clean up call resources.
  */
 function cleanup(): void {
-	stopDurationTimer()
-	webrtc.cleanup()
+	stopDurationTimer();
+	webrtc.cleanup();
 }
 
 /**
@@ -265,11 +292,11 @@ export function initCallStore(): void {
 		onIceCandidate: handleIceCandidate,
 		onCallEnded: handleCallEnded,
 		onCallError: (message) => {
-			console.error('Call error:', message.error)
-			callState.error = message.error
-			endCallInternal()
+			console.error('Call error:', message.error);
+			callState.error = message.error;
+			endCallInternal();
 		}
-	})
+	});
 }
 
 /**
@@ -278,7 +305,7 @@ export function initCallStore(): void {
  * @returns {string} Formatted duration
  */
 export function formatDuration(seconds: number): string {
-	const mins = Math.floor(seconds / 60)
-	const secs = seconds % 60
-	return `${mins}:${secs.toString().padStart(2, '0')}`
+	const mins = Math.floor(seconds / 60);
+	const secs = seconds % 60;
+	return `${mins}:${secs.toString().padStart(2, '0')}`;
 }
