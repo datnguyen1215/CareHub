@@ -3,9 +3,9 @@
  * Manages call lifecycle, media streams, and UI state.
  */
 
-import type { SignalingMessage, CallEndReason } from '@carehub/shared'
-import * as websocket from '$lib/services/websocket'
-import * as webrtc from '$lib/services/webrtc'
+import type { SignalingMessage, CallEndReason } from '@carehub/shared';
+import * as websocket from '$lib/services/websocket';
+import * as webrtc from '$lib/services/webrtc';
 
 /** Call status representing the call lifecycle */
 export type CallStatusType =
@@ -15,21 +15,21 @@ export type CallStatusType =
 	| 'connecting'
 	| 'connected'
 	| 'ended'
-	| 'failed'
+	| 'failed';
 
 /** Call state structure */
 export interface CallState {
-	status: CallStatusType
-	sessionId: string | null
-	targetDeviceId: string | null
-	targetDeviceName: string | null
-	localStream: MediaStream | null
-	remoteStream: MediaStream | null
-	startedAt: Date | null
-	duration: number
-	error: string | null
-	isMuted: boolean
-	isVideoOff: boolean
+	status: CallStatusType;
+	sessionId: string | null;
+	targetDeviceId: string | null;
+	targetDeviceName: string | null;
+	localStream: MediaStream | null;
+	remoteStream: MediaStream | null;
+	startedAt: Date | null;
+	duration: number;
+	error: string | null;
+	isMuted: boolean;
+	isVideoOff: boolean;
 }
 
 /** Initial call state */
@@ -45,25 +45,25 @@ const initialState: CallState = {
 	error: null,
 	isMuted: false,
 	isVideoOff: false
-}
+};
 
 /** Reactive call state using Svelte 5 runes */
-export const callState = $state<CallState>({ ...initialState })
+export const callState = $state<CallState>({ ...initialState });
 
 /** Duration timer interval ID */
-let durationIntervalId: ReturnType<typeof setInterval> | null = null
+let durationIntervalId: ReturnType<typeof setInterval> | null = null;
 
 /**
  * Updates the duration counter every second when connected.
  */
 function startDurationTimer(): void {
-	if (durationIntervalId) return
+	if (durationIntervalId) return;
 
 	durationIntervalId = setInterval(() => {
 		if (callState.status === 'connected' && callState.startedAt) {
-			callState.duration = Math.floor((Date.now() - callState.startedAt.getTime()) / 1000)
+			callState.duration = Math.floor((Date.now() - callState.startedAt.getTime()) / 1000);
 		}
-	}, 1000)
+	}, 1000);
 }
 
 /**
@@ -71,8 +71,8 @@ function startDurationTimer(): void {
  */
 function stopDurationTimer(): void {
 	if (durationIntervalId) {
-		clearInterval(durationIntervalId)
-		durationIntervalId = null
+		clearInterval(durationIntervalId);
+		durationIntervalId = null;
 	}
 }
 
@@ -80,8 +80,8 @@ function stopDurationTimer(): void {
  * Resets call state to initial values.
  */
 function resetState(): void {
-	stopDurationTimer()
-	Object.assign(callState, { ...initialState })
+	stopDurationTimer();
+	Object.assign(callState, { ...initialState });
 }
 
 /**
@@ -93,36 +93,45 @@ function resetState(): void {
 export async function initiateCall(deviceId: string, deviceName: string): Promise<void> {
 	try {
 		// Reset any previous call state
-		resetState()
+		resetState();
 
-		callState.status = 'initiating'
-		callState.targetDeviceId = deviceId
-		callState.targetDeviceName = deviceName
+		callState.status = 'initiating';
+		callState.targetDeviceId = deviceId;
+		callState.targetDeviceName = deviceName;
 
 		// Get local media stream
-		const stream = await webrtc.getLocalStream()
-		callState.localStream = stream
+		const stream = await webrtc.getLocalStream();
+		callState.localStream = stream;
 
 		// Create peer connection with local stream
-		webrtc.createPeerConnection()
+		webrtc.createPeerConnection();
 
 		// Generate call ID
-		const callId = crypto.randomUUID()
-		callState.sessionId = callId
+		const callId = crypto.randomUUID();
+		callState.sessionId = callId;
 
 		// Send call initiation
-		websocket.send({
+		const sent = websocket.send({
 			type: 'call:initiate',
 			callId,
 			deviceId,
 			profileId: null
-		})
+		});
 
-		callState.status = 'ringing'
+		if (!sent) {
+			// WebSocket not connected - clean up and fail
+			webrtc.stopLocalStream();
+			webrtc.closePeerConnection();
+			callState.status = 'failed';
+			callState.error = 'Unable to connect. Please check your internet connection and try again.';
+			return;
+		}
+
+		callState.status = 'ringing';
 	} catch (err) {
-		const error = err as Error
-		callState.status = 'failed'
-		callState.error = error.message
+		const error = err as Error;
+		callState.status = 'failed';
+		callState.error = error.message;
 	}
 }
 
@@ -136,31 +145,31 @@ export function endCall(reason: CallEndReason = 'completed'): void {
 			type: 'call:ended',
 			callId: callState.sessionId,
 			reason
-		})
+		});
 	}
 
 	// Clean up WebRTC
-	webrtc.stopLocalStream()
-	webrtc.closePeerConnection()
+	webrtc.stopLocalStream();
+	webrtc.closePeerConnection();
 
 	// Reset state
-	resetState()
+	resetState();
 }
 
 /**
  * Toggles local audio mute state.
  */
 export function toggleMute(): void {
-	callState.isMuted = !callState.isMuted
-	webrtc.setAudioEnabled(!callState.isMuted)
+	callState.isMuted = !callState.isMuted;
+	webrtc.setAudioEnabled(!callState.isMuted);
 }
 
 /**
  * Toggles local video on/off.
  */
 export function toggleVideo(): void {
-	callState.isVideoOff = !callState.isVideoOff
-	webrtc.setVideoEnabled(!callState.isVideoOff)
+	callState.isVideoOff = !callState.isVideoOff;
+	webrtc.setVideoEnabled(!callState.isVideoOff);
 }
 
 /**
@@ -171,33 +180,33 @@ export function toggleVideo(): void {
 export async function handleIncomingSignal(message: SignalingMessage): Promise<void> {
 	// Ignore messages for other calls
 	if ('callId' in message && message.callId !== callState.sessionId) {
-		return
+		return;
 	}
 
 	switch (message.type) {
 		case 'call:accepted':
-			await handleCallAccepted()
-			break
+			await handleCallAccepted();
+			break;
 
 		case 'call:declined':
-			handleCallDeclined()
-			break
+			handleCallDeclined();
+			break;
 
 		case 'call:ended':
-			handleCallEnded(message.reason)
-			break
+			handleCallEnded(message.reason);
+			break;
 
 		case 'call:answer':
-			await handleAnswer(message.sdp)
-			break
+			await handleAnswer(message.sdp);
+			break;
 
 		case 'call:ice-candidate':
-			await webrtc.addIceCandidate(message.candidate)
-			break
+			await webrtc.addIceCandidate(message.candidate);
+			break;
 
 		case 'call:error':
-			handleCallError(message.error)
-			break
+			handleCallError(message.error);
+			break;
 	}
 }
 
@@ -206,22 +215,22 @@ export async function handleIncomingSignal(message: SignalingMessage): Promise<v
  */
 async function handleCallAccepted(): Promise<void> {
 	try {
-		callState.status = 'connecting'
+		callState.status = 'connecting';
 
 		// Create and send offer
-		const sdp = await webrtc.createOffer()
+		const sdp = await webrtc.createOffer();
 
 		if (callState.sessionId) {
 			websocket.send({
 				type: 'call:offer',
 				callId: callState.sessionId,
 				sdp
-			})
+			});
 		}
 	} catch (err) {
-		const error = err as Error
-		callState.status = 'failed'
-		callState.error = error.message
+		const error = err as Error;
+		callState.status = 'failed';
+		callState.error = error.message;
 	}
 }
 
@@ -229,21 +238,21 @@ async function handleCallAccepted(): Promise<void> {
  * Handles call declined by device.
  */
 function handleCallDeclined(): void {
-	webrtc.stopLocalStream()
-	webrtc.closePeerConnection()
+	webrtc.stopLocalStream();
+	webrtc.closePeerConnection();
 
-	callState.status = 'ended'
-	callState.error = 'Call was declined'
+	callState.status = 'ended';
+	callState.error = 'Call was declined';
 }
 
 /**
  * Handles call ended by remote party.
  */
 function handleCallEnded(_reason: CallEndReason): void {
-	webrtc.stopLocalStream()
-	webrtc.closePeerConnection()
+	webrtc.stopLocalStream();
+	webrtc.closePeerConnection();
 
-	resetState()
+	resetState();
 }
 
 /**
@@ -251,14 +260,14 @@ function handleCallEnded(_reason: CallEndReason): void {
  */
 async function handleAnswer(sdp: string): Promise<void> {
 	try {
-		await webrtc.handleAnswer(sdp)
-		callState.status = 'connected'
-		callState.startedAt = new Date()
-		startDurationTimer()
+		await webrtc.handleAnswer(sdp);
+		callState.status = 'connected';
+		callState.startedAt = new Date();
+		startDurationTimer();
 	} catch (err) {
-		const error = err as Error
-		callState.status = 'failed'
-		callState.error = error.message
+		const error = err as Error;
+		callState.status = 'failed';
+		callState.error = error.message;
 	}
 }
 
@@ -266,11 +275,11 @@ async function handleAnswer(sdp: string): Promise<void> {
  * Handles call error from backend.
  */
 function handleCallError(error: string): void {
-	webrtc.stopLocalStream()
-	webrtc.closePeerConnection()
+	webrtc.stopLocalStream();
+	webrtc.closePeerConnection();
 
-	callState.status = 'failed'
-	callState.error = error
+	callState.status = 'failed';
+	callState.error = error;
 }
 
 /**
@@ -280,25 +289,25 @@ function handleCallError(error: string): void {
 export function initializeCallHandlers(): () => void {
 	// Handle remote track arrival
 	const unsubTrack = webrtc.onTrack((stream) => {
-		callState.remoteStream = stream
-	})
+		callState.remoteStream = stream;
+	});
 
 	// Handle ICE connection state changes
 	const unsubState = webrtc.onConnectionStateChange((state) => {
 		if (state === 'connected') {
 			if (callState.status !== 'connected') {
-				callState.status = 'connected'
-				callState.startedAt = new Date()
-				startDurationTimer()
+				callState.status = 'connected';
+				callState.startedAt = new Date();
+				startDurationTimer();
 			}
 		} else if (state === 'disconnected' || state === 'failed') {
 			if (callState.status === 'connected') {
-				callState.status = 'failed'
-				callState.error = 'Connection lost'
-				stopDurationTimer()
+				callState.status = 'failed';
+				callState.error = 'Connection lost';
+				stopDurationTimer();
 			}
 		}
-	})
+	});
 
 	// Handle ICE candidates - send to remote
 	const unsubIce = webrtc.onIceCandidate((candidate) => {
@@ -307,32 +316,32 @@ export function initializeCallHandlers(): () => void {
 				type: 'call:ice-candidate',
 				callId: callState.sessionId,
 				candidate
-			})
+			});
 		}
-	})
+	});
 
 	// Handle WebRTC errors
 	const unsubError = webrtc.onError((error) => {
-		callState.error = error
+		callState.error = error;
 		if (callState.status === 'initiating' || callState.status === 'ringing') {
-			callState.status = 'failed'
+			callState.status = 'failed';
 		}
-	})
+	});
 
 	// Handle WebSocket messages
 	const unsubMessage = websocket.onMessage((message) => {
-		handleIncomingSignal(message)
-	})
+		handleIncomingSignal(message);
+	});
 
 	// Return cleanup function
 	return () => {
-		unsubTrack()
-		unsubState()
-		unsubIce()
-		unsubError()
-		unsubMessage()
-		stopDurationTimer()
-	}
+		unsubTrack();
+		unsubState();
+		unsubIce();
+		unsubError();
+		unsubMessage();
+		stopDurationTimer();
+	};
 }
 
 // Derived state getters
@@ -341,21 +350,21 @@ export function initializeCallHandlers(): () => void {
  * Returns true if call is active (connecting or connected).
  */
 export function isCallActive(): boolean {
-	return callState.status === 'connecting' || callState.status === 'connected'
+	return callState.status === 'connecting' || callState.status === 'connected';
 }
 
 /**
  * Returns true if call can be ended (not idle or already ended).
  */
 export function canEndCall(): boolean {
-	return callState.status !== 'idle' && callState.status !== 'ended'
+	return callState.status !== 'idle' && callState.status !== 'ended';
 }
 
 /**
  * Returns duration formatted as MM:SS.
  */
 export function formattedDuration(): string {
-	const minutes = Math.floor(callState.duration / 60)
-	const seconds = callState.duration % 60
-	return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
+	const minutes = Math.floor(callState.duration / 60);
+	const seconds = callState.duration % 60;
+	return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
 }

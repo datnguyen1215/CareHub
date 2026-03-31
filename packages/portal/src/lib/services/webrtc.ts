@@ -5,7 +5,10 @@
 
 import type { IceCandidate } from '@carehub/shared';
 
-/** Public STUN servers for ICE candidate gathering (matches @carehub/shared constants) */
+/**
+ * Public STUN servers for ICE candidate gathering.
+ * Matches constants in @carehub/shared/webrtc/constants.
+ */
 const ICE_SERVERS: RTCIceServer[] = [
 	{ urls: 'stun:stun.l.google.com:19302' },
 	{ urls: 'stun:stun1.l.google.com:19302' }
@@ -284,10 +287,6 @@ async function waitForIceGathering(): Promise<void> {
 	const pc = peerConnection;
 
 	return new Promise<void>((resolve) => {
-		const timeoutId = setTimeout(() => {
-			resolve();
-		}, ICE_GATHERING_TIMEOUT_MS);
-
 		const checkState = () => {
 			if (pc.iceGatheringState === 'complete') {
 				clearTimeout(timeoutId);
@@ -295,6 +294,11 @@ async function waitForIceGathering(): Promise<void> {
 				resolve();
 			}
 		};
+
+		const timeoutId = setTimeout(() => {
+			pc.removeEventListener('icegatheringstatechange', checkState);
+			resolve();
+		}, ICE_GATHERING_TIMEOUT_MS);
 
 		pc.addEventListener('icegatheringstatechange', checkState);
 	});
