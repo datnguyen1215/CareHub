@@ -2,7 +2,7 @@
 import { WebSocket } from 'ws'
 import jwt from 'jsonwebtoken'
 import { logger } from '../../services/logger'
-import { addClient, removeClient, broadcastToDevice } from '../clients'
+import { addClient, removeClient, broadcastToDevice, getUserClients } from '../clients'
 import type { UserMessage } from '../types'
 import { handleCallMessage } from './call'
 import { getActiveCallForUser, markCallFailed } from '../../services/call'
@@ -30,10 +30,7 @@ export const verifyUserToken = (token: string): JwtPayload | null => {
 /**
  * Handle new user WebSocket connection.
  */
-export const handleUserConnection = (
-  ws: WebSocket,
-  userId: string
-): void => {
+export const handleUserConnection = (ws: WebSocket, userId: string): void => {
   logger.info({ userId }, 'User connected via WebSocket')
 
   // Add to client registry (supports multiple tabs)
@@ -54,7 +51,10 @@ export const handleUserConnection = (
           break
 
         default:
-          logger.warn({ userId, type: (message as { type: string }).type }, 'Unknown message type from user')
+          logger.warn(
+            { userId, type: (message as { type: string }).type },
+            'Unknown message type from user'
+          )
       }
     } catch (err) {
       logger.error({ err, userId }, 'Error processing user message')
@@ -65,6 +65,16 @@ export const handleUserConnection = (
   ws.on('close', async () => {
     removeClient('user', userId, ws)
     logger.info({ userId }, 'User disconnected')
+
+    // Only end active calls if user has no remaining connections (all tabs closed)
+    const remainingConnections = getUserClients(userId)
+    if (remainingConnections.length > 0) {
+      logger.debug(
+        { userId, remaining: remainingConnections.length },
+        'User still has active connections'
+      )
+      return
+    }
 
     // Handle any active calls (mark as failed)
     const activeCall = await getActiveCallForUser(userId)

@@ -3,16 +3,14 @@ import { WebSocket } from 'ws'
 import { RING_TIMEOUT_MS } from '@carehub/shared'
 import { logger } from '../../services/logger'
 import {
-  createCallSession,
   updateCallStatus,
   endCall,
-  getActiveCallForDevice,
-  getActiveCallForUser,
   validateCallPermission,
   getCallerInfo,
   startRingTimeout,
   clearRingTimeout,
   getCallSession,
+  tryCreateCallSession,
 } from '../../services/call'
 import { broadcastToDevice, broadcastToUser, isDeviceConnected } from '../clients'
 import type { ClientType } from '../clients'
@@ -85,36 +83,33 @@ const handleCallInitiate = async (
   // Validate user has access to device
   const hasPermission = await validateCallPermission(userId, deviceId)
   if (!hasPermission) {
-    sendError(ws, message.callId, 'You do not have permission to call this device')
+    sendError(ws, undefined, 'You do not have permission to call this device')
     return
   }
 
   // Check device is online
   if (!isDeviceConnected(deviceId)) {
-    sendError(ws, message.callId, 'Device is offline')
+    sendError(ws, undefined, 'Device is offline')
     return
   }
 
-  // Check no active call on device
-  const existingDeviceCall = await getActiveCallForDevice(deviceId)
-  if (existingDeviceCall) {
-    sendError(ws, message.callId, 'Device is busy with another call')
-    return
-  }
-
-  // Check user doesn't have an active call from another tab
-  const existingUserCall = await getActiveCallForUser(userId)
-  if (existingUserCall) {
-    sendError(ws, message.callId, 'You already have an active call')
-    return
-  }
-
-  // Create call session
-  const session = await createCallSession({
+  // Atomically check for existing calls and create session (prevents TOCTOU race)
+  const result = await tryCreateCallSession({
     callerUserId: userId,
     calleeDeviceId: deviceId,
     profileId,
   })
+
+  if (!result.success) {
+    const errorMsg =
+      result.error === 'device_busy'
+        ? 'Device is busy with another call'
+        : 'You already have an active call'
+    sendError(ws, undefined, errorMsg)
+    return
+  }
+
+  const session = result.session
 
   // Get caller info for device display
   const caller = await getCallerInfo(userId)
@@ -395,13 +390,14 @@ const handleIceCandidate = async (
 
 /**
  * Send error message to WebSocket client.
+ * @param callId - Session ID if available, undefined for pre-session errors
  */
-const sendError = (ws: WebSocket, callId: string, error: string): void => {
+const sendError = (ws: WebSocket, callId: string | undefined, error: string): void => {
   if (ws.readyState === WebSocket.OPEN) {
     ws.send(
       JSON.stringify({
         type: 'call:error',
-        callId,
+        ...(callId && { callId }),
         error,
       })
     )

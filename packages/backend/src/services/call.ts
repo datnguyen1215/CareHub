@@ -58,10 +58,7 @@ export const createCallSession = async (
 /**
  * Update call session status.
  */
-export const updateCallStatus = async (
-  sessionId: string,
-  status: CallStatus
-): Promise<void> => {
+export const updateCallStatus = async (sessionId: string, status: CallStatus): Promise<void> => {
   const updates: Record<string, unknown> = { status }
 
   if (status === 'connecting') {
@@ -75,34 +72,36 @@ export const updateCallStatus = async (
 
 /**
  * End a call session with reason.
+ * Uses a transaction to atomically read answeredAt and update the session.
  */
-export const endCall = async (
-  sessionId: string,
-  reason: CallEndReason
-): Promise<void> => {
+export const endCall = async (sessionId: string, reason: CallEndReason): Promise<void> => {
   const endedAt = new Date()
 
-  // Get current session to calculate duration
-  const [session] = await db
-    .select({ answeredAt: callSessions.answered_at })
-    .from(callSessions)
-    .where(eq(callSessions.id, sessionId))
-    .limit(1)
+  const durationSeconds = await db.transaction(async (tx) => {
+    // Get current session to calculate duration (within transaction)
+    const [session] = await tx
+      .select({ answeredAt: callSessions.answered_at })
+      .from(callSessions)
+      .where(eq(callSessions.id, sessionId))
+      .limit(1)
 
-  let durationSeconds: number | null = null
-  if (session?.answeredAt) {
-    durationSeconds = Math.round((endedAt.getTime() - session.answeredAt.getTime()) / 1000)
-  }
+    let duration: number | null = null
+    if (session?.answeredAt) {
+      duration = Math.round((endedAt.getTime() - session.answeredAt.getTime()) / 1000)
+    }
 
-  await db
-    .update(callSessions)
-    .set({
-      status: 'ended',
-      ended_at: endedAt,
-      end_reason: reason,
-      duration_seconds: durationSeconds,
-    })
-    .where(eq(callSessions.id, sessionId))
+    await tx
+      .update(callSessions)
+      .set({
+        status: 'ended',
+        ended_at: endedAt,
+        end_reason: reason,
+        duration_seconds: duration,
+      })
+      .where(eq(callSessions.id, sessionId))
+
+    return duration
+  })
 
   // Clear any pending ring timeout
   clearRingTimeout(sessionId)
@@ -133,9 +132,7 @@ export const getActiveCallForDevice = async (
 /**
  * Get call session by ID.
  */
-export const getCallSession = async (
-  sessionId: string
-): Promise<CallSessionRecord | null> => {
+export const getCallSession = async (sessionId: string): Promise<CallSessionRecord | null> => {
   const [session] = await db
     .select()
     .from(callSessions)
@@ -198,10 +195,11 @@ export const startRingTimeout = (
 ): void => {
   clearRingTimeout(sessionId)
 
-  const timer = setTimeout(async () => {
+  const timer = setTimeout(() => {
     ringTimeouts.delete(sessionId)
-    await handleRingTimeout(sessionId)
-    onTimeout()
+    handleRingTimeout(sessionId)
+      .then(() => onTimeout())
+      .catch((err) => logger.error({ err, callId: sessionId }, 'Error handling ring timeout'))
   }, timeoutMs)
 
   ringTimeouts.set(sessionId, timer)
@@ -243,9 +241,7 @@ export const markCallFailed = async (sessionId: string): Promise<void> => {
 /**
  * Get active call for a user (caller).
  */
-export const getActiveCallForUser = async (
-  userId: string
-): Promise<CallSessionRecord | null> => {
+export const getActiveCallForUser = async (userId: string): Promise<CallSessionRecord | null> => {
   const [session] = await db
     .select()
     .from(callSessions)
@@ -258,6 +254,70 @@ export const getActiveCallForUser = async (
     .limit(1)
 
   return session ? mapSessionToRecord(session) : null
+}
+
+export type TryCreateCallResult =
+  | { success: true; session: CallSessionRecord }
+  | { success: false; error: 'device_busy' | 'user_busy' }
+
+/**
+ * Atomically check for existing active calls and create a new session.
+ * Uses a database transaction to prevent race conditions (TOCTOU).
+ */
+export const tryCreateCallSession = async (
+  params: CreateCallSessionParams
+): Promise<TryCreateCallResult> => {
+  return db.transaction(async (tx) => {
+    // Check no active call on device (within transaction)
+    const [existingDeviceCall] = await tx
+      .select({ id: callSessions.id })
+      .from(callSessions)
+      .where(
+        and(
+          eq(callSessions.callee_device_id, params.calleeDeviceId),
+          notInArray(callSessions.status, TERMINAL_STATUSES)
+        )
+      )
+      .limit(1)
+
+    if (existingDeviceCall) {
+      return { success: false, error: 'device_busy' }
+    }
+
+    // Check no active call for user (within transaction)
+    const [existingUserCall] = await tx
+      .select({ id: callSessions.id })
+      .from(callSessions)
+      .where(
+        and(
+          eq(callSessions.caller_user_id, params.callerUserId),
+          notInArray(callSessions.status, TERMINAL_STATUSES)
+        )
+      )
+      .limit(1)
+
+    if (existingUserCall) {
+      return { success: false, error: 'user_busy' }
+    }
+
+    // Create the session (within same transaction)
+    const [session] = await tx
+      .insert(callSessions)
+      .values({
+        caller_user_id: params.callerUserId,
+        callee_device_id: params.calleeDeviceId,
+        callee_profile_id: params.profileId,
+        status: 'initiating',
+      })
+      .returning()
+
+    logger.info(
+      { callId: session.id, caller: params.callerUserId, device: params.calleeDeviceId },
+      'Call session created (atomic)'
+    )
+
+    return { success: true, session: mapSessionToRecord(session) }
+  })
 }
 
 /** Map database row to typed record */

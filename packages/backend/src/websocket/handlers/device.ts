@@ -4,19 +4,17 @@ import { eq } from 'drizzle-orm'
 import { db } from '../../db'
 import { devices } from '@carehub/shared'
 import { logger } from '../../services/logger'
-import { addClient, removeClient } from '../clients'
+import { addClient, removeClient, broadcastToUser } from '../clients'
 import type { DeviceMessage } from '../types'
 import { handleCallMessage } from './call'
+import { getActiveCallForDevice, markCallFailed } from '../../services/call'
 
 const PING_INTERVAL = 30000 // 30 seconds
 
 /**
  * Handle new device WebSocket connection.
  */
-export const handleDeviceConnection = (
-  ws: WebSocket,
-  deviceId: string
-): void => {
+export const handleDeviceConnection = (ws: WebSocket, deviceId: string): void => {
   logger.info({ deviceId }, 'Device connected via WebSocket')
 
   // Add to client registry
@@ -59,7 +57,10 @@ export const handleDeviceConnection = (
           break
 
         default:
-          logger.warn({ deviceId, type: (message as { type: string }).type }, 'Unknown message type from device')
+          logger.warn(
+            { deviceId, type: (message as { type: string }).type },
+            'Unknown message type from device'
+          )
       }
     } catch (err) {
       logger.error({ err, deviceId }, 'Error processing device message')
@@ -84,9 +85,6 @@ export const handleDeviceConnection = (
     await db.update(devices).set({ status: 'offline' }).where(eq(devices.id, deviceId))
 
     // Handle any active calls (mark as failed)
-    const { getActiveCallForDevice, markCallFailed } = await import('../../services/call')
-    const { broadcastToUser } = await import('../clients')
-
     const activeCall = await getActiveCallForDevice(deviceId)
     if (activeCall) {
       await markCallFailed(activeCall.id)
