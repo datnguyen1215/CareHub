@@ -140,6 +140,61 @@ Styles are implemented with Tailwind CSS within the SvelteKit portal package. Mo
 
 ---
 
+## Portal Device Management UI
+
+### Components
+
+| Component                 | File       | Purpose                                                                                                                  |
+| ------------------------- | ---------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `DeviceCard.svelte`       | `src/lib/` | Device card with name, status dot, battery indicator, assigned profiles, and action buttons (Send Photo, Call, Settings) |
+| `DeviceStatusDot.svelte`  | `src/lib/` | Reusable online (green) / offline (gray) status indicator                                                                |
+| `BatteryIndicator.svelte` | `src/lib/` | Battery level progress bar with percentage (color-coded: green > 50%, yellow 20-50%, red < 20%)                          |
+| `QRScanner.svelte`        | `src/lib/` | Camera-based QR scanner using html5-qrcode with corner bracket overlay and manual code entry fallback                    |
+| `ProfileSelector.svelte`  | `src/lib/` | Checkbox list for selecting profiles with avatars                                                                        |
+
+### Devices Page (`/devices`)
+
+- Device list with DeviceCard components
+- Each card shows: device name, status dot, assigned profile avatars, battery level, last active timestamp
+- Action buttons: "Send Photo" (disabled when offline), "Call" (disabled when offline), "Settings" (navigates to detail)
+- "+ Pair New Tablet" button (dashed border style) navigates to pairing flow
+- Empty state: tablet illustration, "No tablets paired yet", value prop, "+ Pair Your First Tablet" CTA
+
+### Pair Tablet Flow (`/devices/pair`)
+
+3-step wizard with progress indicator:
+
+**Step 1 - Scan QR:**
+
+- Camera viewfinder with corner bracket overlay
+- "Position QR code in frame" instruction
+- Fallback: "Enter code manually" link opens 6-character input
+- Haptic feedback on successful scan
+- Auto-advances to Step 2
+
+**Step 2 - Select Profiles:**
+
+- Checkbox list of all group profiles
+- At least one profile required to continue
+- "Continue" button advances to Step 3
+
+**Step 3 - Confirm & Name:**
+
+- Device name input (pre-filled "New Tablet")
+- Summary of selected profiles
+- "Pair Device" button completes pairing
+- Success state: checkmark animation, auto-redirect after 2 seconds
+
+### Device Detail Page (`/devices/[id]`)
+
+- Header with back arrow and inline-editable device name (pencil icon)
+- Status section: online/offline dot, battery progress bar, last active timestamp
+- Actions section: "Send Photo" and "Call" buttons (disabled when offline)
+- Assigned Profiles section: grid of profile cards with remove (×) button, "+ Add" link
+- Danger Zone: "Unpair Device" button with confirmation modal
+
+---
+
 ## Wireframe Reference
 
 All wireframes are in the `designs/` directory.

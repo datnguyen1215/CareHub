@@ -285,6 +285,17 @@ Tablet push notifications, device status monitoring, and video call signaling al
 - `status_update` - Online/offline state changes
 - `call_request` - Elderly initiating call to caretaker (Phase 3.5)
 
+**Portal WebSocket Integration:**
+
+The portal devices page (`/devices`) establishes a WebSocket connection to receive real-time device status updates:
+
+- Connects to `/api/ws` on page load
+- Listens for `device_status` events to update online/offline status and battery level
+- Listens for `device_paired` events to refresh device list
+- Listens for `device_revoked` events to remove devices from the list
+- Auto-reconnects on disconnect (5-second delay)
+- Connection is cleaned up on page navigation (onDestroy)
+
 ### Peer-to-Peer Video
 
 Video calls use WebRTC for direct peer-to-peer connections, avoiding the cost and complexity of a media server. STUN servers handle NAT traversal. A TURN relay serves as fallback when direct connection fails.
