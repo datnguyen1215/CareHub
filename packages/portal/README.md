@@ -109,17 +109,21 @@ packages/portal/
 ├── src/
 │   ├── routes/               # SvelteKit routes
 │   │   ├── (app)/           # Protected routes (requires auth)
-│   │   │   ├── +layout.svelte   # App layout with navigation and toast
+│   │   │   ├── +layout.svelte   # App layout with navigation, toast, WebSocket connection
 │   │   │   ├── +page.svelte     # Dashboard
 │   │   │   └── profiles/        # Profile management
 │   │   └── login/           # Authentication flow
 │   │       └── +page.svelte     # OTP login
 │   ├── lib/                  # Reusable code
 │   │   ├── components/      # Svelte components
+│   │   ├── services/        # Core services
+│   │   │   ├── websocket.ts # WebSocket connection manager
+│   │   │   └── webrtc.ts    # WebRTC peer connection manager
 │   │   ├── Toast.svelte     # Toast notification component
 │   │   ├── api.ts           # API client for backend
 │   │   └── stores/
-│   │       └── toast.ts     # Toast notification store
+│   │       ├── toast.ts     # Toast notification store
+│   │       └── call.ts      # Video call state store (Svelte 5 runes)
 │   └── app.html              # HTML template
 ├── static/                   # Static assets
 ├── svelte.config.js          # SvelteKit configuration
@@ -136,6 +140,33 @@ packages/portal/
 - `/profiles/:id` (protected) - Profile details and medications
 
 All routes under `(app)` require authentication and redirect to `/login` if not authenticated.
+
+### Real-Time Services
+
+**WebSocket Connection** (`src/lib/services/websocket.ts`):
+
+- Connects automatically on app mount in `(app)/+layout.svelte`
+- JWT authentication via `?jwt={token}` query parameter
+- Auto-reconnect with exponential backoff (1s → 2s → 4s → max 30s)
+- Handles auth failures (redirects to login on 4001 close code)
+- Provides message pub/sub for call signaling
+
+**WebRTC Manager** (`src/lib/services/webrtc.ts`):
+
+- Manages peer connections for video calling
+- Handles local media stream (720p video, echo cancellation)
+- SDP offer/answer negotiation
+- ICE candidate gathering and exchange
+- Remote stream attachment
+- Audio/video mute controls
+
+**Call State Store** (`src/lib/stores/call.ts`):
+
+- Svelte 5 runes-based reactive store
+- Tracks call status, streams, duration, and errors
+- Integrates WebSocket signaling with WebRTC events
+- Provides actions: `initiateCall()`, `endCall()`, `toggleMute()`, `toggleVideo()`
+- Auto-initializes handlers in `+layout.svelte`
 
 ## API Integration
 

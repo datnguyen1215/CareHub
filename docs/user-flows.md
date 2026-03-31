@@ -301,8 +301,17 @@ From the profile detail page (`/profiles/:id`):
 2. Profile Overview tab shows linked device card(s) below the avatar header
 3. Each device card displays: device name, online/offline status, battery level
 4. If device is online, tap "📞 Call" button to initiate a video call
-5. Call screen opens with the device (Phase 3.5)
-6. If device is offline, Call button is disabled (grayed out)
-7. Alternative: tap "📷 Send Photo" to share a photo with the device
-8. Tap "⚙️" to navigate to device settings page for management options
-9. If no device is linked, "No device linked" message displays with "+ Link Device" CTA
+5. Portal WebSocket sends `call:initiate` message to backend
+6. Local camera/microphone permission prompt appears (first time only)
+7. Call state transitions: initiating → ringing (waiting for device to accept)
+8. Backend forwards signaling to device via WebSocket
+9. Device accepts call → Portal receives `call:accepted` and creates SDP offer
+10. WebRTC peer connection established → Call state becomes connected
+11. Full-screen video call interface shows remote stream from device
+12. Controls available: mute/unmute audio, toggle video, end call
+13. Call duration counter displays in MM:SS format
+14. Tap "End Call" → WebSocket sends `call:ended`, connection closes, UI returns to profile
+15. If device is offline, Call button is disabled (grayed out)
+16. Alternative: tap "📷 Send Photo" to share a photo with the device (Phase 4)
+17. Tap "⚙️" to navigate to device settings page for management options
+18. If no device is linked, "No device linked" message displays with "+ Link Device" CTA
