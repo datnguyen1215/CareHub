@@ -255,11 +255,13 @@ Detailed feature breakdown organized by area. See [phases.md](phases.md) for imp
 ### Technology
 
 - WebRTC peer-to-peer video
+- Hierarchical state machines (@datnguyen1215/hsmjs) for call lifecycle management
 - Signaling via WebSocket server (call:incoming, call:offer, call:ice-candidate, call:ended, call:error messages)
 - ICE/STUN/TURN for NAT traversal
 - Firebase Cloud Messaging (FCM) for call notifications to caretaker devices
 - Capacitor native shell on both caretaker phones and elderly tablets
-- Kiosk call state management via Svelte 5 runes with race condition guards
+- State machine guards prevent invalid transitions and race conditions
+- All state transitions logged with timestamps for debugging
 
 ### Capabilities
 
