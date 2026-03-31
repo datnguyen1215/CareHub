@@ -163,18 +163,14 @@
 		canRetry = false;
 
 		try {
-			const [profileData, medsData, eventsData, devicesData] = await Promise.all([
+			const [profileData, medsData, eventsData] = await Promise.all([
 				getProfile(profileId),
 				listMedications(profileId),
-				listEvents(profileId),
-				listDevices()
+				listEvents(profileId)
 			]);
 			profile = profileData;
 			medications = medsData;
 			recentMeds = medsData.filter((m) => m.status === 'active').slice(0, 3);
-
-			// Filter devices linked to this profile
-			profileDevices = devicesData.filter((d) => d.profiles.some((p) => p.id === profileId));
 
 			// Filter upcoming events (future dates only)
 			const now = new Date();
@@ -183,6 +179,15 @@
 				.filter((e) => new Date(e.event_date) >= now)
 				.sort((a, b) => new Date(a.event_date).getTime() - new Date(b.event_date).getTime())
 				.slice(0, 3);
+
+			// Fetch devices separately - non-blocking so profile page still loads if devices API fails
+			try {
+				const devicesData = await listDevices();
+				profileDevices = devicesData.filter((d) => d.profiles.some((p) => p.id === profileId));
+			} catch {
+				// Device fetch failed - show empty state, don't block profile page
+				profileDevices = [];
+			}
 		} catch (err: unknown) {
 			const apiErr = err as { status?: number };
 			if (apiErr?.status === 401) {
@@ -863,10 +868,7 @@
 			<!-- Empty state: no device linked -->
 			<div class="card mb-unit-2 text-center py-unit-2">
 				<p class="text-text-secondary text-sm mb-unit-1">No device linked</p>
-				<button
-					onclick={() => goto('/devices/pair')}
-					class="text-sm text-primary hover:underline"
-				>
+				<button onclick={() => goto('/devices/pair')} class="text-sm text-primary hover:underline">
 					+ Link Device
 				</button>
 			</div>
