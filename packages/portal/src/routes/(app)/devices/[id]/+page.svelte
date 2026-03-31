@@ -25,6 +25,7 @@
 	let isEditingName = $state(false);
 	let editedName = $state('');
 	let savingName = $state(false);
+	let saveNameError = $state('');
 
 	let showUnpairModal = $state(false);
 	let unpairLoading = $state(false);
@@ -32,6 +33,8 @@
 
 	let showAddProfileModal = $state(false);
 	let addingProfile = $state(false);
+	let addProfileError = $state('');
+	let removeProfileError = $state('');
 
 	const deviceId = $derived(page.params.id ?? '');
 
@@ -100,6 +103,7 @@
 		}
 
 		savingName = true;
+		saveNameError = '';
 		try {
 			const updated = await updateDevice(device.id, { name: editedName.trim() });
 			// PATCH returns only device fields without profiles, so preserve existing profiles
@@ -109,7 +113,9 @@
 			const apiErr = err as { status?: number };
 			if (apiErr?.status === 401) {
 				goto('/login');
+				return;
 			}
+			saveNameError = getErrorMessage(err, 'save name');
 		} finally {
 			savingName = false;
 		}
@@ -154,6 +160,7 @@
 	async function handleRemoveProfile(profileId: string) {
 		if (!device) return;
 
+		removeProfileError = '';
 		try {
 			await removeProfileFromDevice(device.id, profileId);
 			device = {
@@ -164,7 +171,9 @@
 			const apiErr = err as { status?: number };
 			if (apiErr?.status === 401) {
 				goto('/login');
+				return;
 			}
+			removeProfileError = getErrorMessage(err, 'remove profile');
 		}
 	}
 
@@ -178,6 +187,7 @@
 		if (!device) return;
 
 		addingProfile = true;
+		addProfileError = '';
 		try {
 			const result = await assignProfilesToDevice(device.id, [profileId]);
 			device = { ...device, profiles: result.profiles };
@@ -186,7 +196,9 @@
 			const apiErr = err as { status?: number };
 			if (apiErr?.status === 401) {
 				goto('/login');
+				return;
 			}
+			addProfileError = getErrorMessage(err, 'add profile');
 		} finally {
 			addingProfile = false;
 		}
@@ -306,6 +318,10 @@
 		{/if}
 	</div>
 
+	{#if saveNameError}
+		<p class="text-danger text-sm mb-unit-2" role="alert">{saveNameError}</p>
+	{/if}
+
 	{#if loading}
 		<p class="text-text-secondary text-sm">Loading…</p>
 	{:else if loadError}
@@ -392,6 +408,10 @@
 					</button>
 				{/if}
 			</div>
+
+			{#if removeProfileError}
+				<p class="text-danger text-sm mb-unit-2" role="alert">{removeProfileError}</p>
+			{/if}
 
 			{#if device.profiles.length === 0}
 				<p class="text-text-secondary text-sm">No profiles assigned to this device.</p>
@@ -524,6 +544,10 @@
 			<h2 id="add-profile-modal-title" class="text-h3 font-semibold text-text-primary mb-unit-3">
 				Add Profile
 			</h2>
+
+			{#if addProfileError}
+				<p class="text-danger text-sm mb-unit-2" role="alert">{addProfileError}</p>
+			{/if}
 
 			{#if getUnassignedProfiles().length === 0}
 				<p class="text-text-secondary">All profiles are already assigned to this device.</p>

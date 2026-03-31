@@ -445,8 +445,30 @@ export function listDevices() {
 	return request<Device[]>('GET', '/devices');
 }
 
-export function getDevice(id: string) {
-	return request<Device>('GET', `/devices/${id}`);
+// Backend returns camelCase for single device, normalize to snake_case
+interface DeviceApiResponse {
+	id: string;
+	name: string;
+	status: 'online' | 'offline';
+	batteryLevel: number | null;
+	lastSeenAt: string | null;
+	pairedAt: string | null;
+	createdAt: string;
+	profiles: DeviceProfile[];
+}
+
+export async function getDevice(id: string): Promise<Device> {
+	const response = await request<DeviceApiResponse>('GET', `/devices/${id}`);
+	return {
+		id: response.id,
+		name: response.name,
+		status: response.status,
+		battery_level: response.batteryLevel,
+		last_seen_at: response.lastSeenAt,
+		paired_at: response.pairedAt,
+		created_at: response.createdAt,
+		profiles: response.profiles
+	};
 }
 
 export function pairDevice(token: string, profileIds: string[]) {

@@ -80,7 +80,7 @@
 
 	function handleManualSubmit() {
 		const code = manualCode.trim().toUpperCase();
-		if (code.length === 6) {
+		if (code.length === 8) {
 			onScan(code);
 		}
 	}
@@ -140,14 +140,14 @@
 		<!-- Manual Code Entry -->
 		<div class="space-y-4">
 			<p class="text-text-secondary text-sm text-center">
-				Enter the 6-digit code shown on the tablet screen
+				Enter the 8-character code shown on the tablet screen
 			</p>
 
 			<input
 				type="text"
 				bind:value={manualCode}
-				maxlength="6"
-				placeholder="XXXXXX"
+				maxlength="8"
+				placeholder="XXXXXXXX"
 				class="w-full text-center text-2xl tracking-widest font-mono px-4 py-3 border border-gray-300 rounded-card focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent uppercase"
 				oninput={(e) => {
 					const input = e.currentTarget;
@@ -159,7 +159,7 @@
 			<button
 				type="button"
 				onclick={handleManualSubmit}
-				disabled={manualCode.trim().length !== 6}
+				disabled={manualCode.trim().length !== 8}
 				class="w-full bg-primary text-white rounded-card px-unit-3 py-2 font-semibold text-base
 					hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
 			>
