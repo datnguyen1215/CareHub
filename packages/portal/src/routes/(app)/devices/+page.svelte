@@ -10,10 +10,6 @@
 	let loading = $state(true);
 	let canRetry = $state(false);
 
-	// TODO: Portal WebSocket requires backend support for user-authenticated connections (Phase 3.5).
-	// Currently the backend WebSocket (/ws) only accepts device token auth for kiosk connections.
-	// For now, device status updates require page refresh.
-
 	async function loadData() {
 		loading = true;
 		loadError = '';
