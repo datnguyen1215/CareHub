@@ -16,7 +16,7 @@
 		updateTimeDisplay();
 		timeIntervalId = setInterval(updateTimeDisplay, 1000);
 
-		const creds = getDeviceCredentials();
+		const creds = await getDeviceCredentials();
 		if (!creds) {
 			goto('/pairing');
 			return;

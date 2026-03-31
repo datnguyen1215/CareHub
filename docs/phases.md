@@ -91,12 +91,22 @@ Enable the tablet kiosk experience, Capacitor mobile app, and real-time communic
 - **Call state management** -- Call stores and UI on both kiosk and portal
 - **Missed call handling** -- "No answer" timeout state
 
-### Phase 3.6: Capacitor Native (Planned)
+### Phase 3.6: Capacitor Native (In Progress)
 
-- **Capacitor native apps** -- Wrap SvelteKit in Capacitor for both caretaker phone APK and tablet kiosk APK
+**Completed:**
+
+- [x] **Capacitor kiosk integration** -- Android platform initialized with core plugins (Preferences, Network, App)
+- [x] **Static adapter** -- SvelteKit configured for SPA mode (adapter-static) for Capacitor compatibility
+- [x] **Secure storage** -- Capacitor Preferences for device token with localStorage fallback
+- [x] **Android project** -- Capacitor Android platform with Lock Task Mode, auto-launch on boot, foreground service permissions
+- [x] **Build workflow** -- Scripts for `cap:sync`, `cap:open`, `cap:build`
+
+**Planned:**
+
+- **Capacitor caretaker phone app** -- Wrap caretaker portal in Capacitor for native Android APK
 - **Firebase Cloud Messaging** -- FCM integration for high-priority push notifications
 - **Native incoming call UI** -- Full-screen call notification on caretaker's phone with ringtone
-- **Tablet kiosk APK** -- Capacitor app with Lock Task Mode, auto-launch on boot, foreground service
+- **Foreground service implementation** -- Keep WebSocket alive on tablet
 - **Capgo OTA updates** -- Over-the-air web bundle updates; automatic updates without APK reinstall
 
 ### Screens Implemented

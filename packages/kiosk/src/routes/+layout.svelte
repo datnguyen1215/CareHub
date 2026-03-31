@@ -35,7 +35,7 @@
 	});
 
 	async function initializeDevice() {
-		const creds = getDeviceCredentials();
+		const creds = await getDeviceCredentials();
 
 		if (!creds) {
 			// No credentials - need to register
@@ -53,7 +53,7 @@
 
 			// Connect WebSocket if paired
 			if (info.pairedAt) {
-				setupWebSocket();
+				await setupWebSocket();
 			}
 
 			// Navigate based on state
@@ -71,7 +71,7 @@
 			}
 		} catch {
 			// Token invalid or network error
-			clearDeviceCredentials();
+			await clearDeviceCredentials();
 			deviceState.isLoading = false;
 			goto('/pairing');
 		}
@@ -89,8 +89,8 @@
 		};
 	}
 
-	function setupWebSocket() {
-		connect();
+	async function setupWebSocket() {
+		await connect();
 
 		// Listen for WebSocket messages
 		unsubscribe = onMessage((message) => {
@@ -131,8 +131,8 @@
 		}
 	}
 
-	function handleDeviceRevoked() {
-		clearDeviceCredentials();
+	async function handleDeviceRevoked() {
+		await clearDeviceCredentials();
 		disconnect();
 		deviceState = { ...initialDeviceState, isLoading: false };
 		goto('/pairing');

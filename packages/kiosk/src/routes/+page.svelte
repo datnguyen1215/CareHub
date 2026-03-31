@@ -7,7 +7,7 @@
 	let isLoading = $state(true);
 
 	onMount(async () => {
-		const creds = getDeviceCredentials();
+		const creds = await getDeviceCredentials();
 
 		if (!creds) {
 			goto('/pairing');

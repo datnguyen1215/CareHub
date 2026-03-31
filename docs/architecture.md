@@ -33,7 +33,7 @@ packages/
   portal/      # SvelteKit + Tailwind CSS caretaker portal web app
   backend/     # Express API server with WebSocket support
   shared/      # Shared types, utilities, and Drizzle schema
-  kiosk/       # SvelteKit elderly tablet kiosk app (Capacitor wrapper planned)
+  kiosk/       # SvelteKit elderly tablet kiosk app with Capacitor (Android only)
 ```
 
 ---
@@ -346,7 +346,7 @@ Tablet pairing uses a one-time token with a 5-minute expiry. The tablet displays
 
 ### Device Authentication
 
-Devices use device tokens (not user JWTs) for authentication. The `deviceAuth` middleware validates `Authorization: Bearer <device_token>` headers on kiosk-specific endpoints. Device tokens are stored securely on the kiosk and never expire (until device is unpaired).
+Devices use device tokens (not user JWTs) for authentication. The `deviceAuth` middleware validates `Authorization: Bearer <device_token>` headers on kiosk-specific endpoints. Device tokens are stored securely via Capacitor Preferences API on native Android (with localStorage fallback for browser testing) and never expire (until device is unpaired).
 
 ### Authentication
 
