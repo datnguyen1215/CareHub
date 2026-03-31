@@ -22,7 +22,7 @@
 | Testing            | Vitest + Supertest                                                | Integration tests only; no unit or portal tests                                                                                                                                  |
 | TypeScript         | Default SvelteKit config                                          | Standard configuration, no custom overrides                                                                                                                                      |
 | Linting            | ESLint + Prettier (SvelteKit defaults)                            | Consistent code style with minimal setup                                                                                                                                         |
-| Tablet Runtime     | Capacitor APK with Android Lock Task Mode                         | Native app shell prevents exit, auto-restarts on boot, receives FCM push even if backgrounded                                                                                    |
+| Tablet Runtime     | Capacitor APK with Android Lock Task Mode                         | Native app shell prevents exit, auto-restarts on boot; WebSocket stays alive via foreground service                                                                              |
 
 ---
 
