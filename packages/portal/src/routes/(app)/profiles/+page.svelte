@@ -20,11 +20,19 @@
 
 	let showProfileModal = $state(false);
 
-	/** Returns device status for a profile: 'online' if any device is online, 'offline' if devices exist but all offline, null if no devices */
-	function getProfileDeviceStatus(profileId: string): 'online' | 'offline' | null {
+	/** Returns device info for a profile: device name and status */
+	function getProfileDeviceInfo(
+		profileId: string
+	): { name: string; status: 'online' | 'offline' } | null {
 		const profileDevices = devices.filter((d) => d.profiles.some((p) => p.id === profileId));
 		if (profileDevices.length === 0) return null;
-		return profileDevices.some((d) => d.status === 'online') ? 'online' : 'offline';
+		// Find first online device, or fall back to first device
+		const onlineDevice = profileDevices.find((d) => d.status === 'online');
+		const device = onlineDevice ?? profileDevices[0];
+		return {
+			name: device.name,
+			status: profileDevices.some((d) => d.status === 'online') ? 'online' : 'offline'
+		};
 	}
 
 	async function loadData() {
@@ -130,87 +138,97 @@
 			</button>
 		</div>
 	{:else}
-		<div class="grid grid-cols-2 gap-unit-2">
+		<div class="flex flex-col gap-unit-2">
 			{#each profiles as profile (profile.id)}
+				{@const deviceInfo = getProfileDeviceInfo(profile.id)}
 				<button
 					onclick={() => goto(`/profiles/${profile.id}`)}
-					class="card text-left flex flex-col gap-1 hover:shadow-md transition-shadow active:opacity-90 w-full"
+					class="card text-left flex items-center gap-3 hover:shadow-md transition-shadow active:opacity-90 w-full"
 				>
-					<!-- Avatar and Name row -->
-					<div class="flex items-center gap-2 mb-1">
-						<!-- Avatar -->
-						<div
-							class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0 overflow-hidden"
-						>
-							{#if profile.avatar_url}
-								<img src={profile.avatar_url} alt="" class="w-full h-full object-cover" />
-							{:else}
-								<span class="text-primary font-semibold text-sm">
-									{getInitial(profile.name)}
-								</span>
-							{/if}
-						</div>
-						<!-- Name and device status -->
-						<div class="flex-1 min-w-0">
-							<div class="flex items-center gap-1.5">
-								<h3 class="text-h3 font-semibold text-text-primary leading-tight truncate">
-									{profile.name}
-								</h3>
-								<!-- Device status indicator -->
-								{#if getProfileDeviceStatus(profile.id) !== null}
-									<span
-										class="inline-flex items-center shrink-0"
-										title={getProfileDeviceStatus(profile.id) === 'online'
-											? 'Device online'
-											: 'Devices offline'}
-									>
-										<span class="text-xs">📱</span>
-										<span
-											class="w-1.5 h-1.5 rounded-full -ml-0.5 -mt-1.5 {getProfileDeviceStatus(
-												profile.id
-											) === 'online'
-												? 'bg-green-500'
-												: 'bg-gray-400'}"
-										></span>
-									</span>
-								{/if}
-							</div>
-						</div>
+					<!-- Avatar -->
+					<div
+						class="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center shrink-0 overflow-hidden"
+					>
+						{#if profile.avatar_url}
+							<img src={profile.avatar_url} alt="" class="w-full h-full object-cover" />
+						{:else}
+							<span class="text-primary font-semibold text-base">
+								{getInitial(profile.name)}
+							</span>
+						{/if}
 					</div>
 
-					<!-- Relationship subtitle -->
-					{#if profile.relationship}
-						<p class="text-sm text-text-secondary capitalize">{profile.relationship}</p>
-					{/if}
+					<!-- Info section -->
+					<div class="flex-1 min-w-0">
+						<!-- Name -->
+						<h3 class="text-h3 font-semibold text-text-primary leading-tight">
+							{profile.name}
+						</h3>
 
-					<!-- Conditions badges -->
-					{#if profile.conditions.length > 0}
-						<div class="flex flex-wrap gap-1 mt-1">
-							{#each profile.conditions.slice(0, 3) as condition}
-								<span
-									class="text-xs bg-blue-50 text-primary rounded-full px-2 py-0.5 border border-blue-100 truncate max-w-full"
-								>
-									{condition}
-								</span>
-							{/each}
-							{#if profile.conditions.length > 3}
-								<span class="text-xs text-text-secondary"
-									>+{profile.conditions.length - 3} more</span
-								>
+						<!-- Relationship and medication count -->
+						<p class="text-sm text-text-secondary">
+							{#if profile.relationship}
+								<span class="capitalize">{profile.relationship}</span>
+								<span class="mx-1">·</span>
 							{/if}
-						</div>
-					{/if}
+							{#if !profile.medication_count}
+								No medications
+							{:else if profile.medication_count === 1}
+								1 medication
+							{:else}
+								{profile.medication_count} medications
+							{/if}
+						</p>
 
-					<!-- Medication count -->
-					<p class="text-xs text-text-secondary mt-auto pt-1">
-						{#if !profile.medication_count}
-							No medications
-						{:else if profile.medication_count === 1}
-							1 medication
-						{:else}
-							{profile.medication_count} medications
+						<!-- Device status -->
+						{#if deviceInfo}
+							<p
+								class="text-xs text-text-secondary flex items-center gap-1 mt-0.5"
+								title={deviceInfo.status === 'online' ? 'Device online' : 'Device offline'}
+							>
+								<span>📱</span>
+								<span>{deviceInfo.name}</span>
+								<span
+									class="w-1.5 h-1.5 rounded-full {deviceInfo.status === 'online'
+										? 'bg-green-500'
+										: 'bg-gray-400'}"
+								></span>
+							</p>
 						{/if}
-					</p>
+
+						<!-- Conditions badges -->
+						{#if profile.conditions.length > 0}
+							<div class="flex flex-wrap gap-1 mt-1.5">
+								{#each profile.conditions.slice(0, 3) as condition}
+									<span
+										class="text-xs bg-blue-50 text-primary rounded-full px-2 py-0.5 border border-blue-100"
+									>
+										{condition}
+									</span>
+								{/each}
+								{#if profile.conditions.length > 3}
+									<span class="text-xs text-text-secondary"
+										>+{profile.conditions.length - 3} more</span
+									>
+								{/if}
+							</div>
+						{/if}
+					</div>
+
+					<!-- Chevron -->
+					<svg
+						xmlns="http://www.w3.org/2000/svg"
+						viewBox="0 0 24 24"
+						fill="currentColor"
+						class="w-5 h-5 text-text-secondary shrink-0"
+						aria-hidden="true"
+					>
+						<path
+							fill-rule="evenodd"
+							d="M16.28 11.47a.75.75 0 0 1 0 1.06l-7.5 7.5a.75.75 0 0 1-1.06-1.06L14.69 12 7.72 5.03a.75.75 0 0 1 1.06-1.06l7.5 7.5Z"
+							clip-rule="evenodd"
+						/>
+					</svg>
 				</button>
 			{/each}
 		</div>

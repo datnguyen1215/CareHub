@@ -43,10 +43,10 @@ Detailed feature breakdown organized by area. See [phases.md](phases.md) for imp
 
 ### Profile List Page
 
-- All profiles visible on dedicated profiles page (`/profiles`) as cards
-- Each card shows: name, relationship (subtitle), conditions (tags, max 3 + overflow count), active medication count
-- Device status indicator on profile cards: 📱 with green dot (at least one device online), gray dot (devices exist but all offline), no icon (no devices assigned)
-- Tap a card to navigate to `/profiles/:id` (profile detail)
+- All profiles visible on dedicated profiles page (`/profiles`) as full-width horizontal rows
+- Each row shows: avatar (left), info section (name, relationship · medication count, device name + status, condition badges), chevron (right)
+- Device status shown inline with device name: 📱 Device Name with green dot (online) or gray dot (offline); no indicator if no devices assigned
+- Tap a row to navigate to `/profiles/:id` (profile detail)
 - "Add Profile" button in header when profiles exist; empty state with icon and "Add your first care profile" CTA when no profiles exist
 - Top bar: "CareHub" branding left, user avatar/initial right (navigates to settings)
 - Bottom navigation: Home (home at `/`), Profiles, Devices, Settings tabs

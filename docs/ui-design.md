@@ -44,9 +44,17 @@ Styles are implemented with Tailwind CSS within the SvelteKit portal package. Mo
 
 ## Layout Patterns
 
+### List Row Layout
+
+- Profile list uses full-width horizontal rows for better readability
+- Each row contains: avatar (left), info section (middle), chevron (right)
+- Info section shows: name, relationship + medication count, device status, condition badges
+- Rows have white background, subtle shadow, rounded corners (8px), consistent padding (16px)
+- Tapping a row navigates to the detail view
+
 ### Card-Based Layout
 
-- All profiles, medications, events, and documents displayed as cards
+- Medications, events, and documents displayed as cards
 - Cards have white background, subtle shadow (`0 1px 3px rgba(0,0,0,0.12)`)
 - Rounded corners (8px)
 - Consistent padding (16px)
@@ -205,6 +213,7 @@ All wireframes are in the `designs/` directory.
 | `01b-otp-verify.svg`          | Login — OTP Verify     | 6-digit code input, 60-second resend cooldown, and "Use a different email" link           |
 | `01c-account-setup.svg`       | Login — Account Setup  | First and last name inputs shown to new users after their first OTP verification          |
 | `02-home-dashboard.svg`       | Home (Upcoming Events) | Upcoming events grouped by day with profile indicators, time, and color-coded event types |
+| `02b-profile-list.svg`        | Profile List           | Full-width profile rows with avatar, info, device status, conditions, and chevron        |
 | `03-profile-detail.svg`       | Profile Detail         | Profile header with health summary and tab navigation                                     |
 | `04-medications.svg`          | Medications            | List of active and discontinued medications with time-of-day badges                       |
 | `05-calendar.svg`             | Calendar               | Monthly calendar view with event dots and upcoming appointments                           |
