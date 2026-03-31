@@ -1,15 +1,26 @@
-/** Storage service for device token persistence. */
+/**
+ * Storage service for device token persistence.
+ * Uses Capacitor Preferences on native, localStorage in browser.
+ */
+
+import { Capacitor } from '@capacitor/core';
+import { Preferences } from '@capacitor/preferences';
 
 const DEVICE_TOKEN_KEY = 'carehub_device_token';
 const DEVICE_ID_KEY = 'carehub_device_id';
 
+/** Check if running on native platform. */
+const isNative = (): boolean => Capacitor.isNativePlatform();
+
 /**
  * Save device credentials to storage.
- * @param {string} deviceId - Device ID
- * @param {string} deviceToken - Device token for auth
+ * Uses Capacitor Preferences on native, localStorage in browser.
  */
-export function saveDeviceCredentials(deviceId: string, deviceToken: string): void {
-	if (typeof localStorage !== 'undefined') {
+export async function saveDeviceCredentials(deviceId: string, deviceToken: string): Promise<void> {
+	if (isNative()) {
+		await Preferences.set({ key: DEVICE_ID_KEY, value: deviceId });
+		await Preferences.set({ key: DEVICE_TOKEN_KEY, value: deviceToken });
+	} else if (typeof localStorage !== 'undefined') {
 		localStorage.setItem(DEVICE_ID_KEY, deviceId);
 		localStorage.setItem(DEVICE_TOKEN_KEY, deviceToken);
 	}
@@ -17,9 +28,24 @@ export function saveDeviceCredentials(deviceId: string, deviceToken: string): vo
 
 /**
  * Get saved device credentials.
- * @returns {{ deviceId: string, deviceToken: string } | null}
+ * Uses Capacitor Preferences on native, localStorage in browser.
  */
-export function getDeviceCredentials(): { deviceId: string; deviceToken: string } | null {
+export async function getDeviceCredentials(): Promise<{
+	deviceId: string;
+	deviceToken: string;
+} | null> {
+	if (isNative()) {
+		const { value: deviceId } = await Preferences.get({ key: DEVICE_ID_KEY });
+		const { value: deviceToken } = await Preferences.get({
+			key: DEVICE_TOKEN_KEY
+		});
+
+		if (deviceId && deviceToken) {
+			return { deviceId, deviceToken };
+		}
+		return null;
+	}
+
 	if (typeof localStorage === 'undefined') return null;
 
 	const deviceId = localStorage.getItem(DEVICE_ID_KEY);
@@ -33,9 +59,13 @@ export function getDeviceCredentials(): { deviceId: string; deviceToken: string 
 
 /**
  * Clear all stored device credentials.
+ * Uses Capacitor Preferences on native, localStorage in browser.
  */
-export function clearDeviceCredentials(): void {
-	if (typeof localStorage !== 'undefined') {
+export async function clearDeviceCredentials(): Promise<void> {
+	if (isNative()) {
+		await Preferences.remove({ key: DEVICE_ID_KEY });
+		await Preferences.remove({ key: DEVICE_TOKEN_KEY });
+	} else if (typeof localStorage !== 'undefined') {
 		localStorage.removeItem(DEVICE_ID_KEY);
 		localStorage.removeItem(DEVICE_TOKEN_KEY);
 	}
