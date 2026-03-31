@@ -77,11 +77,6 @@
 		});
 	}
 
-	function initiateCall(caretaker: Caretaker) {
-		// TODO: Implement video calling in Phase 3.5
-		alert(`Calling ${caretaker.first_name || caretaker.email}... (Coming soon)`);
-	}
-
 	function goBack() {
 		goto('/home');
 	}
@@ -144,7 +139,7 @@
 				{:else}
 					<div class="space-y-unit-3">
 						{#each caretakers as caretaker (caretaker.id)}
-							<CaretakerCard {caretaker} onclick={() => initiateCall(caretaker)} />
+							<CaretakerCard {caretaker} />
 						{/each}
 					</div>
 				{/if}

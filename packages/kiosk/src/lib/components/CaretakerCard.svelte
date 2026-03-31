@@ -3,9 +3,8 @@
 
 	interface Props {
 		caretaker: Caretaker;
-		onclick?: () => void;
 	}
-	let { caretaker, onclick }: Props = $props();
+	let { caretaker }: Props = $props();
 
 	function getDisplayName(): string {
 		if (caretaker.first_name || caretaker.last_name) {
@@ -25,7 +24,8 @@
 	}
 </script>
 
-<button class="caretaker-card w-full" {onclick}>
+<!-- Display only - elderly users receive calls, they don't initiate them -->
+<div class="caretaker-card w-full">
 	{#if caretaker.avatar_url}
 		<img
 			src={caretaker.avatar_url}
@@ -41,13 +41,13 @@
 	{/if}
 	<div class="flex-1 text-left">
 		<span class="text-xl font-semibold text-text-primary block">{getDisplayName()}</span>
-		<span class="text-text-secondary">Tap to call</span>
+		<span class="text-text-secondary">Your caretaker can call you</span>
 	</div>
 	<svg
 		xmlns="http://www.w3.org/2000/svg"
 		viewBox="0 0 24 24"
 		fill="currentColor"
-		class="w-10 h-10 text-success flex-shrink-0"
+		class="w-10 h-10 text-primary/50 flex-shrink-0"
 	>
 		<path
 			fill-rule="evenodd"
@@ -55,4 +55,4 @@
 			clip-rule="evenodd"
 		/>
 	</svg>
-</button>
+</div>

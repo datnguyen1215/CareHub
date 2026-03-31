@@ -1,17 +1,22 @@
 /** WebRTC manager for video call peer connections. Kiosk is always the callee. */
 
-import { ICE_SERVERS } from '@carehub/shared'
-import type { IceCandidate } from '@carehub/shared'
+import type { IceCandidate } from '@carehub/shared';
 
-type IceCandidateHandler = (candidate: IceCandidate) => void
-type TrackHandler = (stream: MediaStream) => void
-type ConnectionStateHandler = (state: RTCPeerConnectionState) => void
+/** Public STUN servers for ICE candidate gathering (duplicated from shared for ESM compatibility) */
+const ICE_SERVERS: RTCIceServer[] = [
+	{ urls: 'stun:stun.l.google.com:19302' },
+	{ urls: 'stun:stun1.l.google.com:19302' }
+];
 
-let peerConnection: RTCPeerConnection | null = null
-let localStream: MediaStream | null = null
-let iceCandidateHandler: IceCandidateHandler | null = null
-let trackHandler: TrackHandler | null = null
-let connectionStateHandler: ConnectionStateHandler | null = null
+type IceCandidateHandler = (candidate: IceCandidate) => void;
+type TrackHandler = (stream: MediaStream) => void;
+type ConnectionStateHandler = (state: RTCPeerConnectionState) => void;
+
+let peerConnection: RTCPeerConnection | null = null;
+let localStream: MediaStream | null = null;
+let iceCandidateHandler: IceCandidateHandler | null = null;
+let trackHandler: TrackHandler | null = null;
+let connectionStateHandler: ConnectionStateHandler | null = null;
 
 /** Media constraints for local stream */
 const MEDIA_CONSTRAINTS: MediaStreamConstraints = {
@@ -24,7 +29,7 @@ const MEDIA_CONSTRAINTS: MediaStreamConstraints = {
 		echoCancellation: true,
 		noiseSuppression: true
 	}
-}
+};
 
 /**
  * Create and configure RTCPeerConnection.
@@ -32,10 +37,10 @@ const MEDIA_CONSTRAINTS: MediaStreamConstraints = {
  */
 export function createPeerConnection(): RTCPeerConnection {
 	if (peerConnection) {
-		closePeerConnection()
+		closePeerConnection();
 	}
 
-	peerConnection = new RTCPeerConnection({ iceServers: ICE_SERVERS })
+	peerConnection = new RTCPeerConnection({ iceServers: ICE_SERVERS });
 
 	// Handle ICE candidates to send to caller
 	peerConnection.onicecandidate = (event) => {
@@ -44,25 +49,25 @@ export function createPeerConnection(): RTCPeerConnection {
 				candidate: event.candidate.candidate,
 				sdpMid: event.candidate.sdpMid,
 				sdpMLineIndex: event.candidate.sdpMLineIndex
-			})
+			});
 		}
-	}
+	};
 
 	// Handle incoming tracks from caller
 	peerConnection.ontrack = (event) => {
 		if (event.streams[0] && trackHandler) {
-			trackHandler(event.streams[0])
+			trackHandler(event.streams[0]);
 		}
-	}
+	};
 
 	// Handle connection state changes
 	peerConnection.onconnectionstatechange = () => {
 		if (peerConnection && connectionStateHandler) {
-			connectionStateHandler(peerConnection.connectionState)
+			connectionStateHandler(peerConnection.connectionState);
 		}
-	}
+	};
 
-	return peerConnection
+	return peerConnection;
 }
 
 /**
@@ -70,11 +75,11 @@ export function createPeerConnection(): RTCPeerConnection {
  */
 export function closePeerConnection(): void {
 	if (peerConnection) {
-		peerConnection.onicecandidate = null
-		peerConnection.ontrack = null
-		peerConnection.onconnectionstatechange = null
-		peerConnection.close()
-		peerConnection = null
+		peerConnection.onicecandidate = null;
+		peerConnection.ontrack = null;
+		peerConnection.onconnectionstatechange = null;
+		peerConnection.close();
+		peerConnection = null;
 	}
 }
 
@@ -83,7 +88,7 @@ export function closePeerConnection(): void {
  * @returns {RTCPeerConnectionState | null} Current state or null if no connection
  */
 export function getPeerConnectionState(): RTCPeerConnectionState | null {
-	return peerConnection?.connectionState ?? null
+	return peerConnection?.connectionState ?? null;
 }
 
 /**
@@ -93,31 +98,31 @@ export function getPeerConnectionState(): RTCPeerConnectionState | null {
  */
 export async function getLocalStream(): Promise<MediaStream> {
 	if (localStream) {
-		return localStream
+		return localStream;
 	}
 
 	try {
-		localStream = await navigator.mediaDevices.getUserMedia(MEDIA_CONSTRAINTS)
+		localStream = await navigator.mediaDevices.getUserMedia(MEDIA_CONSTRAINTS);
 
 		// Add local tracks to peer connection if it exists
 		if (peerConnection) {
 			localStream.getTracks().forEach((track) => {
-				peerConnection!.addTrack(track, localStream!)
-			})
+				peerConnection!.addTrack(track, localStream!);
+			});
 		}
 
-		return localStream
+		return localStream;
 	} catch (err) {
-		const error = err as Error
+		const error = err as Error;
 		// Provide user-friendly error messages
 		if (error.name === 'NotAllowedError') {
-			throw new Error('Camera and microphone access was denied')
+			throw new Error('Camera and microphone access was denied');
 		} else if (error.name === 'NotFoundError') {
-			throw new Error('No camera or microphone found')
+			throw new Error('No camera or microphone found');
 		} else if (error.name === 'NotReadableError') {
-			throw new Error('Camera or microphone is already in use')
+			throw new Error('Camera or microphone is already in use');
 		}
-		throw new Error('Could not access camera and microphone')
+		throw new Error('Could not access camera and microphone');
 	}
 }
 
@@ -126,8 +131,8 @@ export async function getLocalStream(): Promise<MediaStream> {
  */
 export function stopLocalStream(): void {
 	if (localStream) {
-		localStream.getTracks().forEach((track) => track.stop())
-		localStream = null
+		localStream.getTracks().forEach((track) => track.stop());
+		localStream = null;
 	}
 }
 
@@ -137,7 +142,7 @@ export function stopLocalStream(): void {
  * @param {MediaStream} stream - Remote media stream
  */
 export function attachRemoteStream(videoElement: HTMLVideoElement, stream: MediaStream): void {
-	videoElement.srcObject = stream
+	videoElement.srcObject = stream;
 }
 
 /**
@@ -147,15 +152,15 @@ export function attachRemoteStream(videoElement: HTMLVideoElement, stream: Media
  */
 export async function handleOffer(sdp: string): Promise<void> {
 	if (!peerConnection) {
-		throw new Error('Peer connection not initialized')
+		throw new Error('Peer connection not initialized');
 	}
 
 	const offer: RTCSessionDescriptionInit = {
 		type: 'offer',
 		sdp
-	}
+	};
 
-	await peerConnection.setRemoteDescription(offer)
+	await peerConnection.setRemoteDescription(offer);
 }
 
 /**
@@ -165,17 +170,17 @@ export async function handleOffer(sdp: string): Promise<void> {
  */
 export async function createAnswer(): Promise<string> {
 	if (!peerConnection) {
-		throw new Error('Peer connection not initialized')
+		throw new Error('Peer connection not initialized');
 	}
 
-	const answer = await peerConnection.createAnswer()
-	await peerConnection.setLocalDescription(answer)
+	const answer = await peerConnection.createAnswer();
+	await peerConnection.setLocalDescription(answer);
 
 	if (!answer.sdp) {
-		throw new Error('Failed to create answer')
+		throw new Error('Failed to create answer');
 	}
 
-	return answer.sdp
+	return answer.sdp;
 }
 
 /**
@@ -184,8 +189,8 @@ export async function createAnswer(): Promise<string> {
  */
 export async function addIceCandidate(candidate: IceCandidate): Promise<void> {
 	if (!peerConnection) {
-		console.warn('Cannot add ICE candidate: no peer connection')
-		return
+		console.warn('Cannot add ICE candidate: no peer connection');
+		return;
 	}
 
 	try {
@@ -193,9 +198,9 @@ export async function addIceCandidate(candidate: IceCandidate): Promise<void> {
 			candidate: candidate.candidate,
 			sdpMid: candidate.sdpMid,
 			sdpMLineIndex: candidate.sdpMLineIndex
-		})
+		});
 	} catch (err) {
-		console.error('Failed to add ICE candidate:', err)
+		console.error('Failed to add ICE candidate:', err);
 	}
 }
 
@@ -204,7 +209,7 @@ export async function addIceCandidate(candidate: IceCandidate): Promise<void> {
  * @param {IceCandidateHandler} handler - Handler function
  */
 export function onIceCandidate(handler: IceCandidateHandler): void {
-	iceCandidateHandler = handler
+	iceCandidateHandler = handler;
 }
 
 /**
@@ -212,7 +217,7 @@ export function onIceCandidate(handler: IceCandidateHandler): void {
  * @param {TrackHandler} handler - Handler function
  */
 export function onTrack(handler: TrackHandler): void {
-	trackHandler = handler
+	trackHandler = handler;
 }
 
 /**
@@ -220,7 +225,7 @@ export function onTrack(handler: TrackHandler): void {
  * @param {ConnectionStateHandler} handler - Handler function
  */
 export function onConnectionStateChange(handler: ConnectionStateHandler): void {
-	connectionStateHandler = handler
+	connectionStateHandler = handler;
 }
 
 /**
@@ -228,7 +233,7 @@ export function onConnectionStateChange(handler: ConnectionStateHandler): void {
  * @returns {MediaStream | null} Local stream or null
  */
 export function getCurrentLocalStream(): MediaStream | null {
-	return localStream
+	return localStream;
 }
 
 /**
@@ -236,9 +241,9 @@ export function getCurrentLocalStream(): MediaStream | null {
  * Stops local stream and closes peer connection.
  */
 export function cleanup(): void {
-	stopLocalStream()
-	closePeerConnection()
-	iceCandidateHandler = null
-	trackHandler = null
-	connectionStateHandler = null
+	stopLocalStream();
+	closePeerConnection();
+	iceCandidateHandler = null;
+	trackHandler = null;
+	connectionStateHandler = null;
 }

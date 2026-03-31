@@ -13,6 +13,7 @@
 	import type { DeviceState } from '$lib/stores/device';
 	import { initialDeviceState } from '$lib/stores/device';
 	import ConnectionStatus from '$lib/components/ConnectionStatus.svelte';
+	import CallOverlay from '$lib/components/call/CallOverlay.svelte';
 
 	interface Props {
 		children?: import('svelte').Snippet;
@@ -155,4 +156,9 @@
 	<main class="flex-1">
 		{@render children?.()}
 	</main>
+
+	<!-- Global call overlay - renders on top of all content when call is active -->
+	{#if deviceState.isPaired}
+		<CallOverlay />
+	{/if}
 </div>

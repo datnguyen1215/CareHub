@@ -49,8 +49,8 @@ const initialState: CallState = {
 	endReason: null
 };
 
-/** Reactive call state using Svelte 5 runes */
-let callState = $state<CallState>({ ...initialState });
+/** Reactive call state using Svelte 5 runes - only initialized on client */
+let callState: CallState = { ...initialState };
 
 /** Duration timer interval */
 let durationTimer: ReturnType<typeof setInterval> | null = null;
