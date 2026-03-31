@@ -1,0 +1,102 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 375 812" width="375" height="812">
+  <defs>
+    <filter id="shadow" x="-2%" y="-2%" width="104%" height="104%">
+      <feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="#000" flood-opacity="0.08"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="375" height="812" fill="#F5F5F5" rx="20"/>
+
+  <!-- Top bar -->
+  <rect width="375" height="96" fill="#FFFFFF" filter="url(#shadow)"/>
+  <text x="24" y="68" font-family="system-ui, sans-serif" font-size="20" font-weight="700" fill="#333">Care Profiles</text>
+  <!-- Add button -->
+  <rect x="300" y="52" width="55" height="32" rx="8" fill="#4A90D9"/>
+  <text x="327" y="73" font-family="system-ui, sans-serif" font-size="13" font-weight="600" fill="#FFF" text-anchor="middle">+ Add</text>
+
+  <!-- Profile row 1: Grandpa -->
+  <rect x="16" y="112" width="343" height="100" rx="12" fill="#FFFFFF" filter="url(#shadow)"/>
+  <!-- Avatar -->
+  <circle cx="56" cy="162" r="24" fill="#E8F0FE"/>
+  <text x="56" y="168" font-family="system-ui, sans-serif" font-size="18" text-anchor="middle">G</text>
+  <!-- Info -->
+  <text x="96" y="138" font-family="system-ui, sans-serif" font-size="16" font-weight="600" fill="#333">Grandpa</text>
+  <text x="96" y="156" font-family="system-ui, sans-serif" font-size="13" fill="#666">Grandfather · 3 medications</text>
+  <!-- Device status -->
+  <text x="96" y="172" font-family="system-ui, sans-serif" font-size="11" fill="#666">📱 Living Room Tablet</text>
+  <circle cx="200" cy="168" r="4" fill="#5CB85C"/>
+  <!-- Condition badges -->
+  <rect x="96" y="180" width="52" height="18" rx="9" fill="#E8F0FE"/>
+  <text x="122" y="192" font-family="system-ui, sans-serif" font-size="10" fill="#4A90D9" text-anchor="middle">Diabetes</text>
+  <rect x="152" y="180" width="68" height="18" rx="9" fill="#E8F0FE"/>
+  <text x="186" y="192" font-family="system-ui, sans-serif" font-size="10" fill="#4A90D9" text-anchor="middle">Hypertension</text>
+  <!-- Chevron -->
+  <path d="M339 156 L345 162 L339 168" stroke="#666" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Profile row 2: Grandma -->
+  <rect x="16" y="228" width="343" height="100" rx="12" fill="#FFFFFF" filter="url(#shadow)"/>
+  <!-- Avatar -->
+  <circle cx="56" cy="278" r="24" fill="#FDE8F0"/>
+  <text x="56" y="284" font-family="system-ui, sans-serif" font-size="18" text-anchor="middle">G</text>
+  <!-- Info -->
+  <text x="96" y="254" font-family="system-ui, sans-serif" font-size="16" font-weight="600" fill="#333">Grandma</text>
+  <text x="96" y="272" font-family="system-ui, sans-serif" font-size="13" fill="#666">Grandmother · 2 medications</text>
+  <!-- Device status (offline) -->
+  <text x="96" y="288" font-family="system-ui, sans-serif" font-size="11" fill="#666">📱 Bedroom Tablet</text>
+  <circle cx="186" cy="284" r="4" fill="#999"/>
+  <!-- Condition badges -->
+  <rect x="96" y="296" width="52" height="18" rx="9" fill="#E8F0FE"/>
+  <text x="122" y="308" font-family="system-ui, sans-serif" font-size="10" fill="#4A90D9" text-anchor="middle">Arthritis</text>
+  <!-- Chevron -->
+  <path d="M339 272 L345 278 L339 284" stroke="#666" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Profile row 3: Mom (no device) -->
+  <rect x="16" y="344" width="343" height="80" rx="12" fill="#FFFFFF" filter="url(#shadow)"/>
+  <!-- Avatar -->
+  <circle cx="56" cy="384" r="24" fill="#E8F0FE"/>
+  <text x="56" y="390" font-family="system-ui, sans-serif" font-size="18" text-anchor="middle">M</text>
+  <!-- Info -->
+  <text x="96" y="368" font-family="system-ui, sans-serif" font-size="16" font-weight="600" fill="#333">Mom</text>
+  <text x="96" y="386" font-family="system-ui, sans-serif" font-size="13" fill="#666">Mother · 1 medication</text>
+  <!-- No device - no indicator -->
+  <!-- No conditions -->
+  <!-- Chevron -->
+  <path d="M339 378 L345 384 L339 390" stroke="#666" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Profile row 4: Dad -->
+  <rect x="16" y="440" width="343" height="96" rx="12" fill="#FFFFFF" filter="url(#shadow)"/>
+  <!-- Avatar -->
+  <circle cx="56" cy="488" r="24" fill="#E8F4E8"/>
+  <text x="56" y="494" font-family="system-ui, sans-serif" font-size="18" text-anchor="middle">D</text>
+  <!-- Info -->
+  <text x="96" y="464" font-family="system-ui, sans-serif" font-size="16" font-weight="600" fill="#333">Dad</text>
+  <text x="96" y="482" font-family="system-ui, sans-serif" font-size="13" fill="#666">Father · 2 medications</text>
+  <!-- Condition badges -->
+  <rect x="96" y="494" width="68" height="18" rx="9" fill="#E8F0FE"/>
+  <text x="130" y="506" font-family="system-ui, sans-serif" font-size="10" fill="#4A90D9" text-anchor="middle">Hypertension</text>
+  <!-- Chevron -->
+  <path d="M339 482 L345 488 L339 494" stroke="#666" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Bottom nav -->
+  <rect x="0" y="732" width="375" height="80" fill="#FFFFFF" filter="url(#shadow)"/>
+  <!-- Home -->
+  <rect x="28" y="744" width="24" height="18" rx="3" fill="none" stroke="#AAA" stroke-width="1.5"/>
+  <line x1="28" y1="750" x2="52" y2="750" stroke="#AAA" stroke-width="1.5"/>
+  <text x="40" y="779" font-family="system-ui, sans-serif" font-size="11" fill="#AAA" text-anchor="middle">Home</text>
+  <!-- Profiles (active) -->
+  <circle cx="122" cy="750" r="9" fill="none" stroke="#4A90D9" stroke-width="2"/>
+  <circle cx="137" cy="750" r="9" fill="none" stroke="#4A90D9" stroke-width="2"/>
+  <text x="130" y="779" font-family="system-ui, sans-serif" font-size="11" font-weight="600" fill="#4A90D9" text-anchor="middle">Profiles</text>
+  <!-- Devices -->
+  <rect x="214" y="744" width="22" height="16" rx="3" fill="none" stroke="#AAA" stroke-width="1.5"/>
+  <rect x="220" y="762" width="10" height="2" rx="1" fill="#AAA"/>
+  <text x="225" y="779" font-family="system-ui, sans-serif" font-size="11" fill="#AAA" text-anchor="middle">Devices</text>
+  <!-- Settings -->
+  <circle cx="322" cy="753" r="9" fill="none" stroke="#AAA" stroke-width="1.5"/>
+  <circle cx="322" cy="753" r="3" fill="#AAA"/>
+  <text x="322" y="779" font-family="system-ui, sans-serif" font-size="11" fill="#AAA" text-anchor="middle">Settings</text>
+
+  <!-- Home indicator -->
+  <rect x="140" y="800" width="95" height="5" rx="2.5" fill="#DDD"/>
+</svg>
