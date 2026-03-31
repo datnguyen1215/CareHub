@@ -85,7 +85,7 @@ The profile detail page lives inside the `(app)` route group, so the global `Top
 
 1. **Custom top bar** — Back arrow (→ `/profiles`), profile name centered, pencil-icon edit button that opens `ProfileModal`.
 2. **Tab bar** — Sticky below the top bar. Two tabs: **Overview** (default) and **Meds**. Active tab is underlined with primary blue.
-3. **Overview tab** — Profile info card (name, relationship, date of birth, conditions as badges) and a Recent Medications card (top 3 active meds, "See all" link switching to Meds tab, empty state).
+3. **Overview tab** — Device card(s) for linked devices (name, online/offline status, battery level, Send Photo/Call/Settings buttons; disabled when offline; empty state when no device linked), Profile info card (name, relationship, date of birth, conditions as badges), and Recent Medications card (top 3 active meds, "See all" link switching to Meds tab, empty state).
 4. **Meds tab** — Full medication management: add/edit/discontinue medications via `MedicationModal`, with a "Show discontinued" toggle.
 
 ### Auth Guard

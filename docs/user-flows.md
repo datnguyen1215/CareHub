@@ -290,3 +290,19 @@ From the profile detail page (`/profiles/:id`):
 3. If journal entries are linked to this event, they appear in a "Linked Journal" section
 4. Tap a linked journal entry to view its full content
 5. Cross-linking allows navigating between events and their related notes
+
+---
+
+## 13. Calling from Profile Detail
+
+**Actor:** Caretaker (Admin)
+
+1. From the Profiles tab, tap a profile row to view profile detail
+2. Profile Overview tab shows linked device card(s) below the avatar header
+3. Each device card displays: device name, online/offline status, battery level
+4. If device is online, tap "📞 Call" button to initiate a video call
+5. Call screen opens with the device (Phase 3.5)
+6. If device is offline, Call button is disabled (grayed out)
+7. Alternative: tap "📷 Send Photo" to share a photo with the device
+8. Tap "⚙️" to navigate to device settings page for management options
+9. If no device is linked, "No device linked" message displays with "+ Link Device" CTA

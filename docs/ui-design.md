@@ -82,6 +82,17 @@ Styles are implemented with Tailwind CSS within the SvelteKit portal package. Mo
 - Horizontal scrollable tabs below profile header
 - Active tab underlined with primary color
 
+### Device Card (Profile Overview)
+
+- Displayed in Profile Overview tab between avatar header and profile info card
+- Shows device name with 📱 icon and online/offline status dot
+- Battery level indicator (when available)
+- Three action buttons: "📷 Send Photo", "📞 Call", "⚙️" (Settings)
+- Send Photo and Call buttons disabled (grayed out) when device is offline
+- Settings button navigates to `/devices/[id]`
+- If profile has multiple devices, cards stack vertically
+- Empty state: "No device linked" with "+ Link Device" CTA linking to `/devices/pair`
+
 ### Spacing
 
 - 8px base unit
