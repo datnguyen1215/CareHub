@@ -30,7 +30,7 @@
 
 ```
 packages/
-  frontend/    # SvelteKit + Tailwind CSS caretaker portal web app
+  portal/      # SvelteKit + Tailwind CSS caretaker portal web app
   backend/     # Express API server with WebSocket support
   shared/      # Shared types, utilities, and Drizzle schema
   kiosk/       # SvelteKit elderly tablet kiosk app (Capacitor wrapper planned)

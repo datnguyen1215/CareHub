@@ -1,10 +1,10 @@
-# CareHub Frontend
+# CareHub Portal
 
-SvelteKit 5 application with Svelte 5 runes and Tailwind CSS.
+SvelteKit 5 caretaker portal application with Svelte 5 runes and Tailwind CSS.
 
 ## Overview
 
-The frontend provides a modern web interface for managing healthcare profiles and medications. Built with:
+The portal provides a modern web interface for managing healthcare profiles and medications. Built with:
 
 - **SvelteKit 5** - Full-stack framework
 - **Svelte 5 runes** - Fine-grained reactivity
@@ -52,8 +52,8 @@ From this directory:
 
 From project root:
 
-- `npm run dev --workspace=packages/frontend` - Start frontend only
-- `npm run dev` - Start all services (frontend + backend + shared)
+- `npm run dev --workspace=packages/portal` - Start portal only
+- `npm run dev` - Start all services (portal + backend + shared)
 
 ## Tech Stack
 
@@ -75,10 +75,10 @@ From project root:
    npm run dev --workspace=packages/backend
    ```
 
-2. Start frontend (from root):
+2. Start portal (from root):
 
    ```bash
-   npm run dev --workspace=packages/frontend
+   npm run dev --workspace=packages/portal
    ```
 
 3. Or start everything at once (from root):
@@ -105,7 +105,7 @@ export default defineConfig({
 ## Project Structure
 
 ```
-packages/frontend/
+packages/portal/
 ├── src/
 │   ├── routes/               # SvelteKit routes
 │   │   ├── (app)/           # Protected routes (requires auth)

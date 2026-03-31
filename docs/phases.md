@@ -11,7 +11,7 @@ Establish authentication, core data structures, and basic health tracking.
 ### Key Deliverables
 
 - **Auth system** -- Email + OTP via Nodemailer + Gmail SMTP; 6-digit code, 15-minute expiry; JWT in httpOnly cookie; first-time login prompts for first and last name
-- **Monorepo setup** -- npm workspaces with `packages/frontend`, `backend`, `shared`, `mobile`
+- **Monorepo setup** -- npm workspaces with `packages/portal`, `backend`, `shared`, `mobile`
 - **Database** -- PostgreSQL running in Docker, schema managed with Drizzle ORM
 - **Group creation** -- Create and name a group during onboarding
 - **Care profile CRUD** -- Add, edit, and remove profiles with name, photo, relationship, date of birth, and known conditions

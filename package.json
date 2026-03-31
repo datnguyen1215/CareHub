@@ -6,7 +6,7 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "concurrently \"npm run dev --workspace=packages/shared\" \"npm run dev --workspace=packages/frontend\" \"npm run dev --workspace=packages/backend\"",
+    "dev": "concurrently \"npm run dev --workspace=packages/shared\" \"npm run dev --workspace=packages/portal\" \"npm run dev --workspace=packages/backend\"",
     "db:up": "docker compose up -d",
     "db:down": "docker compose down"
   },
