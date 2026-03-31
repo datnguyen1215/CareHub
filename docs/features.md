@@ -51,6 +51,14 @@ Detailed feature breakdown organized by area. See [phases.md](phases.md) for imp
 - Top bar: "CareHub" branding left, user avatar/initial right (navigates to settings)
 - Bottom navigation: Home (home at `/`), Profiles, Devices, Settings tabs
 
+### Profile Detail - Device Quick Actions
+
+- Device card displayed in Profile Overview tab for linked devices
+- Shows device name, online/offline status dot, battery level indicator
+- Quick action buttons: Send Photo, Call (both disabled when offline), Settings
+- Multiple devices supported (cards stack vertically)
+- Empty state with "+ Link Device" CTA when no device assigned
+
 ---
 
 ## Medication Management

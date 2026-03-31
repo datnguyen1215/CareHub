@@ -17,15 +17,19 @@
 		updateJournalEntry,
 		uploadFile,
 		listAttachments,
+		listDevices,
 		type CareProfile,
 		type Medication,
 		type Event as ApiEvent,
 		type JournalEntry,
+		type Device,
 		type CreateProfileInput,
 		type CreateMedicationInput,
 		type CreateEventInput,
 		type CreateJournalEntryInput
 	} from '$lib/api';
+	import DeviceStatusDot from '$lib/DeviceStatusDot.svelte';
+	import BatteryIndicator from '$lib/BatteryIndicator.svelte';
 	import { getErrorMessage, isRetryable } from '$lib/error-utils';
 	import ProfileModal from '$lib/ProfileModal.svelte';
 	import MedicationModal from '$lib/MedicationModal.svelte';
@@ -44,6 +48,7 @@
 	let recentMeds = $state<Medication[]>([]);
 	let medications = $state<Medication[]>([]);
 	let upcomingEvents = $state<ApiEvent[]>([]);
+	let profileDevices = $state<Device[]>([]);
 	let loadError = $state('');
 	let loading = $state(true);
 	let showDiscontinued = $state(false);
@@ -158,14 +163,18 @@
 		canRetry = false;
 
 		try {
-			const [profileData, medsData, eventsData] = await Promise.all([
+			const [profileData, medsData, eventsData, devicesData] = await Promise.all([
 				getProfile(profileId),
 				listMedications(profileId),
-				listEvents(profileId)
+				listEvents(profileId),
+				listDevices()
 			]);
 			profile = profileData;
 			medications = medsData;
 			recentMeds = medsData.filter((m) => m.status === 'active').slice(0, 3);
+
+			// Filter devices linked to this profile
+			profileDevices = devicesData.filter((d) => d.profiles.some((p) => p.id === profileId));
 
 			// Filter upcoming events (future dates only)
 			const now = new Date();
@@ -568,6 +577,21 @@
 		toast.destructive('Profile deleted');
 		goto('/profiles');
 	}
+
+	// Device action handlers
+	function handleSendPhoto(device: Device) {
+		// TODO: Implement send photo functionality
+		toast.success(`Opening photo picker for ${device.name}...`);
+	}
+
+	function handleCall(device: Device) {
+		// TODO: Implement call functionality
+		toast.success(`Calling ${device.name}...`);
+	}
+
+	function handleDeviceSettings(deviceId: string) {
+		goto(`/devices/${deviceId}`);
+	}
 </script>
 
 <!-- Page-specific top bar (overrides the global TopBar for this page) -->
@@ -773,6 +797,80 @@
 			class="hidden"
 			onchange={handleAvatarChange}
 		/>
+
+		<!-- Device card(s) -->
+		{#if profileDevices.length > 0}
+			{#each profileDevices as device (device.id)}
+				{@const isOnline = device.status === 'online'}
+				<div class="card mb-unit-2">
+					<!-- Header: Device name and status -->
+					<div class="flex items-center justify-between mb-unit-2">
+						<div class="flex items-center gap-2">
+							<span class="text-base">📱</span>
+							<h3 class="text-base font-semibold text-text-primary">{device.name}</h3>
+						</div>
+						<div class="flex items-center gap-1.5">
+							<DeviceStatusDot status={device.status} size="sm" />
+							<span class="text-xs text-text-secondary capitalize">{device.status}</span>
+						</div>
+					</div>
+
+					<!-- Battery level -->
+					{#if device.battery_level !== null}
+						<div class="mb-unit-2">
+							<BatteryIndicator level={device.battery_level} />
+						</div>
+					{/if}
+
+					<!-- Action buttons -->
+					<div class="flex gap-2">
+						<button
+							type="button"
+							onclick={() => handleSendPhoto(device)}
+							disabled={!isOnline}
+							class="flex-1 px-2 py-1.5 text-sm rounded-card border border-gray-300
+								{isOnline
+								? 'text-text-primary hover:bg-gray-50'
+								: 'text-gray-400 cursor-not-allowed'} transition-colors"
+							title={!isOnline ? 'Device is offline' : 'Send a photo to this device'}
+						>
+							📷 Send Photo
+						</button>
+						<button
+							type="button"
+							onclick={() => handleCall(device)}
+							disabled={!isOnline}
+							class="flex-1 px-2 py-1.5 text-sm rounded-card border border-gray-300
+								{isOnline
+								? 'text-text-primary hover:bg-gray-50'
+								: 'text-gray-400 cursor-not-allowed'} transition-colors"
+							title={!isOnline ? 'Device is offline' : 'Call this device'}
+						>
+							📞 Call
+						</button>
+						<button
+							type="button"
+							onclick={() => handleDeviceSettings(device.id)}
+							class="px-2 py-1.5 text-sm rounded-card border border-gray-300 text-text-primary hover:bg-gray-50 transition-colors"
+							title="Device settings"
+						>
+							⚙️
+						</button>
+					</div>
+				</div>
+			{/each}
+		{:else}
+			<!-- Empty state: no device linked -->
+			<div class="card mb-unit-2 text-center py-unit-2">
+				<p class="text-text-secondary text-sm mb-unit-1">No device linked</p>
+				<button
+					onclick={() => goto('/devices/pair')}
+					class="text-sm text-primary hover:underline"
+				>
+					+ Link Device
+				</button>
+			</div>
+		{/if}
 
 		<!-- Profile info card -->
 		{#if profile.date_of_birth || (profile.conditions && profile.conditions.length > 0)}
