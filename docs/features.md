@@ -154,7 +154,7 @@ Detailed feature breakdown organized by area. See [phases.md](phases.md) for imp
 - Kiosk generates one-time pairing token (5-minute expiry)
 - Kiosk displays QR code on pairing screen with auto-refresh
 - Caretaker scans QR from portal device management page using html5-qrcode library
-- Fallback to manual 6-character code entry if camera access denied
+- Fallback to manual 8-character code entry if camera access denied
 - 3-step pairing wizard: Scan QR → Select Profiles → Name Device
 - Caretaker selects which profiles to assign during pairing
 - Device name editable (defaults to "New Tablet")

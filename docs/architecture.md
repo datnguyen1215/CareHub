@@ -287,14 +287,7 @@ Tablet push notifications, device status monitoring, and video call signaling al
 
 **Portal WebSocket Integration:**
 
-The portal devices page (`/devices`) establishes a WebSocket connection to receive real-time device status updates:
-
-- Connects to `/api/ws` on page load
-- Listens for `device_status` events to update online/offline status and battery level
-- Listens for `device_paired` events to refresh device list
-- Listens for `device_revoked` events to remove devices from the list
-- Auto-reconnects on disconnect (5-second delay)
-- Connection is cleaned up on page navigation (onDestroy)
+Portal WebSocket integration is deferred to Phase 3.5. The backend WebSocket endpoint (`/ws`) currently only accepts device token authentication for kiosk connections, not user session authentication required for portal connections. Device status updates in the portal currently require page refresh.
 
 ### Peer-to-Peer Video
 

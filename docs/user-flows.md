@@ -117,7 +117,7 @@ From the profile detail page (`/profiles/:id`):
     - QR scanner opens using html5-qrcode library with camera viewfinder
     - Corner bracket overlay guides the user
     - On successful scan: haptic feedback, auto-advance to Step 2
-    - Fallback: "Enter code manually" link opens 6-character input if camera denied
+    - Fallback: "Enter code manually" link opens 8-character input if camera denied
 12. **Step 2 - Select Profiles:**
     - Checkbox list of all profiles in the group
     - At least one profile must be selected

@@ -168,7 +168,7 @@ Styles are implemented with Tailwind CSS within the SvelteKit portal package. Mo
 
 - Camera viewfinder with corner bracket overlay
 - "Position QR code in frame" instruction
-- Fallback: "Enter code manually" link opens 6-character input
+- Fallback: "Enter code manually" link opens 8-character input
 - Haptic feedback on successful scan
 - Auto-advances to Step 2
 
