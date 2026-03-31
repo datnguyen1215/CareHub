@@ -1,13 +1,32 @@
 /** WebSocket service for real-time communication. */
 
-import { getDeviceCredentials } from './storage';
+import { getDeviceCredentials } from './storage'
+import type {
+	IceCandidate,
+	CallIncomingMessage,
+	CallOfferMessage,
+	IceCandidateMessage,
+	CallEndedMessage,
+	CallErrorMessage
+} from '@carehub/shared'
 
-type MessageHandler = (data: WsMessage) => void;
+type MessageHandler = (data: WsMessage) => void
 
 export interface WsMessage {
-	type: string;
-	payload?: unknown;
+	type: string
+	payload?: unknown
 }
+
+/** Call message handlers for WebRTC signaling */
+export interface CallMessageHandlers {
+	onIncomingCall?: (message: CallIncomingMessage) => void
+	onCallOffer?: (message: CallOfferMessage) => void
+	onIceCandidate?: (message: IceCandidateMessage) => void
+	onCallEnded?: (message: CallEndedMessage) => void
+	onCallError?: (message: CallErrorMessage) => void
+}
+
+let callHandlers: CallMessageHandlers = {}
 
 let ws: WebSocket | null = null;
 let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
@@ -59,12 +78,14 @@ export async function connect(): Promise<void> {
 
 		ws.onmessage = (event) => {
 			try {
-				const message = JSON.parse(event.data) as WsMessage;
-				messageHandlers.forEach((handler) => handler(message));
+				const message = JSON.parse(event.data) as WsMessage
+				// Route call signaling messages to dedicated handlers
+				routeCallMessage(message)
+				messageHandlers.forEach((handler) => handler(message))
 			} catch (err) {
-				console.error('Failed to parse WebSocket message:', err);
+				console.error('Failed to parse WebSocket message:', err)
 			}
-		};
+		}
 
 		ws.onclose = (event) => {
 			console.log('WebSocket closed:', event.code, event.reason);
@@ -163,5 +184,78 @@ export function onMessage(handler: MessageHandler): () => void {
  * @returns {boolean}
  */
 export function getIsConnected(): boolean {
-	return isConnected;
+	return isConnected
+}
+
+/**
+ * Route call signaling messages to dedicated handlers.
+ */
+function routeCallMessage(message: WsMessage): void {
+	switch (message.type) {
+		case 'call:incoming':
+			callHandlers.onIncomingCall?.(message as unknown as CallIncomingMessage)
+			break
+		case 'call:offer':
+			callHandlers.onCallOffer?.(message as unknown as CallOfferMessage)
+			break
+		case 'call:ice-candidate':
+			callHandlers.onIceCandidate?.(message as unknown as IceCandidateMessage)
+			break
+		case 'call:ended':
+			callHandlers.onCallEnded?.(message as unknown as CallEndedMessage)
+			break
+		case 'call:error':
+			callHandlers.onCallError?.(message as unknown as CallErrorMessage)
+			break
+	}
+}
+
+/**
+ * Register handlers for call signaling messages.
+ * @param {CallMessageHandlers} handlers - Call message handlers
+ */
+export function setCallHandlers(handlers: CallMessageHandlers): void {
+	callHandlers = handlers
+}
+
+/**
+ * Send call accepted message.
+ * @param {string} callId - Call session ID
+ */
+export function sendCallAccepted(callId: string): void {
+	send({ type: 'call:accepted', callId } as unknown as WsMessage)
+}
+
+/**
+ * Send call declined message.
+ * @param {string} callId - Call session ID
+ */
+export function sendCallDeclined(callId: string): void {
+	send({ type: 'call:declined', callId } as unknown as WsMessage)
+}
+
+/**
+ * Send SDP answer to caller.
+ * @param {string} callId - Call session ID
+ * @param {string} sdp - SDP answer string
+ */
+export function sendCallAnswer(callId: string, sdp: string): void {
+	send({ type: 'call:answer', callId, sdp } as unknown as WsMessage)
+}
+
+/**
+ * Send ICE candidate to caller.
+ * @param {string} callId - Call session ID
+ * @param {IceCandidate} candidate - ICE candidate
+ */
+export function sendIceCandidate(callId: string, candidate: IceCandidate): void {
+	send({ type: 'call:ice-candidate', callId, candidate } as unknown as WsMessage)
+}
+
+/**
+ * Send call ended message.
+ * @param {string} callId - Call session ID
+ */
+export function sendCallEnded(callId: string): void {
+	send({ type: 'call:ended', callId, reason: 'completed' } as unknown as WsMessage)
 }

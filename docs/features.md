@@ -255,19 +255,22 @@ Detailed feature breakdown organized by area. See [phases.md](phases.md) for imp
 ### Technology
 
 - WebRTC peer-to-peer video
-- Signaling via WebSocket server
+- Signaling via WebSocket server (call:incoming, call:offer, call:ice-candidate, call:ended, call:error messages)
 - ICE/STUN/TURN for NAT traversal
 - Firebase Cloud Messaging (FCM) for call notifications to caretaker devices
 - Capacitor native shell on both caretaker phones and elderly tablets
+- Kiosk call state management via Svelte 5 runes with race condition guards
 
 ### Capabilities
 
 - Caretaker initiates call to tablet from portal (phone or desktop)
 - Elderly family member initiates call from tablet by tapping caretaker photo
 - Full-screen video display on tablet
-- Audio and video with microphone/camera permissions
+- Audio and video with microphone/camera permissions (720p ideal, echo cancellation, noise suppression)
 - **Native incoming call UI on caretaker phone** -- full-screen notification over lock screen with ringtone, vibration, caller photo, and Accept/Decline buttons (same behavior as WhatsApp or a phone call)
 - Missed call handling with "no answer" state on tablet
+- Call duration timer displayed during active calls
+- Graceful handling of camera permission delays and call cancellations
 
 ### Reliability
 
