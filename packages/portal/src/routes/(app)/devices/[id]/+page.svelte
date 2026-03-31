@@ -16,15 +16,7 @@
 	import DeviceStatusDot from '$lib/DeviceStatusDot.svelte';
 	import BatteryIndicator from '$lib/BatteryIndicator.svelte';
 	import CallModal from '$lib/components/call/CallModal.svelte';
-	import {
-		callState,
-		initiateCall,
-		endCall,
-		toggleMute,
-		toggleVideo,
-		initializeCallHandlers
-	} from '$lib/stores/call';
-	import * as websocket from '$lib/services/websocket';
+	import { callState, initiateCall, endCall, toggleMute, toggleVideo } from '$lib/stores/call';
 
 	let device = $state<Device | null>(null);
 	let allProfiles = $state<CareProfile[]>([]);
@@ -82,14 +74,6 @@
 
 	onMount(() => {
 		loadData();
-
-		// Connect WebSocket and initialize call handlers
-		websocket.connect();
-		const cleanupCallHandlers = initializeCallHandlers();
-
-		return () => {
-			cleanupCallHandlers();
-		};
 	});
 
 	function getRelativeTime(dateStr: string | null): string {
