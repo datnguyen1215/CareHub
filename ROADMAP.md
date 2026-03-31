@@ -24,7 +24,7 @@ Journal entries, attachments, and OCR complete. Calendar view remaining.
 Established authentication, core data structures, and basic health tracking.
 
 - [x] Auth system (Email + OTP via Nodemailer, JWT in httpOnly cookies)
-- [x] Monorepo setup (npm workspaces: portal, backend, shared, mobile, kiosk)
+- [x] Monorepo setup (npm workspaces: portal, backend, shared, kiosk)
 - [x] Database (PostgreSQL + Docker + Drizzle ORM)
 - [x] Group creation (onboarding flow)
 - [x] Care profile CRUD (name, photo, relationship, DOB, conditions)
