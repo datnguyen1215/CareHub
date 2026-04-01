@@ -56,7 +56,7 @@ src/
     api.ts                 # API client with auth cookie handling
     stores/
       toast.ts             # Toast notification store — manage toast queue with auto-dismiss
-      call.svelte.ts       # Reactive call state store (Svelte 5 runes) — idle → calling → connected → ended
+      call.svelte.ts       # Call state store with subscription-based cross-module reactivity — idle → calling → connected → ended
   routes/
     login/                 # Public auth pages (email entry, OTP verify, account setup)
     (app)/
@@ -358,7 +358,7 @@ The kiosk operates as the callee (receiver) in all video calls:
 
 - `packages/kiosk/src/lib/services/webrtc.ts` — WebRTC manager for peer connections, SDP handling, ICE candidate exchange, and media stream management
 - `packages/kiosk/src/lib/services/websocket.ts` — Extended with call signaling message handlers and methods to send call responses
-- `packages/kiosk/src/lib/stores/call.ts` — Call state store using hierarchical state machine for lifecycle management
+- `packages/kiosk/src/lib/stores/call.ts` — Call state store with subscription-based cross-module reactivity and hierarchical state machine for lifecycle management
 - `packages/shared/src/webrtc/call-state-machine.ts` — Shared state machine configuration, event definitions, and context types
 
 **Portal WebRTC Implementation:**
@@ -375,7 +375,7 @@ The portal operates as the caller (initiator) in all video calls:
 - Audio/video track toggle without reconnection
 - Connection state monitoring with automatic failure detection
 
-**Call State Store (`packages/portal/src/lib/stores/call.ts`):**
+**Call State Store (`packages/portal/src/lib/stores/call.svelte.ts`):**
 
 - Call state store using hierarchical state machine for lifecycle management
 - State flow: idle → initiating → signaling → connecting → connected → ending/failed → idle
@@ -389,6 +389,8 @@ The portal operates as the caller (initiator) in all video calls:
 - Mute and video toggle controls
 - WebSocket signaling integration (ICE candidates, SDP exchange)
 - Automatic cleanup on call end or error
+- **Subscription-based cross-module reactivity** — `subscribe(callback)` registers listeners that receive a shallow copy of state on every mutation; components use `onMount` to subscribe and update local `$state` (Svelte 5 `$state` proxies don't propagate across module boundaries)
+- `notify()` called after every state mutation: `syncStateFromMachine()`, `startDurationTimer()`, `toggleMute()`, `toggleVideo()`
 
 **Call UI Components:**
 
@@ -405,6 +407,9 @@ The portal operates as the caller (initiator) in all video calls:
   - End call button (red background, Escape key)
   - Controls disabled during initiating/connecting states
   - Integrated into device detail page (`/devices/[id]`) via CallModal
+- `packages/kiosk/src/lib/components/call/CallOverlay.svelte` - Kiosk call overlay that dispatches to IncomingCall, CallScreen, or PermissionError based on state
+  - Uses `subscribe()` for real-time state updates (no polling)
+  - Unsubscribes on component destroy
 
 **Call State Machine (`packages/shared/src/webrtc/call-state-machine.ts`):**
 
