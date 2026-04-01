@@ -41,6 +41,8 @@
 	import EventDetail from '$lib/EventDetail.svelte';
 	import DocumentsTab from '$lib/DocumentsTab.svelte';
 	import { toast } from '$lib/stores/toast';
+	import { initiateCall, callState, endCall, toggleMute, toggleVideo } from '$lib/stores/call.svelte';
+	import CallModal from '$lib/components/call/CallModal.svelte';
 
 	const profileId = $derived($page.params.id ?? '');
 
@@ -83,6 +85,9 @@
 
 	// Track which events have attachments (event_id -> count)
 	let eventAttachmentCounts = $state<Record<string, number>>({});
+
+	// Call modal state
+	const showCallModal = $derived(callState.status !== 'idle');
 
 	// Profile delete state
 	let showDeleteProfileModal = $state(false);
@@ -590,8 +595,13 @@
 	}
 
 	function handleCall(device: Device) {
-		// TODO: Implement call functionality
-		toast.success(`Calling ${device.name}...`);
+		initiateCall(device.id, device.name);
+	}
+
+	function handleRetryCall() {
+		if (callState.targetDeviceId && callState.targetDeviceName) {
+			initiateCall(callState.targetDeviceId, callState.targetDeviceName);
+		}
 	}
 
 	function handleDeviceSettings(deviceId: string) {
@@ -1378,5 +1388,22 @@
 		name={profile.name}
 		onConfirm={handleDeleteProfileConfirm}
 		onClose={closeDeleteProfileModal}
+	/>
+{/if}
+
+{#if showCallModal}
+	<CallModal
+		status={callState.status}
+		deviceName={callState.targetDeviceName}
+		localStream={callState.localStream}
+		remoteStream={callState.remoteStream}
+		duration={callState.duration}
+		error={callState.error}
+		isMuted={callState.isMuted}
+		isVideoOff={callState.isVideoOff}
+		onToggleMute={toggleMute}
+		onToggleVideo={toggleVideo}
+		onEndCall={endCall}
+		onRetry={handleRetryCall}
 	/>
 {/if}
