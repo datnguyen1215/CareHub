@@ -41,7 +41,14 @@
 	import EventDetail from '$lib/EventDetail.svelte';
 	import DocumentsTab from '$lib/DocumentsTab.svelte';
 	import { toast } from '$lib/stores/toast';
-	import { initiateCall, subscribe as subscribeCall, endCall, toggleMute, toggleVideo, type CallState } from '$lib/stores/call.svelte';
+	import {
+		initiateCall,
+		subscribe as subscribeCall,
+		endCall,
+		toggleMute,
+		toggleVideo,
+		type CallState
+	} from '$lib/stores/call.svelte';
 	import CallModal from '$lib/components/call/CallModal.svelte';
 
 	const profileId = $derived($page.params.id ?? '');
@@ -226,7 +233,7 @@
 		loadData();
 		// Subscribe to call state changes for cross-module reactivity
 		unsubscribeCall = subscribeCall((state) => {
-			localCallState = state;
+			Object.assign(localCallState, state);
 		});
 	});
 

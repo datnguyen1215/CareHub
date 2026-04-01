@@ -106,6 +106,13 @@ const initialState: CallState = {
 /** Reactive call state - only initialized on client */
 let callState: CallState = { ...initialState };
 
+/**
+ * MediaStream storage - kept outside state machine context because
+ * hsmjs serializes context and converts MediaStream to empty objects.
+ */
+let storedLocalStream: MediaStream | null = null;
+let storedRemoteStream: MediaStream | null = null;
+
 /** Duration timer interval */
 let durationTimer: ReturnType<typeof setInterval> | null = null;
 
@@ -188,8 +195,9 @@ function syncStateFromMachine(state: string, context: CallContext): void {
 	callState.callId = context.callId;
 	callState.caller = context.caller;
 	callState.profileId = context.profileId;
-	callState.localStream = context.localStream;
-	callState.remoteStream = context.remoteStream;
+	// Use stored streams instead of context (hsmjs serializes MediaStream to {})
+	callState.localStream = storedLocalStream;
+	callState.remoteStream = storedRemoteStream;
 	callState.connectedAt = context.startedAt;
 	callState.duration = context.duration;
 	callState.error = context.error;
@@ -263,6 +271,8 @@ function createCallMachine() {
 			try {
 				logWebRTCEvent('Action', 'Acquiring local media');
 				const stream = await webrtc.getLocalStream();
+				// Store stream outside machine context (hsmjs serializes MediaStream to {})
+				storedLocalStream = stream;
 				machine.send(CALL_EVENTS.LOCAL_STREAM_READY, { stream });
 			} catch (err) {
 				const error = err as Error;
@@ -285,6 +295,8 @@ function createCallMachine() {
 			// Set up remote track handler
 			webrtc.onTrack((stream) => {
 				logWebRTCEvent('Track', 'Remote stream received');
+				// Store stream outside machine context (hsmjs serializes MediaStream to {})
+				storedRemoteStream = stream;
 				machine.send(CALL_EVENTS.REMOTE_STREAM_READY, { stream });
 			});
 
@@ -399,8 +411,8 @@ function createCallMachine() {
 	machine = createMachine(config, { actions });
 
 	// Subscribe to state changes to sync with reactive state
-	machine.subscribe((state: string, context: CallContext) => {
-		syncStateFromMachine(state, context);
+	machine.subscribe(({ nextState }: { nextState: { state: string; context: CallContext } }) => {
+		syncStateFromMachine(nextState.state, nextState.context);
 	});
 
 	return machine;
@@ -536,6 +548,8 @@ export function endCall(): void {
  */
 export function resetCallState(): void {
 	stopDurationTimer();
+	storedLocalStream = null;
+	storedRemoteStream = null;
 	callState = { ...initialState };
 	notify();
 }

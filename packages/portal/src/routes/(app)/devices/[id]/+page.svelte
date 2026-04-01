@@ -99,7 +99,7 @@
 		loadData();
 		// Subscribe to call state changes for cross-module reactivity
 		unsubscribeCall = subscribeCall((state) => {
-			callState = state;
+			Object.assign(callState, state);
 		});
 	});
 

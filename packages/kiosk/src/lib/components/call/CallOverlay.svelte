@@ -23,7 +23,7 @@
 	onMount(() => {
 		// Subscribe to call state changes for cross-module reactivity
 		unsubscribe = subscribe((state) => {
-			callState = state;
+			Object.assign(callState, state);
 		});
 	});
 
