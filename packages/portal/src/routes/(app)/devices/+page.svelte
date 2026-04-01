@@ -4,11 +4,21 @@
 	import { listDevices, type Device } from '$lib/api';
 	import { getErrorMessage, isRetryable } from '$lib/error-utils';
 	import DeviceCard from '$lib/DeviceCard.svelte';
+	import {
+		callState,
+		initiateCall,
+		endCall,
+		toggleMute,
+		toggleVideo
+	} from '$lib/stores/call.svelte';
+	import CallModal from '$lib/components/call/CallModal.svelte';
 
 	let devices = $state<Device[]>([]);
 	let loadError = $state('');
 	let loading = $state(true);
 	let canRetry = $state(false);
+
+	let showCallModal = $derived(callState.status !== 'idle');
 
 	async function loadData() {
 		loading = true;
@@ -40,8 +50,7 @@
 	}
 
 	function handleCall(device: Device) {
-		// Initiates call to device - placeholder for now
-		console.log('Call device:', device.id);
+		initiateCall(device.id, device.name);
 	}
 </script>
 
@@ -118,3 +127,20 @@
 		</div>
 	{/if}
 </div>
+
+{#if showCallModal}
+	<CallModal
+		status={callState.status}
+		deviceName={callState.targetDeviceName}
+		localStream={callState.localStream}
+		remoteStream={callState.remoteStream}
+		duration={callState.duration}
+		error={callState.error}
+		isMuted={callState.isMuted}
+		isVideoOff={callState.isVideoOff}
+		onToggleMute={toggleMute}
+		onToggleVideo={toggleVideo}
+		onEndCall={() => endCall()}
+		onRetry={() => initiateCall(callState.targetDeviceId!, callState.targetDeviceName!)}
+	/>
+{/if}
