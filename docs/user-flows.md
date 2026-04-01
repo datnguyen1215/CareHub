@@ -142,7 +142,35 @@ From the profile detail page (`/profiles/:id`):
 
 ---
 
-## 6. Kiosk Navigation Flow
+## 6. Calling Grandparent from Portal
+
+**Actor:** Caretaker (Admin or Viewer)
+
+**From the devices list (`/devices`):**
+
+1. Navigate to the Devices section via bottom navigation (`designs/09-devices.svg`)
+2. Device cards show status (online/offline), name, and type
+3. Tap the "Call" button on an online device card
+4. CallModal opens showing device name and "Calling…" status with animated dots
+5. After connection, mute and video toggle buttons become available
+6. Either party can end the call via the red end-call button
+
+**From the profile detail page (`/profiles/:id`):**
+
+1. From home dashboard, tap the grandparent's profile card
+2. On profile detail page, tap "Call Tablet" button
+3. Portal requests microphone and camera permissions (first time only)
+4. WebRTC signaling initiates; call request sent to tablet via WebSocket (or FCM if WebSocket is disconnected)
+5. Tablet app displays incoming call screen with caretaker's name and photo (`designs/12-tablet-incoming-call.svg`)
+6. Grandparent taps the large Accept button
+7. Video call connects; both sides see and hear each other
+8. Either party can end the call
+
+---
+
+## 7. Kiosk Navigation Flow
+
+## 8. Grandparent Calling Caretaker
 
 **Actor:** Elderly family member (Tablet user)
 
@@ -178,7 +206,7 @@ From the profile detail page (`/profiles/:id`):
 
 ---
 
-## 7. Managing Devices from Portal
+## 9. Managing Devices from Portal
 
 **Actor:** Caretaker (Admin or Viewer)
 
@@ -221,7 +249,7 @@ From the profile detail page (`/profiles/:id`):
 
 ---
 
-## 8. Inviting a New Viewer
+## 10. Inviting a New Viewer
 
 **Actor:** Caretaker (Admin)
 
@@ -236,7 +264,7 @@ From the profile detail page (`/profiles/:id`):
 
 ---
 
-## 9. Searching Attachments
+## 11. Searching Attachments
 
 **Actor:** Caretaker (Admin or Viewer)
 
@@ -250,7 +278,7 @@ From the profile detail page (`/profiles/:id`):
 
 ---
 
-## 10. Creating a Journal Entry
+## 12. Creating a Journal Entry
 
 **Actor:** Caretaker (Admin)
 
@@ -267,7 +295,7 @@ From the profile detail page (`/profiles/:id`):
 
 ---
 
-## 11. Searching Journal Entries
+## 13. Searching Journal Entries
 
 **Actor:** Caretaker (Admin or Viewer)
 
@@ -281,7 +309,7 @@ From the profile detail page (`/profiles/:id`):
 
 ---
 
-## 12. Viewing Linked Journal from Event
+## 14. Viewing Linked Journal from Event
 
 **Actor:** Caretaker (Admin or Viewer)
 
@@ -293,7 +321,7 @@ From the profile detail page (`/profiles/:id`):
 
 ---
 
-## 13. Calling from Device Detail
+## 15. Calling from Device Detail
 
 **Actor:** Caretaker (Admin)
 
