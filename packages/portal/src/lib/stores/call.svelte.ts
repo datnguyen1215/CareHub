@@ -111,6 +111,33 @@ const initialState: CallState = {
 /** Reactive call state using Svelte 5 runes */
 export const callState = $state<CallState>({ ...initialState });
 
+/** Subscription listeners for cross-module reactivity */
+type CallStateListener = (state: CallState) => void;
+const listeners = new Set<CallStateListener>();
+
+/**
+ * Notifies all subscribers with a shallow copy of current state.
+ * Shallow copy ensures new object reference triggers Svelte reactivity.
+ */
+function notify(): void {
+	const snapshot = { ...callState };
+	listeners.forEach((listener) => listener(snapshot));
+}
+
+/**
+ * Subscribe to call state changes.
+ * @param listener - Callback invoked when state changes
+ * @returns Unsubscribe function
+ */
+export function subscribe(listener: CallStateListener): () => void {
+	listeners.add(listener);
+	// Immediately call with current state
+	listener({ ...callState });
+	return () => {
+		listeners.delete(listener);
+	};
+}
+
 /** Duration timer interval ID */
 let durationIntervalId: ReturnType<typeof setInterval> | null = null;
 
@@ -175,6 +202,9 @@ function syncStateFromMachine(state: string, context: CallContext): void {
 	}
 
 	previousStatus = newStatus;
+
+	// Notify subscribers for cross-module reactivity
+	notify();
 }
 
 /**

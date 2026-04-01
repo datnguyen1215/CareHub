@@ -1,24 +1,34 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
-	import { getCallState, resetCallState, type CallState } from '$lib/stores/call';
+	import { subscribe, resetCallState, type CallState } from '$lib/stores/call';
 	import IncomingCall from './IncomingCall.svelte';
 	import CallScreen from './CallScreen.svelte';
 	import PermissionError from './PermissionError.svelte';
 
-	let callState: CallState = $state(getCallState());
-	let updateInterval: ReturnType<typeof setInterval> | null = null;
+	let callState: CallState = $state({
+		status: 'idle',
+		callId: null,
+		caller: null,
+		profileId: null,
+		localStream: null,
+		remoteStream: null,
+		connectedAt: null,
+		duration: 0,
+		error: null,
+		endReason: null
+	});
+	let unsubscribe: (() => void) | null = null;
 	let endedTimeout: ReturnType<typeof setTimeout> | null = null;
 
 	onMount(() => {
-		// Poll call state (Svelte 5 runes in module scope don't auto-subscribe across components)
-		// Note: initCallStore() is called in +layout.svelte before WebSocket connects
-		updateInterval = setInterval(() => {
-			callState = getCallState();
-		}, 50);
+		// Subscribe to call state changes for cross-module reactivity
+		unsubscribe = subscribe((state) => {
+			callState = state;
+		});
 	});
 
 	onDestroy(() => {
-		if (updateInterval) clearInterval(updateInterval);
+		if (unsubscribe) unsubscribe();
 		if (endedTimeout) clearTimeout(endedTimeout);
 	});
 

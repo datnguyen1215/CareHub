@@ -1,15 +1,16 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, onDestroy } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { listDevices, type Device } from '$lib/api';
 	import { getErrorMessage, isRetryable } from '$lib/error-utils';
 	import DeviceCard from '$lib/DeviceCard.svelte';
 	import {
-		callState,
+		subscribe as subscribeCall,
 		initiateCall,
 		endCall,
 		toggleMute,
-		toggleVideo
+		toggleVideo,
+		type CallState
 	} from '$lib/stores/call.svelte';
 	import CallModal from '$lib/components/call/CallModal.svelte';
 
@@ -17,6 +18,22 @@
 	let loadError = $state('');
 	let loading = $state(true);
 	let canRetry = $state(false);
+
+	// Call state subscription
+	let callState = $state<CallState>({
+		status: 'idle',
+		sessionId: null,
+		targetDeviceId: null,
+		targetDeviceName: null,
+		localStream: null,
+		remoteStream: null,
+		startedAt: null,
+		duration: 0,
+		error: null,
+		isMuted: false,
+		isVideoOff: false
+	});
+	let unsubscribeCall: (() => void) | null = null;
 
 	let showCallModal = $derived(callState.status !== 'idle');
 
@@ -42,6 +59,14 @@
 
 	onMount(() => {
 		loadData();
+		// Subscribe to call state changes for cross-module reactivity
+		unsubscribeCall = subscribeCall((state) => {
+			callState = state;
+		});
+	});
+
+	onDestroy(() => {
+		if (unsubscribeCall) unsubscribeCall();
 	});
 
 	function handleSendPhoto(device: Device) {
