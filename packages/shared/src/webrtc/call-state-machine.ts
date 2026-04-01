@@ -45,6 +45,7 @@ export const CALL_EVENTS = {
 
   // Signaling events
   INCOMING_CALL: 'INCOMING_CALL',
+  SESSION_CONFIRMED: 'SESSION_CONFIRMED', // Server confirms session with authoritative callId
   CALL_ACCEPTED: 'CALL_ACCEPTED',
   CALL_DECLINED: 'CALL_DECLINED',
   CALL_ENDED: 'CALL_ENDED',
@@ -174,6 +175,10 @@ export function createCallerMachineConfig(): MachineConfigAny {
           waitingForAccept: {
             entry: ['logEnterWaitingForAccept'],
             on: {
+              SESSION_CONFIRMED: {
+                target: 'waitingForAccept',
+                actions: ['assignServerCallId'],
+              },
               CALL_ACCEPTED: {
                 target: 'creatingOffer',
                 actions: ['logTransition'],
@@ -195,6 +200,11 @@ export function createCallerMachineConfig(): MachineConfigAny {
                 target: 'exchangingIce',
                 actions: ['logTransition'],
               },
+              // Answer may arrive before OFFER_CREATED fires (race condition)
+              ANSWER_RECEIVED: {
+                target: '#callerCall.connecting',
+                actions: ['handleAnswer', 'logTransition'],
+              },
               CALL_ERROR: {
                 target: '#callerCall.failed',
                 actions: ['assignError', 'logTransition'],
@@ -202,7 +212,7 @@ export function createCallerMachineConfig(): MachineConfigAny {
             },
           },
           exchangingIce: {
-            entry: ['logEnterExchangingIce', 'flushPendingIceCandidates'],
+            entry: ['logEnterExchangingIce'],
             on: {
               ICE_CANDIDATE: {
                 target: 'exchangingIce',
@@ -229,13 +239,12 @@ export function createCallerMachineConfig(): MachineConfigAny {
             actions: ['assignEndReason', 'logTransition'],
           },
           ICE_CANDIDATE: {
-            target: 'signaling',
             actions: ['queueIceCandidate'],
           },
         },
       },
       connecting: {
-        entry: ['logEnterConnecting'],
+        entry: ['logEnterConnecting', 'flushPendingIceCandidates'],
         on: {
           ICE_CONNECTED: {
             target: 'connected',
@@ -398,7 +407,6 @@ export function createCalleeMachineConfig(): MachineConfigAny {
             actions: ['assignEndReason', 'logTransition'],
           },
           ICE_CANDIDATE: {
-            target: 'signaling',
             actions: ['queueIceCandidate'],
           },
         },
@@ -546,6 +554,9 @@ export const callerAssignActions = {
     callId: () => crypto.randomUUID(),
     targetDeviceId: ({ event }: { event: { deviceId: string } }) => event.deviceId,
     targetDeviceName: ({ event }: { event: { deviceName: string } }) => event.deviceName,
+  }),
+  assignServerCallId: assign({
+    callId: ({ event }: { event: { callId: string } }) => event.callId,
   }),
 }
 

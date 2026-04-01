@@ -420,7 +420,7 @@ export async function initiateCall(deviceId: string, deviceName: string): Promis
 		return;
 	}
 
-	machine.send(CALL_EVENTS.INITIATE, { deviceId, deviceName });
+	await machine.send(CALL_EVENTS.INITIATE, { deviceId, deviceName });
 }
 
 /**
@@ -470,16 +470,42 @@ export function toggleVideo(): void {
  * @param message - Signaling message from WebSocket
  */
 export async function handleIncomingSignal(message: SignalingMessage): Promise<void> {
+	console.log(
+		'[Call] handleIncomingSignal:',
+		message.type,
+		'machine:',
+		!!machine,
+		'sessionId:',
+		callState.sessionId
+	);
 	if (!machine) return;
 
-	// Ignore messages for other calls
-	if ('callId' in message && message.callId !== callState.sessionId) {
+	// Ignore messages for other calls (except call:ringing which establishes the session)
+	if (
+		'callId' in message &&
+		message.type !== 'call:ringing' &&
+		message.callId !== callState.sessionId
+	) {
+		console.log(
+			'[Call] Ignoring message - callId mismatch:',
+			(message as { callId: string }).callId,
+			'!==',
+			callState.sessionId
+		);
 		return;
 	}
 
 	logWebRTCEvent('Signaling', `Received ${message.type}`);
 
 	switch (message.type) {
+		case 'call:ringing':
+			// Server confirms call initiated and provides the authoritative callId
+			// Update both the UI state and the machine's context with the server's callId
+			callState.sessionId = message.callId;
+			machine.send(CALL_EVENTS.SESSION_CONFIRMED, { callId: message.callId });
+			logWebRTCEvent('Signaling', `Call ringing, sessionId updated to ${message.callId}`);
+			break;
+
 		case 'call:accepted':
 			machine.send(CALL_EVENTS.CALL_ACCEPTED);
 			break;

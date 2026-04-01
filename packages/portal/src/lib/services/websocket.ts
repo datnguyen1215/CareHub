@@ -135,6 +135,7 @@ export async function connect(): Promise<void> {
 	socket.onmessage = (event) => {
 		try {
 			const message = JSON.parse(event.data) as SignalingMessage;
+			console.log('[WebSocket] Received:', message.type, message);
 			messageHandlers.forEach((handler) => handler(message));
 		} catch (err) {
 			console.error('[WebSocket] Failed to parse message:', err);
