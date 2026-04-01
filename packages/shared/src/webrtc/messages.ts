@@ -16,6 +16,12 @@ export interface CallIncomingMessage {
   profileId: string | null
 }
 
+/** Backend confirms call is ringing on device */
+export interface CallRingingMessage {
+  type: 'call:ringing'
+  callId: string
+}
+
 /** Device accepts the incoming call */
 export interface CallAcceptedMessage {
   type: 'call:accepted'
@@ -67,6 +73,7 @@ export interface CallErrorMessage {
 export type SignalingMessage =
   | CallInitiateMessage
   | CallIncomingMessage
+  | CallRingingMessage
   | CallAcceptedMessage
   | CallDeclinedMessage
   | CallEndedMessage

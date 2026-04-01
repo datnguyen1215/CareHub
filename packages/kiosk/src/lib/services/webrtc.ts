@@ -34,6 +34,7 @@ const MEDIA_CONSTRAINTS: MediaStreamConstraints = {
 /**
  * Create and configure RTCPeerConnection.
  * Initializes connection with ICE servers and event handlers.
+ * Adds local tracks if localStream is already available.
  */
 export function createPeerConnection(): RTCPeerConnection {
 	if (peerConnection) {
@@ -41,6 +42,13 @@ export function createPeerConnection(): RTCPeerConnection {
 	}
 
 	peerConnection = new RTCPeerConnection({ iceServers: ICE_SERVERS });
+
+	// Add local tracks to peer connection if already available
+	if (localStream) {
+		localStream.getTracks().forEach((track) => {
+			peerConnection!.addTrack(track, localStream!);
+		});
+	}
 
 	// Handle ICE candidates to send to caller
 	peerConnection.onicecandidate = (event) => {
@@ -103,14 +111,6 @@ export async function getLocalStream(): Promise<MediaStream> {
 
 	try {
 		localStream = await navigator.mediaDevices.getUserMedia(MEDIA_CONSTRAINTS);
-
-		// Add local tracks to peer connection if it exists
-		if (peerConnection) {
-			localStream.getTracks().forEach((track) => {
-				peerConnection!.addTrack(track, localStream!);
-			});
-		}
-
 		return localStream;
 	} catch (err) {
 		const error = err as Error;

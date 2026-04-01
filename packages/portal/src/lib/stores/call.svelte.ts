@@ -251,6 +251,13 @@ function createCallMachine() {
 		...sharedAssignActions,
 		...callerAssignActions,
 
+		// Override assignRemoteStream to update reactive state directly
+		// (self-transitions don't trigger subscribe callback)
+		assignRemoteStream: ({ event }: { event: { stream: MediaStream } }) => {
+			storedRemoteStream = event.stream;
+			callState.remoteStream = event.stream;
+		},
+
 		// Logging actions
 		logTransition: ({ context, event }: { context: CallContext; event: { type: string } }) => {
 			const currentState = machine?.state || 'unknown';
