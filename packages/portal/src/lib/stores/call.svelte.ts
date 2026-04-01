@@ -216,6 +216,7 @@ function startDurationTimer(): void {
 	durationIntervalId = setInterval(() => {
 		if (callState.status === 'connected' && callState.startedAt) {
 			callState.duration = Math.floor((Date.now() - callState.startedAt.getTime()) / 1000);
+			notify();
 		}
 	}, 1000);
 }
@@ -437,6 +438,7 @@ export function toggleMute(): void {
 	callState.isMuted = !callState.isMuted;
 	webrtc.setAudioEnabled(!callState.isMuted);
 	logWebRTCEvent('Media', `Audio ${callState.isMuted ? 'muted' : 'unmuted'}`);
+	notify();
 }
 
 /**
@@ -446,6 +448,7 @@ export function toggleVideo(): void {
 	callState.isVideoOff = !callState.isVideoOff;
 	webrtc.setVideoEnabled(!callState.isVideoOff);
 	logWebRTCEvent('Media', `Video ${callState.isVideoOff ? 'off' : 'on'}`);
+	notify();
 }
 
 /**

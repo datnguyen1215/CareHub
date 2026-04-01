@@ -217,6 +217,7 @@ function startDurationTimer(): void {
 	durationTimer = setInterval(() => {
 		if (callState.status === 'connected') {
 			callState.duration += 1;
+			notify();
 		}
 	}, 1000);
 }
@@ -536,6 +537,7 @@ export function endCall(): void {
 export function resetCallState(): void {
 	stopDurationTimer();
 	callState = { ...initialState };
+	notify();
 }
 
 /**
