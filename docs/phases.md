@@ -100,9 +100,11 @@ Enable the tablet kiosk experience, Capacitor mobile app, and real-time communic
 - [x] **State machine guards** -- Prevent invalid transitions, queue ICE candidates before peer connection ready
 - [x] **Debug logging** -- All state transitions and WebRTC events logged with timestamps
 
+- [x] **Call UI components** -- Full-screen call interface on portal with CallModal and CallControls
+- [x] **Portal call initiation** -- Call from device detail page and profile overview tab, both wired to call store
+
 **Planned:**
 
-- **Call UI components** -- Full-screen call interface on portal and kiosk
 - **Incoming call screen (tablet)** -- Full-screen display with large Accept/Decline buttons
 - **Kiosk call initiation** -- Tap caretaker card to start call
 - **Missed call handling** -- "No answer" timeout state
