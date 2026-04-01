@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
-	import { getCallState, resetCallState, initCallStore, type CallState } from '$lib/stores/call';
+	import { getCallState, resetCallState, type CallState } from '$lib/stores/call';
 	import IncomingCall from './IncomingCall.svelte';
 	import CallScreen from './CallScreen.svelte';
 	import PermissionError from './PermissionError.svelte';
@@ -10,10 +10,8 @@
 	let endedTimeout: ReturnType<typeof setTimeout> | null = null;
 
 	onMount(() => {
-		// Initialize call handlers
-		initCallStore();
-
 		// Poll call state (Svelte 5 runes in module scope don't auto-subscribe across components)
+		// Note: initCallStore() is called in +layout.svelte before WebSocket connects
 		updateInterval = setInterval(() => {
 			callState = getCallState();
 		}, 50);
