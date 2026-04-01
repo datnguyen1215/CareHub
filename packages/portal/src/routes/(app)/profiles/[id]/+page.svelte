@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, onDestroy } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import {
@@ -41,7 +41,7 @@
 	import EventDetail from '$lib/EventDetail.svelte';
 	import DocumentsTab from '$lib/DocumentsTab.svelte';
 	import { toast } from '$lib/stores/toast';
-	import { initiateCall, callState, endCall, toggleMute, toggleVideo } from '$lib/stores/call.svelte';
+	import { initiateCall, subscribe as subscribeCall, endCall, toggleMute, toggleVideo, type CallState } from '$lib/stores/call.svelte';
 	import CallModal from '$lib/components/call/CallModal.svelte';
 
 	const profileId = $derived($page.params.id ?? '');
@@ -86,8 +86,24 @@
 	// Track which events have attachments (event_id -> count)
 	let eventAttachmentCounts = $state<Record<string, number>>({});
 
+	// Call state subscription
+	let localCallState = $state<CallState>({
+		status: 'idle',
+		sessionId: null,
+		targetDeviceId: null,
+		targetDeviceName: null,
+		localStream: null,
+		remoteStream: null,
+		startedAt: null,
+		duration: 0,
+		error: null,
+		isMuted: false,
+		isVideoOff: false
+	});
+	let unsubscribeCall: (() => void) | null = null;
+
 	// Call modal state
-	const showCallModal = $derived(callState.status !== 'idle');
+	const showCallModal = $derived(localCallState.status !== 'idle');
 
 	// Profile delete state
 	let showDeleteProfileModal = $state(false);
@@ -208,6 +224,14 @@
 
 	onMount(() => {
 		loadData();
+		// Subscribe to call state changes for cross-module reactivity
+		unsubscribeCall = subscribeCall((state) => {
+			localCallState = state;
+		});
+	});
+
+	onDestroy(() => {
+		if (unsubscribeCall) unsubscribeCall();
 	});
 
 	function formatDate(iso: string): string {
@@ -599,8 +623,8 @@
 	}
 
 	function handleRetryCall() {
-		if (callState.targetDeviceId && callState.targetDeviceName) {
-			initiateCall(callState.targetDeviceId, callState.targetDeviceName);
+		if (localCallState.targetDeviceId && localCallState.targetDeviceName) {
+			initiateCall(localCallState.targetDeviceId, localCallState.targetDeviceName);
 		}
 	}
 
@@ -1393,14 +1417,14 @@
 
 {#if showCallModal}
 	<CallModal
-		status={callState.status}
-		deviceName={callState.targetDeviceName}
-		localStream={callState.localStream}
-		remoteStream={callState.remoteStream}
-		duration={callState.duration}
-		error={callState.error}
-		isMuted={callState.isMuted}
-		isVideoOff={callState.isVideoOff}
+		status={localCallState.status}
+		deviceName={localCallState.targetDeviceName}
+		localStream={localCallState.localStream}
+		remoteStream={localCallState.remoteStream}
+		duration={localCallState.duration}
+		error={localCallState.error}
+		isMuted={localCallState.isMuted}
+		isVideoOff={localCallState.isVideoOff}
 		onToggleMute={toggleMute}
 		onToggleVideo={toggleVideo}
 		onEndCall={endCall}

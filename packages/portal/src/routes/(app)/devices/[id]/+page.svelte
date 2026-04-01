@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, onDestroy } from 'svelte';
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
 	import {
@@ -17,11 +17,12 @@
 	import BatteryIndicator from '$lib/BatteryIndicator.svelte';
 	import CallModal from '$lib/components/call/CallModal.svelte';
 	import {
-		callState,
+		subscribe as subscribeCall,
 		initiateCall,
 		endCall,
 		toggleMute,
-		toggleVideo
+		toggleVideo,
+		type CallState
 	} from '$lib/stores/call.svelte';
 
 	let device = $state<Device | null>(null);
@@ -43,6 +44,22 @@
 	let addingProfile = $state(false);
 	let addProfileError = $state('');
 	let removeProfileError = $state('');
+
+	// Call state subscription
+	let callState = $state<CallState>({
+		status: 'idle',
+		sessionId: null,
+		targetDeviceId: null,
+		targetDeviceName: null,
+		localStream: null,
+		remoteStream: null,
+		startedAt: null,
+		duration: 0,
+		error: null,
+		isMuted: false,
+		isVideoOff: false
+	});
+	let unsubscribeCall: (() => void) | null = null;
 
 	const deviceId = $derived(page.params.id ?? '');
 
@@ -80,6 +97,14 @@
 
 	onMount(() => {
 		loadData();
+		// Subscribe to call state changes for cross-module reactivity
+		unsubscribeCall = subscribeCall((state) => {
+			callState = state;
+		});
+	});
+
+	onDestroy(() => {
+		if (unsubscribeCall) unsubscribeCall();
 	});
 
 	function getRelativeTime(dateStr: string | null): string {

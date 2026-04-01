@@ -116,6 +116,33 @@ let machine: any = null;
 /** Track the previous status to detect state changes */
 let previousStatus: CallStatus | null = null;
 
+/** Subscription listeners for cross-module reactivity */
+type CallStateListener = (state: CallState) => void;
+const listeners = new Set<CallStateListener>();
+
+/**
+ * Notifies all subscribers with a shallow copy of current state.
+ * Shallow copy ensures new object reference triggers Svelte reactivity.
+ */
+function notify(): void {
+	const snapshot = { ...callState };
+	listeners.forEach((listener) => listener(snapshot));
+}
+
+/**
+ * Subscribe to call state changes.
+ * @param listener - Callback invoked when state changes
+ * @returns Unsubscribe function
+ */
+export function subscribe(listener: CallStateListener): () => void {
+	listeners.add(listener);
+	// Immediately call with current state
+	listener({ ...callState });
+	return () => {
+		listeners.delete(listener);
+	};
+}
+
 /**
  * Get current call state.
  * @returns Current call state
@@ -176,6 +203,9 @@ function syncStateFromMachine(state: string, context: CallContext): void {
 	}
 
 	previousStatus = newStatus;
+
+	// Notify subscribers for cross-module reactivity
+	notify();
 }
 
 /**
@@ -187,6 +217,7 @@ function startDurationTimer(): void {
 	durationTimer = setInterval(() => {
 		if (callState.status === 'connected') {
 			callState.duration += 1;
+			notify();
 		}
 	}, 1000);
 }
@@ -506,6 +537,7 @@ export function endCall(): void {
 export function resetCallState(): void {
 	stopDurationTimer();
 	callState = { ...initialState };
+	notify();
 }
 
 /**
