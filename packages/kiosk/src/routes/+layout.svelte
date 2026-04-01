@@ -10,6 +10,7 @@
 	} from '$lib/services/storage';
 	import { getDeviceInfo, registerDevice, type DeviceInfo } from '$lib/services/api';
 	import { connect, disconnect, onMessage, getIsConnected } from '$lib/services/websocket';
+	import { initCallStore } from '$lib/stores/call';
 	import type { DeviceState } from '$lib/stores/device';
 	import { initialDeviceState } from '$lib/stores/device';
 	import ConnectionStatus from '$lib/components/ConnectionStatus.svelte';
@@ -92,6 +93,10 @@
 	}
 
 	async function setupWebSocket() {
+		// Initialize call handlers BEFORE connecting to avoid race condition
+		// where call:incoming arrives before CallOverlay mounts and registers handlers
+		initCallStore();
+
 		await connect();
 
 		// Listen for WebSocket messages
