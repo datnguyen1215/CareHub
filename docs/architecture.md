@@ -52,9 +52,11 @@ src/
     MedicationModal.svelte # Create/edit medication modal — name, dosage, schedule chips, status toggle (edit only)
     EventModal.svelte      # Create/edit event modal — title, date/time, type, location, notes
     DeleteConfirmModal.svelte # Confirmation dialog for deleting events
+    CallModal.svelte       # Call modal — device name, status, mute/video toggle, end-call button
     api.ts                 # API client with auth cookie handling
     stores/
       toast.ts             # Toast notification store — manage toast queue with auto-dismiss
+      call.svelte.ts       # Reactive call state store (Svelte 5 runes) — idle → calling → connected → ended
   routes/
     login/                 # Public auth pages (email entry, OTP verify, account setup)
     (app)/
@@ -65,7 +67,7 @@ src/
         [id]/
           +page.svelte     # Profile detail — custom top bar, Overview/Meds tabs
       devices/
-        +page.svelte       # Device management UI — list, pair, unpair devices
+        +page.svelte       # Device management UI — list, pair, unpair devices; opens CallModal on Call button
       settings/
         +page.svelte       # Settings — group rename, member management
 ```
