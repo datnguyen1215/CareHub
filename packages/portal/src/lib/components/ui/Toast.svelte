@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { toast, type Toast } from './stores/toast'
+	import { toast, type Toast } from '$lib/stores/toast'
 	import { fly } from 'svelte/transition'
 
 	let toasts = $state<Toast[]>([])
@@ -19,6 +19,10 @@
 				return 'x'
 			case 'error':
 				return 'exclamation'
+			case 'warning':
+				return 'exclamation'
+			case 'info':
+				return 'info'
 		}
 	}
 
@@ -27,9 +31,12 @@
 			case 'success':
 				return 'bg-green-50 border-green-200 text-green-800'
 			case 'destructive':
-				return 'bg-red-50 border-red-200 text-red-800'
 			case 'error':
 				return 'bg-red-50 border-red-200 text-red-800'
+			case 'warning':
+				return 'bg-amber-50 border-amber-200 text-amber-800'
+			case 'info':
+				return 'bg-blue-50 border-blue-200 text-blue-800'
 		}
 	}
 
@@ -38,9 +45,12 @@
 			case 'success':
 				return 'bg-green-100 text-green-600'
 			case 'destructive':
-				return 'bg-red-100 text-red-600'
 			case 'error':
 				return 'bg-red-100 text-red-600'
+			case 'warning':
+				return 'bg-amber-100 text-amber-600'
+			case 'info':
+				return 'bg-blue-100 text-blue-600'
 		}
 	}
 </script>
@@ -66,6 +76,10 @@
 						<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4">
 							<path d="M6.28 5.22a.75.75 0 0 0-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 1 0 1.06 1.06L10 11.06l3.72 3.72a.75.75 0 1 0 1.06-1.06L11.06 10l3.72-3.72a.75.75 0 0 0-1.06-1.06L10 8.94 6.28 5.22Z" />
 						</svg>
+					{:else if getIcon(t.type) === 'info'}
+						<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4">
+							<path fill-rule="evenodd" d="M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0Zm-7-4a1 1 0 1 1-2 0 1 1 0 0 1 2 0ZM9 9a.75.75 0 0 0 0 1.5h.253a.25.25 0 0 1 .244.304l-.459 2.066A1.75 1.75 0 0 0 10.747 15H11a.75.75 0 0 0 0-1.5h-.253a.25.25 0 0 1-.244-.304l.459-2.066A1.75 1.75 0 0 0 9.253 9H9Z" clip-rule="evenodd" />
+						</svg>
 					{:else}
 						<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4">
 							<path fill-rule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495ZM10 5a.75.75 0 0 1 .75.75v3.5a.75.75 0 0 1-1.5 0v-3.5A.75.75 0 0 1 10 5Zm0 9a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z" clip-rule="evenodd" />
@@ -76,11 +90,11 @@
 				<!-- Message -->
 				<p class="text-sm font-medium flex-1">{t.message}</p>
 
-				<!-- Dismiss button (only for errors) -->
-				{#if t.type === 'error'}
+				<!-- Dismiss button (for errors and warnings) -->
+				{#if t.type === 'error' || t.type === 'warning'}
 					<button
 						onclick={() => toast.dismiss(t.id)}
-						class="p-1 rounded hover:bg-red-100 transition-colors shrink-0"
+						class="p-1 rounded hover:opacity-70 transition-opacity shrink-0"
 						aria-label="Dismiss"
 					>
 						<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4">

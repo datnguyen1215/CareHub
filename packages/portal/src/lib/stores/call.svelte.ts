@@ -17,6 +17,56 @@ import {
 } from '@carehub/shared/webrtc/call-state-machine';
 import * as websocket from '$lib/services/websocket';
 import * as webrtc from '$lib/services/webrtc';
+import { toast } from '$lib/stores/toast';
+
+/** Maps technical errors to user-friendly messages */
+function getUserFriendlyError(error: string | null): string {
+	if (!error) return 'Call failed. Please try again.';
+
+	const errorLower = error.toLowerCase();
+
+	// WebSocket/connection issues
+	if (errorLower.includes('websocket') || errorLower.includes('unable to connect')) {
+		return 'Connection lost. Please check your internet and try again.';
+	}
+
+	// Device status issues
+	if (errorLower.includes('offline') || errorLower.includes('not connected')) {
+		return 'Device is offline. Please check the tablet.';
+	}
+
+	// Call declined
+	if (errorLower.includes('declined')) {
+		return 'Call was declined.';
+	}
+
+	// ICE/network issues
+	if (errorLower.includes('ice') || errorLower.includes('network')) {
+		return 'Could not establish video connection. Check your network.';
+	}
+
+	// Timeout
+	if (errorLower.includes('timeout') || errorLower.includes('timed out')) {
+		return 'Call timed out. Please try again.';
+	}
+
+	// Media permissions
+	if (
+		errorLower.includes('permission') ||
+		errorLower.includes('notallowed') ||
+		errorLower.includes('not allowed')
+	) {
+		return 'Camera/microphone access denied. Please allow permissions.';
+	}
+
+	// Media device issues
+	if (errorLower.includes('notfound') || errorLower.includes('not found')) {
+		return 'Camera or microphone not found. Please check your devices.';
+	}
+
+	// Return original error if already user-friendly or unrecognized
+	return error;
+}
 
 /** Call status representing the call lifecycle */
 export type CallStatusType =
@@ -96,11 +146,17 @@ function mapMachineStateToStatus(machineState: string): CallStatusType {
 	}
 }
 
+/** Track the previous status to detect state changes */
+let previousStatus: CallStatusType | null = null;
+
 /**
  * Syncs machine context to reactive callState.
+ * Also emits toast notifications on error states.
  */
 function syncStateFromMachine(state: string, context: CallContext): void {
-	callState.status = mapMachineStateToStatus(state);
+	const newStatus = mapMachineStateToStatus(state);
+
+	callState.status = newStatus;
 	callState.sessionId = context.callId;
 	callState.targetDeviceId = context.targetDeviceId;
 	callState.targetDeviceName = context.targetDeviceName;
@@ -111,6 +167,14 @@ function syncStateFromMachine(state: string, context: CallContext): void {
 	callState.error = context.error;
 	callState.isMuted = context.isMuted;
 	callState.isVideoOff = context.isVideoOff;
+
+	// Emit toast on transition to failed state (only once)
+	if (newStatus === 'failed' && previousStatus !== 'failed') {
+		const userMessage = getUserFriendlyError(context.error);
+		toast.error(userMessage);
+	}
+
+	previousStatus = newStatus;
 }
 
 /**
@@ -440,6 +504,19 @@ export function initializeCallHandlers(): () => void {
 		handleIncomingSignal(message);
 	});
 
+	// Handle WebSocket disconnections during calls
+	const unsubDisconnect = websocket.onDisconnect(() => {
+		// Only show warning if call is in progress
+		if (
+			callState.status === 'initiating' ||
+			callState.status === 'ringing' ||
+			callState.status === 'connecting' ||
+			callState.status === 'connected'
+		) {
+			toast.warning('Connection lost. Reconnecting...');
+		}
+	});
+
 	// Return cleanup function
 	return () => {
 		unsubTrack();
@@ -447,6 +524,7 @@ export function initializeCallHandlers(): () => void {
 		unsubIce();
 		unsubError();
 		unsubMessage();
+		unsubDisconnect();
 		stopDurationTimer();
 	};
 }

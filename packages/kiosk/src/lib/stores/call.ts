@@ -31,6 +31,46 @@ import {
 	sendCallEnded
 } from '$lib/services/websocket';
 import * as webrtc from '$lib/services/webrtc';
+import { notification } from '$lib/stores/notifications';
+
+/** Maps technical errors to user-friendly messages */
+function getUserFriendlyError(error: string | null): string {
+	if (!error) return 'Call failed. Please try again.';
+
+	const errorLower = error.toLowerCase();
+
+	// WebSocket/connection issues
+	if (errorLower.includes('websocket') || errorLower.includes('unable to connect')) {
+		return 'Connection lost. Please check your internet and try again.';
+	}
+
+	// ICE/network issues
+	if (errorLower.includes('ice') || errorLower.includes('network')) {
+		return 'Could not establish video connection. Check your network.';
+	}
+
+	// Timeout
+	if (errorLower.includes('timeout') || errorLower.includes('timed out')) {
+		return 'Call timed out. Please try again.';
+	}
+
+	// Media permissions
+	if (
+		errorLower.includes('permission') ||
+		errorLower.includes('notallowed') ||
+		errorLower.includes('not allowed')
+	) {
+		return 'Camera/microphone access denied. Please allow permissions.';
+	}
+
+	// Media device issues
+	if (errorLower.includes('notfound') || errorLower.includes('not found')) {
+		return 'Camera or microphone not found. Please check your devices.';
+	}
+
+	// Return original error if already user-friendly or unrecognized
+	return error;
+}
 
 /** Call status values */
 export type CallStatus = 'idle' | 'incoming' | 'connecting' | 'connected' | 'ended';
@@ -73,6 +113,9 @@ let durationTimer: ReturnType<typeof setInterval> | null = null;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let machine: any = null;
 
+/** Track the previous status to detect state changes */
+let previousStatus: CallStatus | null = null;
+
 /**
  * Get current call state.
  * @returns Current call state
@@ -109,9 +152,12 @@ function mapMachineStateToStatus(machineState: string): CallStatus {
 
 /**
  * Syncs machine context to callState.
+ * Also emits toast notifications on error states.
  */
 function syncStateFromMachine(state: string, context: CallContext): void {
-	callState.status = mapMachineStateToStatus(state);
+	const newStatus = mapMachineStateToStatus(state);
+
+	callState.status = newStatus;
 	callState.callId = context.callId;
 	callState.caller = context.caller;
 	callState.profileId = context.profileId;
@@ -121,6 +167,15 @@ function syncStateFromMachine(state: string, context: CallContext): void {
 	callState.duration = context.duration;
 	callState.error = context.error;
 	callState.endReason = context.endReason;
+
+	// Emit toast on transition to failed state (only once)
+	// The 'failed' state machine state maps to 'ended' status
+	if (state === 'failed' && previousStatus !== 'ended') {
+		const userMessage = getUserFriendlyError(context.error);
+		notification.error(userMessage);
+	}
+
+	previousStatus = newStatus;
 }
 
 /**
