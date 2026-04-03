@@ -16,6 +16,7 @@
 	import DeviceStatusDot from '$lib/components/devices/DeviceStatusDot.svelte';
 	import BatteryIndicator from '$lib/components/devices/BatteryIndicator.svelte';
 	import CallModal from '$lib/components/call/CallModal.svelte';
+	import { getInitial } from '$lib/utils/format';
 	import {
 		callState,
 		initiateCall,
@@ -212,9 +213,6 @@
 		}
 	}
 
-	function getInitial(name: string): string {
-		return name.charAt(0).toUpperCase();
-	}
 
 	function handleSendPhoto() {
 		// Phase 3: Opens photo picker - placeholder for now

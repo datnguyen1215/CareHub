@@ -10,6 +10,8 @@
 	} from '$lib/api';
 	import EventModal from '$lib/components/events/EventModal.svelte';
 	import EventDetail from '$lib/components/events/EventDetail.svelte';
+	import { formatTime, formatDateFull, formatMonthYear } from '$lib/utils/format';
+	import { EVENT_TYPE_LABELS } from '$lib/utils/categories';
 	import { toast } from '$lib/stores/toast.svelte';
 
 	interface Props {
@@ -50,9 +52,7 @@
 	const currentMonth = $derived(currentDate.getMonth());
 	const currentMonthKey = $derived(`${currentYear}-${currentMonth}`);
 
-	const monthName = $derived(
-		new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric' }).format(currentDate)
-	);
+	const monthName = $derived(formatMonthYear(currentDate));
 
 	const calendarDays = $derived.by(() => {
 		const firstDay = new Date(currentYear, currentMonth, 1);
@@ -225,34 +225,6 @@
 		closeEventModal();
 	}
 
-	function formatEventTime(dateStr: string): string {
-		const date = new Date(dateStr);
-		return new Intl.DateTimeFormat('en-US', {
-			hour: 'numeric',
-			minute: '2-digit',
-			hour12: true
-		}).format(date);
-	}
-
-	function formatEventDate(dateStr: string): string {
-		const date = new Date(dateStr);
-		return new Intl.DateTimeFormat('en-US', {
-			month: 'short',
-			day: 'numeric',
-			year: 'numeric'
-		}).format(date);
-	}
-
-	function getEventTypeLabel(type: string): string {
-		const labels: Record<string, string> = {
-			doctor_visit: 'Doctor Visit',
-			lab_work: 'Lab Work',
-			therapy: 'Therapy',
-			general: 'General'
-		};
-		return labels[type] ?? type;
-	}
-
 	// Load calendar events when changing months
 	$effect(() => {
 		if (loadedMonthKey !== currentMonthKey) {
@@ -357,7 +329,7 @@
 			<div class="card mb-unit-3">
 				<div class="flex items-center justify-between mb-unit-2">
 					<h4 class="text-h3 font-semibold text-text-primary">
-						{formatEventDate(selectedDate.toISOString())}
+						{formatDateFull(selectedDate.toISOString())}
 					</h4>
 					<button
 						onclick={() => selectedDate && openCreateEvent(selectedDate)}
@@ -382,14 +354,14 @@
 											<span
 												class="text-xs bg-blue-50 text-primary rounded-full px-2 py-0.5 border border-blue-100"
 											>
-												{getEventTypeLabel(event.event_type)}
+												{EVENT_TYPE_LABELS[event.event_type] ?? event.event_type}
 											</span>
 											{#if hasAttachments(event.id)}
 												<span class="text-gray-400" title="Has attachments">📎</span>
 											{/if}
 										</div>
 										<p class="text-sm text-text-secondary">
-											{formatEventTime(event.event_date)}
+											{formatTime(event.event_date)}
 										</p>
 										{#if event.location}
 											<p class="text-sm text-text-secondary">{event.location}</p>
@@ -440,14 +412,14 @@
 										<span
 											class="text-xs bg-blue-50 text-primary rounded-full px-2 py-0.5 border border-blue-100"
 										>
-											{getEventTypeLabel(event.event_type)}
+											{EVENT_TYPE_LABELS[event.event_type] ?? event.event_type}
 										</span>
 										{#if hasAttachments(event.id)}
 											<span class="text-gray-400" title="Has attachments">📎</span>
 										{/if}
 									</div>
 									<p class="text-sm text-text-secondary">
-										{formatEventDate(event.event_date)} at {formatEventTime(event.event_date)}
+										{formatDateFull(event.event_date)} at {formatTime(event.event_date)}
 									</p>
 									{#if event.location}
 										<p class="text-sm text-text-secondary">{event.location}</p>

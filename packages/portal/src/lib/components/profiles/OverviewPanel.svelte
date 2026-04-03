@@ -15,6 +15,7 @@
 	import DeviceStatusDot from '$lib/components/devices/DeviceStatusDot.svelte';
 	import BatteryIndicator from '$lib/components/devices/BatteryIndicator.svelte';
 	import { getErrorMessage } from '$lib/utils/error-utils';
+	import { formatDateLong, formatDateShort, getInitial } from '$lib/utils/format';
 	import { toast } from '$lib/stores/toast.svelte';
 	import {
 		callState,
@@ -96,20 +97,6 @@
 			hasLoadedData = true;
 		}
 	});
-
-	function formatDate(iso: string): string {
-		const d = new Date(iso + 'T00:00:00');
-		return d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-	}
-
-	function formatShortDate(iso: string): string {
-		const d = new Date(iso);
-		return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-	}
-
-	function getInitial(name: string): string {
-		return name.charAt(0).toUpperCase();
-	}
 
 	function handleAvatarClick() {
 		if (!avatarUploading) {
@@ -356,7 +343,7 @@
 				<dl class="flex flex-col gap-1.5 text-sm">
 					<div class="flex gap-2">
 						<dt class="text-text-secondary w-28 shrink-0">Date of birth</dt>
-						<dd class="text-text-primary">{formatDate(profile.date_of_birth)}</dd>
+						<dd class="text-text-primary">{formatDateLong(profile.date_of_birth)}</dd>
 					</div>
 				</dl>
 			{/if}
@@ -410,7 +397,7 @@
 			<ul class="flex flex-col gap-2">
 				{#each upcomingEvents as event (event.id)}
 					<li class="flex items-center gap-2 text-sm">
-						<span class="text-text-secondary shrink-0">{formatShortDate(event.event_date)}</span>
+						<span class="text-text-secondary shrink-0">{formatDateShort(event.event_date)}</span>
 						<span class="text-text-primary font-medium truncate">{event.title}</span>
 					</li>
 				{/each}

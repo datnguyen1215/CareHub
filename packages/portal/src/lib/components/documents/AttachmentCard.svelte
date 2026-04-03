@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { Attachment } from '$lib/api';
+	import { CATEGORY_COLORS, CATEGORY_LABELS } from '$lib/utils/categories';
 
 	interface Props {
 		attachment: Attachment;
@@ -9,24 +10,6 @@
 	let { attachment, onDelete }: Props = $props();
 
 	let showDeleteConfirm = $state(false);
-
-	const categoryLabels: Record<string, string> = {
-		lab_result: 'Lab Result',
-		prescription: 'Prescription',
-		insurance: 'Insurance',
-		billing: 'Billing',
-		imaging: 'Imaging',
-		other: 'Other'
-	};
-
-	const categoryColors: Record<string, string> = {
-		lab_result: 'bg-green-50 text-green-700 border-green-200',
-		prescription: 'bg-blue-50 text-blue-700 border-blue-200',
-		insurance: 'bg-purple-50 text-purple-700 border-purple-200',
-		billing: 'bg-yellow-50 text-yellow-700 border-yellow-200',
-		imaging: 'bg-pink-50 text-pink-700 border-pink-200',
-		other: 'bg-gray-50 text-gray-700 border-gray-200'
-	};
 
 	function isImage(url: string): boolean {
 		const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
@@ -116,10 +99,10 @@
 		<!-- Category badge and delete button row -->
 		<div class="flex items-center justify-between mt-1.5">
 			<span
-				class="text-xs px-2 py-0.5 rounded-full border {categoryColors[attachment.category] ??
-					categoryColors.other}"
+				class="text-xs px-2 py-0.5 rounded-full border {CATEGORY_COLORS[attachment.category] ??
+					CATEGORY_COLORS.other}"
 			>
-				{categoryLabels[attachment.category] ?? 'Other'}
+				{CATEGORY_LABELS[attachment.category] ?? 'Other'}
 			</span>
 
 			<button

@@ -12,6 +12,8 @@
 	import AttachmentCard from '$lib/components/documents/AttachmentCard.svelte';
 	import AttachmentUpload from '$lib/components/documents/AttachmentUpload.svelte';
 	import { toast } from '$lib/stores/toast.svelte';
+	import { formatDateTime } from '$lib/utils/format';
+	import { EVENT_TYPE_LABELS } from '$lib/utils/categories';
 
 	interface Props {
 		profileId: string;
@@ -104,17 +106,6 @@
 			deleting = false;
 			showDeleteConfirm = false;
 		}
-	}
-
-	function formatDateTime(dateStr: string): string {
-		const d = new Date(dateStr);
-		return d.toLocaleDateString('en-US', {
-			year: 'numeric',
-			month: 'long',
-			day: 'numeric',
-			hour: 'numeric',
-			minute: '2-digit'
-		});
 	}
 
 	function handleBackdropClick(e: MouseEvent) {

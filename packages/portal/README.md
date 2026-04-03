@@ -126,7 +126,12 @@ packages/portal/
 │   │   │   ├── profiles/    # Profile components (OverviewPanel, ProfileModal, ProfileSelector, AvatarUpload)
 │   │   │   ├── shared/      # Shared components (DeleteConfirmModal, QRScanner)
 │   │   │   └── ui/          # UI primitives (Toast)
-│   │   ├── utils/           # Utility modules (focusTrap, error-utils)
+│   │   ├── utils/           # Shared utilities (framework-agnostic)
+│   │   │   ├── focusTrap.ts # Focus trap for modal dialogs
+│   │   │   ├── error-utils.ts # Error message extraction utilities
+│   │   │   ├── format.ts    # Date/time formatting and string helpers
+│   │   │   ├── debounce.ts  # debounce() with .cancel() for cleanup
+│   │   │   └── categories.ts # Category/event type color and label maps
 │   │   ├── services/        # Core services
 │   │   │   ├── websocket.ts # WebSocket connection manager
 │   │   │   └── webrtc.ts    # WebRTC peer connection manager

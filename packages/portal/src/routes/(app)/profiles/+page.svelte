@@ -11,6 +11,7 @@
 	} from '$lib/api';
 	import { getErrorMessage, isRetryable } from '$lib/utils/error-utils';
 	import ProfileModal from '$lib/components/profiles/ProfileModal.svelte';
+	import { getInitial } from '$lib/utils/format';
 
 	let profiles = $state<CareProfile[]>([]);
 	let devices = $state<Device[]>([]);
@@ -75,9 +76,6 @@
 		closeProfileModal();
 	}
 
-	function getInitial(name: string): string {
-		return name.charAt(0).toUpperCase();
-	}
 </script>
 
 <div class="max-w-2xl mx-auto px-unit-3 py-unit-3">

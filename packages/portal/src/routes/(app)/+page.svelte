@@ -15,6 +15,8 @@
 	import DeleteConfirmModal from '$lib/components/shared/DeleteConfirmModal.svelte';
 	import { toast } from '$lib/stores/toast.svelte';
 	import { getErrorMessage, isRetryable } from '$lib/utils/error-utils';
+	import { getInitial, formatTime, formatWeekdayLong, formatDateFull, formatDateDefault } from '$lib/utils/format';
+	import { EVENT_TYPE_LABELS, EVENT_TYPE_COLORS } from '$lib/utils/categories';
 
 	let profiles = $state<CareProfile[]>([]);
 	let events = $state<Event[]>([]);
@@ -85,11 +87,7 @@
 			} else if (eventDate.getTime() === tomorrow.getTime()) {
 				label = 'Tomorrow';
 			} else {
-				label = new Intl.DateTimeFormat('en-US', {
-					weekday: 'long',
-					month: 'short',
-					day: 'numeric'
-				}).format(eventDate);
+				label = formatWeekdayLong(eventDate);
 			}
 
 			const existingGroup = groups.find((g) => g.dateKey === dateKey);
@@ -236,42 +234,11 @@
 		}
 	}
 
-	function formatEventTime(dateStr: string): string {
-		const date = new Date(dateStr);
-		return new Intl.DateTimeFormat('en-US', {
-			hour: 'numeric',
-			minute: '2-digit',
-			hour12: true
-		}).format(date);
-	}
 
 	function getProfileName(profileId: string): string {
 		return profiles.find((p) => p.id === profileId)?.name ?? 'Unknown';
 	}
 
-	function getProfileInitial(profile: CareProfile): string {
-		return profile.name.charAt(0).toUpperCase();
-	}
-
-	function getEventTypeLabel(type: string): string {
-		const labels: Record<string, string> = {
-			doctor_visit: 'Doctor Visit',
-			lab_work: 'Lab Work',
-			therapy: 'Therapy',
-			general: 'General'
-		};
-		return labels[type] ?? type;
-	}
-
-	function getEventTypeColor(type: string): string {
-		const colors: Record<string, string> = {
-			doctor_visit: 'bg-blue-50 text-blue-700 border-blue-200',
-			lab_work: 'bg-purple-50 text-purple-700 border-purple-200',
-			therapy: 'bg-green-50 text-green-700 border-green-200',
-			general: 'bg-gray-50 text-gray-700 border-gray-200'
-		};
-		return colors[type] ?? 'bg-gray-50 text-gray-700 border-gray-200';
-	}
 </script>
 
 <div class="max-w-4xl mx-auto px-unit-3 py-unit-3">
@@ -422,7 +389,7 @@
 												/>
 											{:else}
 												<span class="text-primary font-semibold text-sm">
-													{getProfileInitial(event.profile)}
+													{getInitial(event.profile.name)}
 												</span>
 											{/if}
 										</div>
@@ -432,15 +399,13 @@
 											<div class="flex items-center gap-2 mb-0.5 flex-wrap">
 												<h4 class="font-semibold text-text-primary truncate">{event.title}</h4>
 												<span
-													class="text-xs rounded-full px-2 py-0.5 border {getEventTypeColor(
-														event.event_type
-													)}"
+													class="text-xs rounded-full px-2 py-0.5 border {EVENT_TYPE_COLORS[event.event_type] ?? EVENT_TYPE_COLORS.general}"
 												>
-													{getEventTypeLabel(event.event_type)}
+													{EVENT_TYPE_LABELS[event.event_type] ?? event.event_type}
 												</span>
 											</div>
 											<p class="text-sm text-text-secondary">
-												{formatEventTime(event.event_date)}
+												{formatTime(event.event_date)}
 												{#if event.location}
 													<span class="mx-1">·</span>
 													{event.location}
@@ -530,7 +495,7 @@
 								<img src={profile.avatar_url} alt="" class="w-full h-full object-cover" />
 							{:else}
 								<span class="text-primary font-semibold text-sm">
-									{getProfileInitial(profile)}
+									{getInitial(profile.name)}
 								</span>
 							{/if}
 						</div>
@@ -538,7 +503,7 @@
 							<p class="font-medium text-text-primary">{profile.name}</p>
 							{#if profile.date_of_birth}
 								<p class="text-xs text-text-secondary">
-									Born {new Date(profile.date_of_birth).toLocaleDateString()}
+									Born {formatDateDefault(profile.date_of_birth)}
 								</p>
 							{/if}
 						</div>

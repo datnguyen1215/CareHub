@@ -3,6 +3,7 @@
 	import type { Device } from '$lib/api';
 	import DeviceStatusDot from '$lib/components/devices/DeviceStatusDot.svelte';
 	import BatteryIndicator from '$lib/components/devices/BatteryIndicator.svelte';
+	import { getInitial, formatRelativeTime } from '$lib/utils/format';
 
 	interface Props {
 		device: Device;
@@ -14,25 +15,6 @@
 
 	const isOnline = $derived(device.status === 'online');
 
-	function getRelativeTime(dateStr: string | null): string {
-		if (!dateStr) return 'Never';
-		const date = new Date(dateStr);
-		const now = new Date();
-		const diffMs = now.getTime() - date.getTime();
-		const diffMins = Math.floor(diffMs / 60000);
-		const diffHours = Math.floor(diffMins / 60);
-		const diffDays = Math.floor(diffHours / 24);
-
-		if (diffMins < 1) return 'Just now';
-		if (diffMins < 60) return `${diffMins}m ago`;
-		if (diffHours < 24) return `${diffHours}h ago`;
-		if (diffDays === 1) return 'Yesterday';
-		return `${diffDays}d ago`;
-	}
-
-	function getInitial(name: string): string {
-		return name.charAt(0).toUpperCase();
-	}
 
 	function handleSettings() {
 		goto(`/devices/${device.id}`);
@@ -86,7 +68,7 @@
 	<!-- Status Row: Battery and Last Active -->
 	<div class="flex items-center justify-between text-xs text-text-secondary mb-unit-3">
 		<BatteryIndicator level={device.battery_level} />
-		<span>Last active: {getRelativeTime(device.last_seen_at)}</span>
+		<span>Last active: {formatRelativeTime(device.last_seen_at)}</span>
 	</div>
 
 	<!-- Action Buttons -->

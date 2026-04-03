@@ -12,6 +12,7 @@
 	import AttachmentCard from '$lib/components/documents/AttachmentCard.svelte';
 	import AttachmentUpload from '$lib/components/documents/AttachmentUpload.svelte';
 	import { toast } from '$lib/stores/toast.svelte';
+	import { formatDateLong } from '$lib/utils/format';
 
 	interface Props {
 		profileId: string;
@@ -97,11 +98,6 @@
 			deleting = false;
 			showDeleteConfirm = false;
 		}
-	}
-
-	function formatDate(dateStr: string): string {
-		const d = new Date(dateStr + 'T00:00:00');
-		return d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
 	}
 
 	function handleBackdropClick(e: MouseEvent) {
@@ -199,7 +195,7 @@
 
 			<!-- Date and starred indicator -->
 			<div class="flex items-center gap-2 mb-unit-2 text-sm text-text-secondary">
-				<span>{formatDate(entry.entry_date)}</span>
+				<span>{formatDateLong(entry.entry_date)}</span>
 				{#if entry.starred}
 					<svg
 						xmlns="http://www.w3.org/2000/svg"

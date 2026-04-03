@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { getMe, type MeResponse } from '$lib/api';
 	import { goto } from '$app/navigation';
+	import { getInitial } from '$lib/utils/format';
 
 	let user = $state<MeResponse | null>(null);
 
@@ -12,11 +13,6 @@
 			// silently ignore — avatar just won't show initials
 		}
 	});
-
-	function getInitial(u: MeResponse): string {
-		if (u.first_name) return u.first_name[0].toUpperCase();
-		return u.email[0].toUpperCase();
-	}
 </script>
 
 <header class="fixed top-0 left-0 right-0 bg-surface border-b border-gray-200 z-50">
@@ -29,7 +25,7 @@
 			aria-label="Go to settings"
 		>
 			{#if user}
-				{getInitial(user)}
+				{getInitial(user.first_name || user.email)}
 			{:else}
 				<svg
 					xmlns="http://www.w3.org/2000/svg"
