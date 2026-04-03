@@ -19,6 +19,9 @@ export const env = {
   NODE_ENV: optionalEnv('NODE_ENV', 'development'),
   PORT: parseInt(optionalEnv('PORT', '9391'), 10),
 
+  // Auth
+  JWT_SECRET: optionalEnv('JWT_SECRET', ''),
+
   // Database
   DATABASE_URL: optionalEnv(
     'DATABASE_URL',
@@ -55,3 +58,31 @@ export const env = {
 } as const
 
 export type Env = typeof env
+
+/**
+ * Validates that all required environment variables are set.
+ * Throws an aggregated error listing all missing variables.
+ * Call this at startup, after dotenv loads.
+ */
+export const validateConfig = (): void => {
+  const missing: string[] = []
+
+  // JWT_SECRET required in all environments
+  if (!env.JWT_SECRET) {
+    missing.push('JWT_SECRET')
+  }
+
+  // Production-only checks
+  if (env.NODE_ENV === 'production') {
+    if (!env.DATABASE_URL) missing.push('DATABASE_URL')
+    if (!env.SMTP_USER) missing.push('SMTP_USER')
+    if (!env.SMTP_PASSWORD) missing.push('SMTP_PASSWORD')
+  }
+
+  if (missing.length > 0) {
+    throw new Error(
+      `Missing required environment variables: ${missing.join(', ')}.\n` +
+      `Please set these in your .env file or environment.`
+    )
+  }
+}

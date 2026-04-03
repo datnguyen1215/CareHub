@@ -1,9 +1,7 @@
 /** Auth middleware — JWT verification and signing. */
 import { Request, Response, NextFunction } from 'express'
 import jwt from 'jsonwebtoken'
-
-const JWT_SECRET = process.env.JWT_SECRET
-if (!JWT_SECRET) throw new Error('JWT_SECRET environment variable is required')
+import { env } from '../config/env'
 
 export interface JwtPayload {
   userId: string
@@ -32,7 +30,7 @@ export const requireAuth = (req: Request, res: Response, next: NextFunction): vo
   }
 
   try {
-    const payload = jwt.verify(token, JWT_SECRET) as JwtPayload
+    const payload = jwt.verify(token, env.JWT_SECRET) as JwtPayload
     req.user = payload
     next()
   } catch {
@@ -45,4 +43,4 @@ export const requireAuth = (req: Request, res: Response, next: NextFunction): vo
  * @param {JwtPayload} payload - User identity payload
  * @returns {string} Signed JWT token
  */
-export const signToken = (payload: JwtPayload): string => jwt.sign(payload, JWT_SECRET)
+export const signToken = (payload: JwtPayload): string => jwt.sign(payload, env.JWT_SECRET)
