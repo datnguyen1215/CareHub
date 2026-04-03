@@ -16,3 +16,7 @@ initWebSocketServer(server)
 server.listen(PORT, () => {
   logger.info(`CareHub backend listening on port ${PORT}`)
 })
+
+process.on('unhandledRejection', (reason) => {
+  logger.error({ err: reason }, 'Unhandled promise rejection')
+})
