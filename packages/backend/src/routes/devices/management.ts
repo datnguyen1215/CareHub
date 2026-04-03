@@ -39,15 +39,17 @@ managementRouter.get('/:id', requireAuth, async (req: Request, res: Response): P
       return
     }
 
-    const profiles = await db
+    const profileRows = await db
       .select({
         id: careProfiles.id,
         name: careProfiles.name,
         avatar_url: careProfiles.avatar_url,
       })
       .from(deviceCareProfiles)
-      .innerJoin(careProfiles, eq(deviceCareProfiles.care_profile_id, careProfiles.id))
+      .leftJoin(careProfiles, eq(deviceCareProfiles.care_profile_id, careProfiles.id))
       .where(eq(deviceCareProfiles.device_id, deviceId))
+
+    const profiles = profileRows.filter((p) => p.id !== null)
 
     res.json({
       id: device.id,
