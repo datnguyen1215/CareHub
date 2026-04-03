@@ -3,7 +3,7 @@ import { Router, Request, Response, NextFunction } from 'express'
 import multer, { MulterError } from 'multer'
 import { eq, and, desc, or, sql } from 'drizzle-orm'
 import { db } from '../db'
-import { attachments, careProfiles, profileShares, events, journalEntries } from '@carehub/shared'
+import { attachments, events, journalEntries } from '@carehub/shared'
 import { requireAuth } from '../middleware/auth'
 import { getStorageService } from '../services/storage'
 import { logger } from '../services/logger'
@@ -12,6 +12,7 @@ import { validate } from '../middleware/validate'
 import { createAttachmentSchema, updateAttachmentSchema, VALID_CATEGORIES } from '../schemas/attachments'
 import { validateQuery } from '../middleware/validate'
 import { paginationSchema } from '../schemas/query'
+import { canAccessProfile } from '../services/access'
 
 export const attachmentsRouter = Router({ mergeParams: true })
 
@@ -41,35 +42,6 @@ const upload = multer({
     }
   },
 })
-
-/** Check if user can access a profile (owner or shared with them) */
-async function canAccessProfile(userId: string, profileId: string) {
-  const [profile] = await db
-    .select()
-    .from(careProfiles)
-    .where(eq(careProfiles.id, profileId))
-    .limit(1)
-
-  if (!profile) return null
-
-  // Check if user owns the profile
-  if (profile.user_id === userId) {
-    return profile
-  }
-
-  // Check if profile is shared with user
-  const [share] = await db
-    .select()
-    .from(profileShares)
-    .where(and(eq(profileShares.profile_id, profileId), eq(profileShares.user_id, userId)))
-    .limit(1)
-
-  if (share) {
-    return profile
-  }
-
-  return null
-}
 
 // POST /api/profiles/:profileId/attachments
 // Upload file and create attachment record

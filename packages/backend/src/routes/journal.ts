@@ -2,42 +2,14 @@
 import { Router, Request, Response } from 'express'
 import { eq, and, desc, asc, sql, count } from 'drizzle-orm'
 import { db } from '../db'
-import { journalEntries, careProfiles, profileShares, events, attachments } from '@carehub/shared'
+import { journalEntries, events, attachments } from '@carehub/shared'
 import { requireAuth } from '../middleware/auth'
 import { logger } from '../services/logger'
 import { validate } from '../middleware/validate'
 import { createJournalSchema, updateJournalSchema } from '../schemas/journal'
+import { canAccessProfile } from '../services/access'
 
 export const journalRouter = Router({ mergeParams: true })
-
-/** Check if user can access a profile (owner or shared with them) */
-async function canAccessProfile(userId: string, profileId: string) {
-  const [profile] = await db
-    .select()
-    .from(careProfiles)
-    .where(eq(careProfiles.id, profileId))
-    .limit(1)
-
-  if (!profile) return null
-
-  // Check if user owns the profile
-  if (profile.user_id === userId) {
-    return profile
-  }
-
-  // Check if profile is shared with user
-  const [share] = await db
-    .select()
-    .from(profileShares)
-    .where(and(eq(profileShares.profile_id, profileId), eq(profileShares.user_id, userId)))
-    .limit(1)
-
-  if (share) {
-    return profile
-  }
-
-  return null
-}
 
 // POST /api/profiles/:profileId/journal
 journalRouter.post('/', requireAuth, validate(createJournalSchema), async (req: Request, res: Response): Promise<void> => {
