@@ -125,6 +125,7 @@ Detailed feature breakdown organized by area. See [phases.md](phases.md) for imp
 - Attachments belong to a care profile
 - Attachments can be linked to journal entries or calendar events
 - Attach documents when creating or editing journals and events
+- Upload error recovery: if upload fails, an inline error message is displayed with a "Retry" button to re-attempt the upload
 
 ### AI Processing
 
