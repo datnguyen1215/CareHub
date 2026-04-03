@@ -10,6 +10,7 @@ import { authLimiter } from '../middleware/rateLimit'
 import { logger } from '../services/logger'
 import { validate } from '../middleware/validate'
 import { requestOtpSchema, verifyOtpSchema } from '../schemas/auth'
+import { TIMEOUTS } from '../config/constants'
 
 export const authRouter = Router()
 
@@ -19,8 +20,6 @@ interface WsTicket {
   expiresAt: number
 }
 const wsTickets = new Map<string, WsTicket>()
-
-const WS_TICKET_TTL_MS = 30_000 // 30 seconds
 
 /**
  * Generates a cryptographically random WebSocket ticket.
@@ -37,7 +36,7 @@ export const generateWsTicketForUser = (userId: string): string => {
   const ticket = generateWsTicket()
   wsTickets.set(ticket, {
     userId,
-    expiresAt: Date.now() + WS_TICKET_TTL_MS,
+    expiresAt: Date.now() + TIMEOUTS.WS_TICKET_TTL_MS,
   })
   return ticket
 }
@@ -66,7 +65,7 @@ setInterval(() => {
       wsTickets.delete(ticket)
     }
   }
-}, 60_000)
+}, TIMEOUTS.WS_TICKET_CLEANUP_INTERVAL_MS)
 
 /**
  * Generates a cryptographically random 6-digit OTP.
@@ -87,7 +86,7 @@ authRouter.post('/request-otp', authLimiter, validate(requestOtpSchema), async (
 
     if (lastSent) {
       const secondsElapsed = (Date.now() - new Date(lastSent).getTime()) / 1000
-      const retryAfter = Math.ceil(60 - secondsElapsed)
+      const retryAfter = Math.ceil(TIMEOUTS.OTP_REQUEST_COOLDOWN_S - secondsElapsed)
       if (retryAfter > 0) {
         res.status(429).json({ error: 'Please wait before requesting another OTP', retryAfter })
         return
@@ -95,7 +94,7 @@ authRouter.post('/request-otp', authLimiter, validate(requestOtpSchema), async (
     }
 
     const code = generateOtp()
-    const expiresAt = new Date(Date.now() + 15 * 60 * 1000)
+    const expiresAt = new Date(Date.now() + TIMEOUTS.OTP_EXPIRATION_MS)
 
     await sendOtpEmail(email, code)
     await db.insert(otps).values({ email, code, expires_at: expiresAt })

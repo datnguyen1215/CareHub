@@ -6,6 +6,7 @@ import { db } from '../../db'
 import { devices, deviceCareProfiles, deviceAccess, devicePairingTokens, careProfiles, users } from '@carehub/shared'
 import { requireDeviceAuth } from '../../middleware/deviceAuth'
 import { logger } from '../../services/logger'
+import { TIMEOUTS } from '../../config/constants'
 
 export const kioskRouter = Router()
 
@@ -85,7 +86,7 @@ kioskRouter.post(
 
       // Create new token with 5-minute expiry
       const token = generatePairingToken()
-      const expiresAt = new Date(Date.now() + 5 * 60 * 1000)
+      const expiresAt = new Date(Date.now() + TIMEOUTS.PAIRING_TOKEN_EXPIRATION_MS)
 
       await db.insert(devicePairingTokens).values({
         token,

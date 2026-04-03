@@ -8,8 +8,7 @@ import { addClient, removeClient, broadcastToUser } from '../clients'
 import type { DeviceMessage } from '../types'
 import { handleCallMessage } from './call'
 import { getActiveCallForDevice, markCallFailed } from '../../services/call'
-
-const PING_INTERVAL = 30000 // 30 seconds
+import { TIMEOUTS } from '../../config/constants'
 
 /**
  * Handle new device WebSocket connection.
@@ -31,7 +30,7 @@ export const handleDeviceConnection = (ws: WebSocket, deviceId: string): void =>
     if (ws.readyState === WebSocket.OPEN) {
       ws.ping()
     }
-  }, PING_INTERVAL)
+  }, TIMEOUTS.DEVICE_PING_INTERVAL_MS)
 
   // Handle messages from device
   ws.on('message', async (data) => {
