@@ -4,22 +4,21 @@
 		listEvents,
 		createEvent,
 		updateEvent,
-		deleteEvent,
 		listAttachments,
 		type Event as ApiEvent,
 		type CreateEventInput
 	} from '$lib/api';
 	import EventModal from '$lib/components/events/EventModal.svelte';
 	import EventDetail from '$lib/components/events/EventDetail.svelte';
-	import DeleteConfirmModal from '$lib/components/shared/DeleteConfirmModal.svelte';
 	import { toast } from '$lib/stores/toast.svelte';
 
 	interface Props {
 		profileId: string;
 		profileName?: string | null;
+		initialEventId?: string | null;
 	}
 
-	let { profileId, profileName = null }: Props = $props();
+	let { profileId, profileName = null, initialEventId = null }: Props = $props();
 
 	// Calendar state
 	let calendarEvents = $state<ApiEvent[]>([]);
@@ -27,10 +26,16 @@
 	let selectedDate = $state<Date | null>(null);
 	let showEventModal = $state(false);
 	let editingEvent = $state<ApiEvent | null>(null);
-	let deleteModalEvent = $state<ApiEvent | null>(null);
 	let calendarState = $state<'idle' | 'loading' | 'loaded'>('idle');
 	let loadedMonthKey = $state<string | null>(null);
 	let viewingEventId = $state<string | null>(null);
+
+	// Set initial event ID after mount to avoid stale closure
+	$effect(() => {
+		if (initialEventId && !viewingEventId) {
+			viewingEventId = initialEventId;
+		}
+	});
 
 	// Derive calendarLoading for UI display
 	const calendarLoading = $derived(calendarState === 'loading');
@@ -156,19 +161,6 @@
 		return (eventAttachmentCounts[eventId] ?? 0) > 0;
 	}
 
-	// Re-fetch all events (without date range) to update overview's upcoming events
-	async function refreshUpcomingEvents() {
-		try {
-			const allEvents = await listEvents(profileId);
-			const now = new Date();
-			now.setHours(0, 0, 0, 0);
-			// Note: This panel no longer updates overview upcoming events directly.
-			// The overview panel manages its own upcoming events.
-		} catch (err) {
-			console.error('Failed to refresh upcoming events', err);
-		}
-	}
-
 	function prevMonth() {
 		currentDate = new Date(currentYear, currentMonth - 1, 1);
 	}
@@ -229,32 +221,6 @@
 
 		toast.success(editingEvent ? 'Event updated' : 'Event added');
 		closeEventModal();
-	}
-
-	function openDeleteEventModal(event: ApiEvent) {
-		deleteModalEvent = event;
-	}
-
-	function closeDeleteEventModal() {
-		deleteModalEvent = null;
-	}
-
-	async function handleDeleteEventConfirm() {
-		if (!deleteModalEvent) return;
-		const eventToDelete = deleteModalEvent;
-		try {
-			await deleteEvent(profileId, eventToDelete.id);
-			calendarEvents = calendarEvents.filter((e) => e.id !== eventToDelete.id);
-
-			const newCounts = { ...eventAttachmentCounts };
-			delete newCounts[eventToDelete.id];
-			eventAttachmentCounts = newCounts;
-
-			toast.destructive('Event deleted');
-			closeDeleteEventModal();
-		} catch (err) {
-			console.error('Failed to delete event', err);
-		}
 	}
 
 	function formatEventTime(dateStr: string): string {
@@ -500,14 +466,6 @@
 		profileName={profileName}
 		onSave={handleEventSave}
 		onClose={closeEventModal}
-	/>
-{/if}
-
-{#if deleteModalEvent}
-	<DeleteConfirmModal
-		name={deleteModalEvent.title}
-		onConfirm={handleDeleteEventConfirm}
-		onClose={closeDeleteEventModal}
 	/>
 {/if}
 

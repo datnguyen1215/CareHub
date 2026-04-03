@@ -23,16 +23,20 @@
 		try {
 			profile = await getProfile(profileId);
 		} catch {
-			// OverviewPanel handles its own error/loading state
+			// Error handled by parent page
 		}
 	}
 
 	loadProfile();
 
+	function handleProfileUpdate(updated: CareProfile) {
+		profile = updated;
+	}
+
 	async function handleEditSave(data: CreateProfileInput) {
 		if (!profile) return;
 		const updated = await updateProfile(profile.id, data);
-		profile = updated;
+		handleProfileUpdate(updated);
 		showEditModal = false;
 	}
 
@@ -155,23 +159,27 @@
 	</div>
 </div>
 
-<!-- Page content -->
+<!-- Page content — all panels mounted, hidden attribute toggles visibility -->
 <div class="max-w-2xl mx-auto px-unit-2 py-unit-3">
-	{#if activeTab === 'overview'}
-		<OverviewPanel {profileId} />
-	{:else if activeTab === 'meds'}
+	<div hidden={activeTab !== 'overview'}>
+		<OverviewPanel {profileId} {profile} onProfileUpdate={handleProfileUpdate} />
+	</div>
+	<div hidden={activeTab !== 'meds'}>
 		<MedicationsPanel {profileId} />
-	{:else if activeTab === 'calendar'}
-		<CalendarPanel {profileId} profileName={profile?.name} />
-	{:else if activeTab === 'journal'}
+	</div>
+	<div hidden={activeTab !== 'calendar'}>
+		<CalendarPanel {profileId} profileName={profile?.name} initialEventId={initialEventId} />
+	</div>
+	<div hidden={activeTab !== 'journal'}>
 		<JournalPanel {profileId} initialEntryId={initialJournalEntryId} />
-	{:else if activeTab === 'documents'}
+	</div>
+	<div hidden={activeTab !== 'documents'}>
 		<DocumentsTab
 			{profileId}
 			onNavigateToJournal={handleNavigateToJournal}
 			onNavigateToEvent={handleNavigateToEvent}
 		/>
-	{/if}
+	</div>
 </div>
 
 {#if showEditModal && profile}

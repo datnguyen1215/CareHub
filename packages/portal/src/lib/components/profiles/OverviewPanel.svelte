@@ -1,8 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import { onMount } from 'svelte';
 	import {
-		getProfile,
 		updateProfile,
 		deleteProfile,
 		listMedications,
@@ -12,12 +10,11 @@
 		type CareProfile,
 		type Medication,
 		type Event as ApiEvent,
-		type CreateProfileInput,
 		type Device
 	} from '$lib/api';
 	import DeviceStatusDot from '$lib/components/devices/DeviceStatusDot.svelte';
 	import BatteryIndicator from '$lib/components/devices/BatteryIndicator.svelte';
-	import { getErrorMessage, isRetryable } from '$lib/utils/error-utils';
+	import { getErrorMessage } from '$lib/utils/error-utils';
 	import { toast } from '$lib/stores/toast.svelte';
 	import {
 		callState,
@@ -31,17 +28,16 @@
 
 	interface Props {
 		profileId: string;
+		profile: CareProfile | null;
+		onProfileUpdate?: (profile: CareProfile) => void;
 	}
 
-	let { profileId }: Props = $props();
+	let { profileId, profile, onProfileUpdate }: Props = $props();
 
-	let profile = $state<CareProfile | null>(null);
 	let recentMeds = $state<Medication[]>([]);
 	let upcomingEvents = $state<ApiEvent[]>([]);
 	let profileDevices = $state<Device[]>([]);
-	let loadError = $state('');
-	let loading = $state(true);
-	let canRetry = $state(false);
+	let loading = $state(false);
 
 	// Avatar upload state
 	let avatarUploading = $state(false);
@@ -55,17 +51,14 @@
 	const showCallModal = $derived(callState.status !== 'idle');
 
 	async function loadData() {
+		if (!profile) return;
 		loading = true;
-		loadError = '';
-		canRetry = false;
 
 		try {
-			const [profileData, medsData, eventsData] = await Promise.all([
-				getProfile(profileId),
+			const [medsData, eventsData] = await Promise.all([
 				listMedications(profileId),
 				listEvents(profileId)
 			]);
-			profile = profileData;
 			recentMeds = medsData.filter((m) => m.status === 'active').slice(0, 3);
 
 			// Filter upcoming events (future dates only)
@@ -89,21 +82,18 @@
 				goto('/login');
 				return;
 			}
-			loadError = getErrorMessage(err, 'load profile');
-			canRetry = isRetryable(err);
+			console.error('Failed to load overview data', err);
 		} finally {
 			loading = false;
 		}
 	}
 
-	onMount(() => {
-		loadData();
+	// Load supplementary data when profile becomes available
+	$effect(() => {
+		if (profile) {
+			loadData();
+		}
 	});
-
-	// Expose for parent to access profile name
-	export function getProfileName(): string {
-		return profile?.name ?? '';
-	}
 
 	function formatDate(iso: string): string {
 		const d = new Date(iso + 'T00:00:00');
@@ -150,7 +140,7 @@
 		try {
 			const url = await uploadFile(file);
 			const updated = await updateProfile(profile.id, { avatar_url: url });
-			profile = updated;
+			onProfileUpdate?.(updated);
 			toast.success('Photo updated');
 		} catch (err: unknown) {
 			avatarError = getErrorMessage(err, 'upload photo');
@@ -221,18 +211,6 @@
 				</div>
 			{/each}
 		</div>
-	</div>
-{:else if loadError}
-	<div class="card">
-		<p class="text-danger text-sm mb-unit-2">{loadError}</p>
-		{#if canRetry}
-			<button
-				onclick={loadData}
-				class="bg-primary text-white rounded-card px-unit-3 py-1.5 text-sm font-semibold hover:bg-blue-600 transition-colors"
-			>
-				Retry
-			</button>
-		{/if}
 	</div>
 {:else if profile}
 	<!-- Avatar Header -->
