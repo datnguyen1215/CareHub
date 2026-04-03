@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { CareProfile } from '$lib/api';
+	import { getInitial } from './utils/format';
 
 	interface Props {
 		profiles: CareProfile[];
@@ -17,9 +18,6 @@
 		}
 	}
 
-	function getInitial(name: string): string {
-		return name.charAt(0).toUpperCase();
-	}
 </script>
 
 <div class="space-y-2">

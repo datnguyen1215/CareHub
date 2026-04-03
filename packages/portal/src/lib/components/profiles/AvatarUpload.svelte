@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { uploadFile } from '$lib/api';
+	import { getInitial } from '$lib/utils/format';
 
 	interface Props {
 		currentUrl?: string | null;
@@ -32,11 +33,6 @@
 		md: 'w-5 h-5',
 		lg: 'w-6 h-6'
 	};
-
-	function getInitial(): string {
-		if (!name) return '?';
-		return name.charAt(0).toUpperCase();
-	}
 
 	function handleClick() {
 		if (!disabled && !loading) {
@@ -93,7 +89,7 @@
 		{#if currentUrl}
 			<img src={currentUrl} alt="" class="w-full h-full object-cover" />
 		{:else}
-			<span class="text-gray-500 font-semibold">{getInitial()}</span>
+			<span class="text-gray-500 font-semibold">{getInitial(name)}</span>
 		{/if}
 
 		<!-- Camera overlay -->

@@ -1,6 +1,8 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, onDestroy } from 'svelte';
 	import { listJournalEntries, updateJournalEntry, type JournalEntry } from '$lib/api';
+	import { debounce } from '$lib/utils/debounce';
+	import { formatDateShort } from '$lib/utils/format';
 
 	interface Props {
 		profileId: string;
@@ -15,7 +17,7 @@
 	let error = $state('');
 	let searchQuery = $state('');
 	let sortOrder = $state<'recent' | 'oldest'>('recent');
-	let searchTimeout: ReturnType<typeof setTimeout> | null = null;
+	const debouncedSearch = debounce(() => loadEntries(), 300);
 
 	async function loadEntries() {
 		loading = true;
@@ -30,22 +32,19 @@
 		}
 	}
 
-	// Initial load only - don't use $effect here as it would auto-track
-	// searchQuery and sortOrder, causing duplicate API calls alongside the
-	// debounced search and explicit sort handlers
+
 	onMount(() => {
 		loadEntries();
+	});
+
+	onDestroy(() => {
+		debouncedSearch.cancel();
 	});
 
 	function handleSearchInput(e: Event) {
 		const target = e.target as HTMLInputElement;
 		searchQuery = target.value;
-
-		// Debounce search
-		if (searchTimeout) clearTimeout(searchTimeout);
-		searchTimeout = setTimeout(() => {
-			loadEntries();
-		}, 300);
+		debouncedSearch();
 	}
 
 	function handleSortChange(e: Event) {
@@ -66,10 +65,6 @@
 		}
 	}
 
-	function formatDate(dateStr: string): string {
-		const d = new Date(dateStr + 'T00:00:00');
-		return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-	}
 
 	function truncateText(text: string, maxLength: number): string {
 		if (text.length <= maxLength) return text;
@@ -160,7 +155,7 @@
 							class="flex-1 min-w-0 text-left active:opacity-90"
 						>
 							<div class="flex items-center gap-2 mb-1">
-								<span class="text-sm text-text-secondary">{formatDate(entry.entry_date)}</span>
+								<span class="text-sm text-text-secondary">{formatDateShort(entry.entry_date + 'T00:00:00')}</span>
 								{#if entry.attachment_count && entry.attachment_count > 0}
 									<span
 										class="inline-flex items-center gap-0.5 text-xs text-text-secondary"

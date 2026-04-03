@@ -7,6 +7,9 @@
 		type Attachment,
 		type AttachmentCategory
 	} from '$lib/api';
+	import { debounce } from '$lib/utils/debounce';
+	import { formatDateShort } from '$lib/utils/format';
+	import { CATEGORY_COLORS, CATEGORY_LABELS } from '$lib/utils/categories';
 
 	interface Props {
 		profileId: string;
@@ -21,7 +24,7 @@
 	let error = $state('');
 	let searchQuery = $state('');
 	let activeCategory = $state<AttachmentCategory | 'all'>('all');
-	let searchTimeout: ReturnType<typeof setTimeout> | null = null;
+	const debouncedSearch = debounce(() => loadAttachments(), 300);
 	let hasMore = $state(false);
 	let loadingMore = $state(false);
 
@@ -39,24 +42,6 @@
 		{ value: 'billing', label: 'Billing' },
 		{ value: 'imaging', label: 'Imaging' }
 	];
-
-	const categoryLabels: Record<string, string> = {
-		lab_result: 'Lab Result',
-		prescription: 'Prescription',
-		insurance: 'Insurance',
-		billing: 'Billing',
-		imaging: 'Imaging',
-		other: 'Other'
-	};
-
-	const categoryColors: Record<string, string> = {
-		lab_result: 'bg-green-50 text-green-700 border-green-200',
-		prescription: 'bg-blue-50 text-blue-700 border-blue-200',
-		insurance: 'bg-purple-50 text-purple-700 border-purple-200',
-		billing: 'bg-yellow-50 text-yellow-700 border-yellow-200',
-		imaging: 'bg-pink-50 text-pink-700 border-pink-200',
-		other: 'bg-gray-50 text-gray-700 border-gray-200'
-	};
 
 	async function loadAttachments(append = false) {
 		if (!append) {
@@ -164,18 +149,13 @@
 	});
 
 	onDestroy(() => {
-		if (searchTimeout) clearTimeout(searchTimeout);
+		debouncedSearch.cancel();
 	});
 
 	function handleSearchInput(e: Event) {
 		const target = e.target as HTMLInputElement;
 		searchQuery = target.value;
-
-		// Debounce search
-		if (searchTimeout) clearTimeout(searchTimeout);
-		searchTimeout = setTimeout(() => {
-			loadAttachments();
-		}, 300);
+		debouncedSearch();
 	}
 
 	function handleCategoryChange(category: AttachmentCategory | 'all') {
@@ -204,10 +184,6 @@
 		return imageExtensions.some((ext) => lowerUrl.includes(ext));
 	}
 
-	function formatDate(dateStr: string): string {
-		const d = new Date(dateStr);
-		return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-	}
 </script>
 
 <div class="flex flex-col gap-unit-2">
@@ -314,13 +290,13 @@
 
 							<!-- Date and category -->
 							<div class="flex items-center gap-2 mt-1">
-								<span class="text-sm text-text-secondary">{formatDate(attachment.created_at)}</span>
+								<span class="text-sm text-text-secondary">{formatDateShort(attachment.created_at)}</span>
 								<span
-									class="text-xs px-2 py-0.5 rounded-full border {categoryColors[
+									class="text-xs px-2 py-0.5 rounded-full border {CATEGORY_COLORS[
 										attachment.category
-									] ?? categoryColors.other}"
+									] ?? CATEGORY_COLORS.other}"
 								>
-									{categoryLabels[attachment.category] ?? 'Other'}
+									{CATEGORY_LABELS[attachment.category] ?? 'Other'}
 								</span>
 							</div>
 
