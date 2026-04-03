@@ -6,6 +6,7 @@ import { db } from '../db'
 import { otps, users } from '@carehub/shared'
 import { sendOtpEmail } from '../services/email'
 import { signToken, requireAuth } from '../middleware/auth'
+import { authLimiter } from '../middleware/rateLimit'
 import { logger } from '../services/logger'
 
 export const authRouter = Router()
@@ -60,7 +61,7 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const generateOtp = (): string => crypto.randomInt(100000, 1000000).toString()
 
 // POST /api/auth/request-otp
-authRouter.post('/request-otp', async (req: Request, res: Response): Promise<void> => {
+authRouter.post('/request-otp', authLimiter, async (req: Request, res: Response): Promise<void> => {
   try {
     const { email } = req.body as { email?: string }
     if (!email || typeof email !== 'string' || !EMAIL_RE.test(email)) {
@@ -97,7 +98,7 @@ authRouter.post('/request-otp', async (req: Request, res: Response): Promise<voi
 })
 
 // POST /api/auth/verify-otp
-authRouter.post('/verify-otp', async (req: Request, res: Response): Promise<void> => {
+authRouter.post('/verify-otp', authLimiter, async (req: Request, res: Response): Promise<void> => {
   try {
     const { email, code } = req.body as { email?: string; code?: string }
     if (!email || typeof email !== 'string' || !code || typeof code !== 'string') {
