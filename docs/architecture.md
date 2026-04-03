@@ -53,6 +53,8 @@ src/
     EventModal.svelte      # Create/edit event modal — title, date/time, type, location, notes
     DeleteConfirmModal.svelte # Confirmation dialog for deleting events
     CallModal.svelte       # Call modal — device name, status, mute/video toggle, end-call button
+    AttachmentUpload.svelte # File upload component with camera capture, category selection, progress bar, and error recovery with retry
+    error-utils.ts         # Error display utilities — getErrorMessage() for user-friendly messages, isRetryable() for retry eligibility
     api.ts                 # API client with auth cookie handling
     stores/
       toast.ts             # Toast notification store — manage toast queue with auto-dismiss
@@ -61,13 +63,14 @@ src/
     login/                 # Public auth pages (email entry, OTP verify, account setup)
     (app)/
       +layout.svelte       # Shared layout: TopBar + main content area + BottomNav
-      +page.svelte         # Home page — upcoming events list grouped by day with 7/14/30 day range toggle
+      +error.svelte        # Error boundary — user-friendly error page for unhandled route errors with Go back / Go home actions
+      +page.svelte         # Home page — upcoming events list grouped by day with 7/14/30 day range toggle, loading skeleton, error state with retry
       profiles/
-        +page.svelte       # Profile list — profile card grid
+        +page.svelte       # Profile list — profile card grid, loading skeleton, error state with retry
         [id]/
-          +page.svelte     # Profile detail — custom top bar, Overview/Meds tabs
+          +page.svelte     # Profile detail — custom top bar, Overview/Meds tabs, loading skeleton, error state with retry
       devices/
-        +page.svelte       # Device management UI — list, pair, unpair devices; opens CallModal on Call button
+        +page.svelte       # Device management UI — list, pair, unpair devices, loading skeleton, error state with retry; opens CallModal on Call button
       settings/
         +page.svelte       # Settings — group rename, member management
 ```
@@ -80,6 +83,17 @@ All main pages (home, profiles, devices, settings) are wrapped by `src/routes/(a
 2. `<main>` — Page content with top and bottom padding to clear the fixed bars.
 3. `Toast` — Toast notification component positioned above bottom navigation (z-index 40) to display success, error, and destructive messages. Success/destructive toasts auto-dismiss after 3 seconds; error toasts require manual dismissal.
 4. `BottomNav` — Fixed bottom navigation with four tabs. Active tab is highlighted with primary blue using the `$page` store. Tabs: Home (`/`), Profiles (`/profiles`), Devices (`/devices`), Settings (`/settings`).
+
+Unhandled route errors are caught by `+error.svelte`, which displays a user-friendly error page with "Go back" and "Go home" recovery actions. Error messages are contextualized by HTTP status code (404, 403, 401, 5xx). The raw error message is shown in a styled code block when it differs from the generic message.
+
+### Error Display Convention
+
+Error handling follows a consistent pattern across the portal:
+
+- **API errors on page load** → inline error message with retry button (catches at page level; `getErrorMessage()` from `error-utils.ts` produces user-friendly text; `isRetryable()` determines whether a Retry button is shown)
+- **API errors on user action** (save, delete, create) → toast notification
+- **Validation errors** → inline field-level messages
+- **Unhandled route errors** → `+error.svelte` error boundary catches all unhandled errors from child routes
 
 ### Profile Detail Page (`/profiles/:id`)
 

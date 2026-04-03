@@ -751,7 +751,32 @@
 <!-- Page content -->
 <div class="max-w-2xl mx-auto px-unit-2 py-unit-3">
 	{#if loading}
-		<p class="text-text-secondary text-sm">Loading...</p>
+		<!-- Loading skeleton -->
+		<div class="animate-pulse space-y-unit-3" aria-label="Loading profile">
+			<div class="card">
+				<div class="flex items-center gap-unit-3">
+					<div class="w-16 h-16 rounded-full bg-gray-200 shrink-0"></div>
+					<div class="flex-1 space-y-2">
+						<div class="h-5 bg-gray-200 rounded w-1/3"></div>
+						<div class="h-3 bg-gray-200 rounded w-1/2"></div>
+						<div class="h-3 bg-gray-200 rounded w-2/3"></div>
+					</div>
+				</div>
+			</div>
+			<div class="flex gap-unit-1">
+				{#each ['Overview', 'Meds', 'Calendar', 'Journal', 'Docs'] as _}
+					<div class="h-9 bg-gray-200 rounded-lg w-16"></div>
+				{/each}
+			</div>
+			<div class="grid grid-cols-3 gap-unit-2">
+				{#each Array(3) as _}
+					<div class="card p-unit-2 space-y-2">
+						<div class="h-3 bg-gray-200 rounded w-2/3"></div>
+						<div class="h-4 bg-gray-200 rounded w-1/2"></div>
+					</div>
+				{/each}
+			</div>
+		</div>
 	{:else if loadError}
 		<div class="card">
 			<p class="text-danger text-sm mb-unit-2">{loadError}</p>

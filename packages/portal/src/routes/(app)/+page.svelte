@@ -14,11 +14,13 @@
 	import EventModal from '$lib/EventModal.svelte';
 	import DeleteConfirmModal from '$lib/DeleteConfirmModal.svelte';
 	import { toast } from '$lib/stores/toast';
+	import { getErrorMessage, isRetryable } from '$lib/error-utils';
 
 	let profiles = $state<CareProfile[]>([]);
 	let events = $state<Event[]>([]);
 	let loadError = $state('');
 	let loading = $state(true);
+	let canRetry = $state(false);
 
 	// Range toggle state
 	type RangeOption = 7 | 14 | 30;
@@ -101,7 +103,11 @@
 		return groups;
 	});
 
-	onMount(async () => {
+	async function loadData() {
+		loading = true;
+		loadError = '';
+		canRetry = false;
+
 		try {
 			profiles = await listProfiles();
 			await loadEvents();
@@ -111,10 +117,15 @@
 				goto('/login');
 				return;
 			}
-			loadError = 'Failed to load data.';
+			loadError = getErrorMessage(err, 'load events');
+			canRetry = isRetryable(err);
 		} finally {
 			loading = false;
 		}
+	}
+
+	onMount(() => {
+		loadData();
 	});
 
 	async function loadEvents() {
@@ -277,10 +288,46 @@
 	</div>
 
 	{#if loading}
-		<p class="text-text-secondary text-sm">Loading…</p>
+		<!-- Loading skeleton -->
+		<div aria-label="Loading events">
+			<div class="card mb-unit-3 animate-pulse">
+				<div class="flex items-center justify-between">
+					<div class="h-4 bg-gray-200 rounded w-1/4"></div>
+					<div class="flex gap-1">
+						<div class="h-8 w-16 bg-gray-200 rounded-full"></div>
+						<div class="h-8 w-16 bg-gray-200 rounded-full"></div>
+						<div class="h-8 w-16 bg-gray-200 rounded-full"></div>
+					</div>
+				</div>
+			</div>
+			<div class="flex flex-col gap-unit-3">
+				{#each Array(3) as _}
+					<div class="animate-pulse">
+						<div class="h-3 bg-gray-200 rounded w-16 mb-unit-1"></div>
+						<div class="card space-y-2 p-unit-2">
+							<div class="flex items-center gap-3">
+								<div class="w-10 h-10 rounded-full bg-gray-200 shrink-0"></div>
+								<div class="flex-1 space-y-2">
+									<div class="h-4 bg-gray-200 rounded w-2/3"></div>
+									<div class="h-3 bg-gray-200 rounded w-1/2"></div>
+								</div>
+							</div>
+						</div>
+					</div>
+				{/each}
+			</div>
+		</div>
 	{:else if loadError}
 		<div class="card">
-			<p class="text-danger text-sm">{loadError}</p>
+			<p class="text-danger text-sm mb-unit-2">{loadError}</p>
+			{#if canRetry}
+				<button
+					onclick={loadData}
+					class="bg-primary text-white rounded-card px-unit-3 py-1.5 text-sm font-semibold hover:bg-blue-600 transition-colors"
+				>
+					Retry
+				</button>
+			{/if}
 		</div>
 	{:else if profiles.length === 0}
 		<div class="card text-center py-unit-4">
