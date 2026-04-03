@@ -232,6 +232,9 @@ packages/backend/
 │   │   └── index.ts     # Drizzle client
 │   └── index.ts         # Express app entry point
 ├── tests/               # Test files
+│   ├── helpers/          # Test utilities (ws.ts, truncate.ts)
+│   ├── websocket/        # WebSocket integration tests
+│   └── *.test.ts         # HTTP endpoint tests
 └── package.json
 ```
 
@@ -271,7 +274,7 @@ Run tests with:
 npm run test
 ```
 
-Tests use Vitest and supertest for API endpoint testing.
+Tests use Vitest and Supertest for API endpoint testing, and the `ws` package for WebSocket integration tests (connection auth, client registry, device lifecycle, call signaling). Tests run with `fileParallelism: false`.
 
 ## Troubleshooting
 

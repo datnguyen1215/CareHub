@@ -29,6 +29,20 @@ const WS_TICKET_TTL_MS = 30_000 // 30 seconds
 const generateWsTicket = (): string => crypto.randomBytes(16).toString('hex')
 
 /**
+ * Create a WebSocket ticket for a user (used by tests and the ws-ticket endpoint).
+ * @param userId - The user ID to associate with the ticket
+ * @returns The generated ticket string
+ */
+export const generateWsTicketForUser = (userId: string): string => {
+  const ticket = generateWsTicket()
+  wsTickets.set(ticket, {
+    userId,
+    expiresAt: Date.now() + WS_TICKET_TTL_MS,
+  })
+  return ticket
+}
+
+/**
  * Validates and consumes a WebSocket ticket (one-time use).
  * @param ticket - The ticket to validate
  * @returns The userId if valid, null otherwise
@@ -146,10 +160,6 @@ authRouter.post('/logout', (_req: Request, res: Response): void => {
 
 // GET /api/auth/ws-ticket - Get a short-lived ticket for WebSocket authentication
 authRouter.get('/ws-ticket', requireAuth, (req: Request, res: Response): void => {
-  const ticket = generateWsTicket()
-  wsTickets.set(ticket, {
-    userId: req.user!.userId,
-    expiresAt: Date.now() + WS_TICKET_TTL_MS,
-  })
+  const ticket = generateWsTicketForUser(req.user!.userId)
   res.json({ ticket })
 })

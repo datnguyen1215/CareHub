@@ -63,6 +63,9 @@ export function initWebSocketServer(server: Server): void {
   })
 
   // Handle server shutdown
+  // Note: process signal handlers accumulate if initWebSocketServer is called multiple
+  // times (e.g., in tests). This is benign when fileParallelism is false since only one
+  // test file's server is active at a time, and clearAllClients/wss.close are idempotent.
   process.on('SIGTERM', () => {
     logger.info('WebSocket server shutting down')
     clearAllClients()
