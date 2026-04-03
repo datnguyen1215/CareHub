@@ -3,13 +3,15 @@ import { describe, it, expect } from 'vitest';
 /**
  * Tests for pure helper logic extracted from call.svelte.ts.
  *
- * The `getUserFriendlyError` and `formattedDuration` functions are
- * defined inside a `.svelte.ts` file and use `$state` runes, so they
- * cannot be imported directly into plain `.ts` test files.
- * We duplicate the pure logic here to ensure correct behavior.
+ * IMPORTANT: `getUserFriendlyError` and `formattedDuration` are intentionally
+ * duplicated here rather than imported. The source lives in
+ * `src/lib/stores/call.svelte.ts` which uses `$state` runes and cannot be
+ * imported into plain `.ts` test files without the full Svelte compiler.
+ * If you change the source logic, you MUST update the copies below to match.
  */
 
 // ─── getUserFriendlyError (pure logic copy) ───────────────
+// Source: src/lib/stores/call.svelte.ts — keep in sync
 
 function getUserFriendlyError(error: string | null): string {
 	if (!error) return 'Call failed. Please try again.';
@@ -110,6 +112,7 @@ describe('getUserFriendlyError', () => {
 });
 
 // ─── formattedDuration (pure logic copy) ──────────────────
+// Source: src/lib/stores/call.svelte.ts — keep in sync
 
 function formattedDuration(duration: number): string {
 	const minutes = Math.floor(duration / 60);

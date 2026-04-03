@@ -9,6 +9,11 @@ describe('DeleteConfirmModal', () => {
 		onClose: vi.fn()
 	};
 
+	beforeEach(() => {
+		defaultProps.onConfirm.mockClear();
+		defaultProps.onClose.mockClear();
+	});
+
 	it('renders the profile name in the confirmation message', () => {
 		render(DeleteConfirmModal, { ...defaultProps });
 		expect(screen.getByText(/John Doe/)).toBeInTheDocument();
@@ -79,10 +84,10 @@ describe('DeleteConfirmModal', () => {
 		});
 	});
 
-	it('calls onClose when backdrop is clicked', async () => {
+	it('calls onClose when backdrop is mousedown\'d', async () => {
 		render(DeleteConfirmModal, { ...defaultProps });
 		const backdrop = screen.getByRole('dialog');
-		await fireEvent.click(backdrop);
+		await fireEvent.mouseDown(backdrop);
 		expect(defaultProps.onClose).toHaveBeenCalledOnce();
 	});
 });
