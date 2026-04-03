@@ -12,9 +12,10 @@
 	interface Props {
 		profileId: string;
 		initialEntryId?: string | null;
+		onInitialIdConsumed?: () => void;
 	}
 
-	let { profileId, initialEntryId = null }: Props = $props();
+	let { profileId, initialEntryId = null, onInitialIdConsumed }: Props = $props();
 
 	// Journal state
 	let showJournalModal = $state(false);
@@ -22,10 +23,11 @@
 	let journalTabKey = $state(0);
 	let viewingJournalEntryId = $state<string | null>(null);
 
-	// Set initial entry ID after mount to avoid stale closure
+	// Consume initialEntryId once — only react to changes in the prop itself
 	$effect(() => {
-		if (initialEntryId && !viewingJournalEntryId) {
+		if (initialEntryId) {
 			viewingJournalEntryId = initialEntryId;
+			onInitialIdConsumed?.();
 		}
 	});
 

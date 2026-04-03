@@ -49,6 +49,14 @@
 		initialEventId = eventId;
 		activeTab = 'calendar';
 	}
+
+	function handleInitialJournalIdConsumed() {
+		initialJournalEntryId = null;
+	}
+
+	function handleInitialEventIdConsumed() {
+		initialEventId = null;
+	}
 </script>
 
 <!-- Page-specific top bar (overrides the global TopBar for this page) -->
@@ -168,10 +176,10 @@
 		<MedicationsPanel {profileId} />
 	</div>
 	<div hidden={activeTab !== 'calendar'}>
-		<CalendarPanel {profileId} profileName={profile?.name} initialEventId={initialEventId} />
+		<CalendarPanel {profileId} profileName={profile?.name} {initialEventId} onInitialIdConsumed={handleInitialEventIdConsumed} />
 	</div>
 	<div hidden={activeTab !== 'journal'}>
-		<JournalPanel {profileId} initialEntryId={initialJournalEntryId} />
+		<JournalPanel {profileId} initialEntryId={initialJournalEntryId} onInitialIdConsumed={handleInitialJournalIdConsumed} />
 	</div>
 	<div hidden={activeTab !== 'documents'}>
 		<DocumentsTab

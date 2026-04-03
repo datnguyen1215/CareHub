@@ -88,10 +88,12 @@
 		}
 	}
 
-	// Load supplementary data when profile becomes available
+	// Load supplementary data once when profileId is available
+	let hasLoadedData = $state(false);
 	$effect(() => {
-		if (profile) {
+		if (profileId && !hasLoadedData) {
 			loadData();
+			hasLoadedData = true;
 		}
 	});
 

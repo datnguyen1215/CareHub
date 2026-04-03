@@ -16,9 +16,10 @@
 		profileId: string;
 		profileName?: string | null;
 		initialEventId?: string | null;
+		onInitialIdConsumed?: () => void;
 	}
 
-	let { profileId, profileName = null, initialEventId = null }: Props = $props();
+	let { profileId, profileName = null, initialEventId = null, onInitialIdConsumed }: Props = $props();
 
 	// Calendar state
 	let calendarEvents = $state<ApiEvent[]>([]);
@@ -30,10 +31,11 @@
 	let loadedMonthKey = $state<string | null>(null);
 	let viewingEventId = $state<string | null>(null);
 
-	// Set initial event ID after mount to avoid stale closure
+	// Consume initialEventId once — only react to changes in the prop itself
 	$effect(() => {
-		if (initialEventId && !viewingEventId) {
+		if (initialEventId) {
 			viewingEventId = initialEventId;
+			onInitialIdConsumed?.();
 		}
 	});
 
