@@ -1,4 +1,4 @@
-// Shared types for CareHub — used by both portal and backend
+// Shared types, utilities, and schema for CareHub — used by portal, kiosk, and backend
 
 /** Roles a user can have within a household */
 export type UserRole = 'admin' | 'caregiver' | 'viewer'
