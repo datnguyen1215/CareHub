@@ -70,6 +70,12 @@ function startHeartbeat(): void {
 	heartbeatIntervalId = setInterval(() => {
 		if (socket?.readyState === WebSocket.OPEN) {
 			socket.send(JSON.stringify({ type: 'ping' }));
+			// Clear any existing timeout before setting a new one
+			// (prevents stale timeout from closing a healthy connection)
+			if (heartbeatTimeoutId) {
+				clearTimeout(heartbeatTimeoutId);
+				heartbeatTimeoutId = null;
+			}
 			// Start timeout — if no pong within window, force reconnect
 			heartbeatTimeoutId = setTimeout(() => {
 				console.warn('[WebSocket] Heartbeat timeout — no pong received');
@@ -128,8 +134,9 @@ function flushMessageQueue(): void {
 	}
 
 	for (const entry of fresh) {
+		if (!socket || socket.readyState !== WebSocket.OPEN) break;
 		try {
-			socket!.send(JSON.stringify(entry.message));
+			socket.send(JSON.stringify(entry.message));
 		} catch (err) {
 			console.error('[WebSocket] Failed to send queued message:', err);
 		}
@@ -280,12 +287,33 @@ export function reconnect(): void {
 
 /**
  * Immediately reconnects, bypassing exponential backoff.
+ * Preserves the pending message queue so queued messages survive the reconnect.
  * Used when tab becomes visible and connection needs urgent restore.
  */
 export function immediateReconnect(): void {
-	disconnect();
+	const savedQueue = [...pendingMessages];
+
+	isUserInitiatedClose = true;
+
+	if (reconnectTimeoutId) {
+		clearTimeout(reconnectTimeoutId);
+		reconnectTimeoutId = null;
+	}
+
+	stopHeartbeat();
+
+	if (socket) {
+		socket.close(CLOSE_NORMAL, 'Immediate reconnect');
+		socket = null;
+	}
+
+	connectionState = 'disconnected';
 	reconnectAttempts = 0;
 	isUserInitiatedClose = false;
+
+	// Restore queue — disconnect() clears it, but we need to preserve it
+	pendingMessages = savedQueue;
+
 	connect();
 }
 

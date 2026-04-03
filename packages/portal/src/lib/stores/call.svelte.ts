@@ -629,7 +629,9 @@ function setupVisibilityHandler(): () => void {
 
 		// If local media tracks went dead, attempt recovery
 		if (callState.status === 'connected') {
-			recoverLocalStream();
+			recoverLocalStream().catch((err) => {
+				logWebRTCEvent('Error', `Unhandled stream recovery error: ${(err as Error).message}`);
+			});
 		}
 	};
 
