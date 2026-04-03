@@ -158,7 +158,7 @@
 							class="flex-1 min-w-0 text-left active:opacity-90"
 						>
 							<div class="flex items-center gap-2 mb-1">
-								<span class="text-sm text-text-secondary">{formatDateShort(entry.entry_date + 'T00:00:00')}</span>
+								<span class="text-sm text-text-secondary">{formatDateShort(entry.entry_date)}</span>
 								{#if entry.attachment_count && entry.attachment_count > 0}
 									<span
 										class="inline-flex items-center gap-0.5 text-xs text-text-secondary"

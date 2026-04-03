@@ -126,14 +126,15 @@ packages/portal/
 │   │   │   ├── profiles/    # Profile components (OverviewPanel, ProfileModal, ProfileSelector, AvatarUpload)
 │   │   │   ├── shared/      # Shared components (DeleteConfirmModal, QRScanner)
 │   │   │   └── ui/          # UI primitives (Toast)
-│   │   ├── utils/           # Utility modules (focusTrap, error-utils)
-│   │   ├── services/        # Core services
-│   │   │   ├── websocket.ts # WebSocket connection manager
-│   │   │   └── webrtc.ts    # WebRTC peer connection manager
 │   │   ├── utils/           # Shared utilities (framework-agnostic)
+│   │   │   ├── focusTrap.ts # Focus trap for modal dialogs
+│   │   │   ├── error-utils.ts # Error message extraction utilities
 │   │   │   ├── format.ts    # Date/time formatting and string helpers
 │   │   │   ├── debounce.ts  # debounce() with .cancel() for cleanup
 │   │   │   └── categories.ts # Category/event type color and label maps
+│   │   ├── services/        # Core services
+│   │   │   ├── websocket.ts # WebSocket connection manager
+│   │   │   └── webrtc.ts    # WebRTC peer connection manager
 │   │   ├── api.ts           # API client for backend
 │   │   └── stores/
 │   │       ├── toast.svelte.ts     # Toast notification store (Svelte 5 $state runes)

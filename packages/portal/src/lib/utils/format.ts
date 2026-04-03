@@ -7,6 +7,11 @@
 
 function toDate(input: Date | string): Date {
 	if (input instanceof Date) return input;
+	// Append T00:00:00 to date-only strings (e.g. "2000-01-15") to avoid
+	// UTC→local timezone shift that could display the wrong calendar date.
+	if (/^\d{4}-\d{2}-\d{2}$/.test(input)) {
+		return new Date(input + 'T00:00:00');
+	}
 	return new Date(input);
 }
 

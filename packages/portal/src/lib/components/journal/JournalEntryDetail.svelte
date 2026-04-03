@@ -100,11 +100,6 @@
 		}
 	}
 
-	function formatDate(dateStr: string): string {
-		const d = new Date(dateStr + 'T00:00:00');
-		return d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-	}
-
 	function handleBackdropClick(e: MouseEvent) {
 		if (e.target === e.currentTarget) onClose();
 	}
@@ -200,7 +195,7 @@
 
 			<!-- Date and starred indicator -->
 			<div class="flex items-center gap-2 mb-unit-2 text-sm text-text-secondary">
-				<span>{formatDate(entry.entry_date)}</span>
+				<span>{formatDateLong(entry.entry_date)}</span>
 				{#if entry.starred}
 					<svg
 						xmlns="http://www.w3.org/2000/svg"
