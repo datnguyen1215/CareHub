@@ -14,6 +14,7 @@ import { uploadRouter } from './routes/upload'
 import { devicesRouter } from './routes/devices'
 import healthRouter from './routes/health'
 import { logger } from './services/logger'
+import { errorHandler } from './middleware/errorHandler'
 
 const UPLOADS_PATH = process.env.UPLOADS_PATH ?? path.join(process.cwd(), 'uploads')
 
@@ -63,6 +64,9 @@ export function createApp() {
   app.use('/api/profiles/:profileId/journal', journalRouter)
   app.use('/api/profiles/:profileId/attachments', attachmentsRouter)
   app.use('/api/devices', devicesRouter)
+
+  // Global error handler — must be registered after all routes
+  app.use(errorHandler)
 
   return app
 }
