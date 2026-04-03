@@ -283,7 +283,7 @@ From the profile detail page (`/profiles/:id`):
 **Actor:** Caretaker (Admin)
 
 1. From the Profiles tab, tap a profile card
-2. Profile detail opens with tabs: Overview, Meds, Calendar, Journal (`designs/03-profile-detail.svg`)
+2. Profile detail opens with tabs: Overview, Meds, Calendar, Journal, Docs (`designs/03-profile-detail.svg`)
 3. Tap the Journal tab (`designs/06-journal-entry.svg`)
 4. Tap "+ Add" button
 5. Modal opens (`designs/06c-journal-modal.svg`)

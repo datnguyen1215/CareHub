@@ -80,7 +80,7 @@ src/
       profiles/
         +page.svelte       # Profile list — profile card grid, loading skeleton, error state with retry
         [id]/
-          +page.svelte     # Profile detail — custom top bar, Overview/Meds tabs, loading skeleton, error state with retry
+          +page.svelte     # Profile detail — custom top bar, tab switcher, loading skeleton, error state with retry; delegates to panel components
       devices/
         +page.svelte       # Device management UI — list, pair, unpair devices, loading skeleton, error state with retry; opens CallModal on Call button
       settings/
@@ -112,9 +112,14 @@ Error handling follows a consistent pattern across the portal:
 The profile detail page lives inside the `(app)` route group, so the global `TopBar` and `BottomNav` are always rendered by the shared layout. The page additionally renders its own fixed top bar inside `<main>`, which visually replaces the global top bar but stacks a second `h-14` spacer — a known layout issue to be fixed in a future pass (move the route out of `(app)` or suppress the global TopBar on this page). It contains:
 
 1. **Custom top bar** — Back arrow (→ `/profiles`), profile name centered, pencil-icon edit button that opens `ProfileModal`.
-2. **Tab bar** — Sticky below the top bar. Two tabs: **Overview** (default) and **Meds**. Active tab is underlined with primary blue.
-3. **Overview tab** — Device card(s) for linked devices (name, online/offline status, battery level, Send Photo/Call/Settings buttons; disabled when offline; empty state when no device linked), Profile info card (name, relationship, date of birth, conditions as badges), and Recent Medications card (top 3 active meds, "See all" link switching to Meds tab, empty state).
-4. **Meds tab** — Full medication management: add/edit/discontinue medications via `MedicationModal`, with a "Show discontinued" toggle.
+2. **Tab bar** — Sticky below the top bar. Five tabs: **Overview** (default), **Meds**, **Calendar**, **Journal**, **Docs**. Active tab is underlined with primary blue. All panels are mounted at once using the `hidden` attribute (eager loading), so tab switching is instant without re-fetches.
+3. **Panel components** — Each tab's logic, state, and API calls are encapsulated in a dedicated panel component that owns its own data fetching on mount:
+   - `OverviewPanel` (`profiles/OverviewPanel.svelte`) — Receives `profile` prop. Shows device card(s) for linked devices (name, online/offline status, battery level, Send Photo/Call/Settings buttons; disabled when offline; empty state when no device linked), profile info card (name, relationship, date of birth, conditions as badges), recent medications card, and upcoming events. Fetches supplementary data (devices, medications, events) independently via `$effect`. Dispatches `profileUpdate` on delete.
+   - `MedicationsPanel` (`medications/MedicationsPanel.svelte`) — Receives `profileId` prop. Full medication management: add/edit/discontinue medications via `MedicationModal`, with a "Show discontinued" toggle. Owns all medication state and API calls.
+   - `CalendarPanel` (`events/CalendarPanel.svelte`) — Receives `profileId` and `profileName` props. Month navigation, calendar grid with derived `calendarDays`, event list for selected day, event CRUD via `EventModal`. Caches loaded month via `loadedMonthKey` to avoid re-fetching the same month. Supports cross-tab navigation from `DocumentsTab` via `initialEventId`.
+   - `JournalPanel` (`journal/JournalPanel.svelte`) — Receives `profileId` prop. Wraps existing `JournalTab` with entry detail view and add/edit modals. Owns journal entry state, search/sort, and selected entry. Supports cross-tab navigation from `DocumentsTab` via `initialEntryId`.
+   - `DocumentsTab` (`documents/DocumentsTab.svelte`) — Already self-contained. Search/browse view with category filtering. Can navigate to Journal or Calendar tabs via callback props.
+4. **Parent page responsibilities** — The parent `+page.svelte` (~255 lines) only handles: loading the profile, rendering the tab bar, switching between panels, profile edit modal, loading skeleton, and error state with retry (including 401 → `/login` redirect).
 
 ### Auth Guard
 

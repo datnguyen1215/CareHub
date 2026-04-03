@@ -79,9 +79,10 @@ Styles are implemented with Tailwind CSS within the SvelteKit portal package. Mo
 
 ### Navigation -- Profile Detail
 
-- **Tab navigation** within each profile: Overview, Meds, Calendar, Journal
+- **Tab navigation** within each profile: Overview, Meds, Calendar, Journal, Docs
 - Horizontal scrollable tabs below profile header
 - Active tab underlined with primary color
+- All panels mount eagerly (using `hidden` attribute) so tab switching is instant without re-fetches
 
 ### Device Card (Profile Overview)
 
