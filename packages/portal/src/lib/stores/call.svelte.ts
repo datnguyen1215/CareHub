@@ -565,7 +565,6 @@ async function recoverLocalStream(): Promise<void> {
 		const newStream = await webrtc.getLocalStream();
 		storedLocalStream = newStream;
 		callState.localStream = newStream;
-		notify();
 
 		// Capture peer connection AFTER async getLocalStream to avoid stale reference
 		const pc = webrtc.getPeerConnection();
