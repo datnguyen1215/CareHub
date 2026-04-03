@@ -7,5 +7,8 @@ import { logger } from '../services/logger'
  */
 export function errorHandler(err: Error, req: Request, res: Response, _next: NextFunction): void {
   logger.error({ err, method: req.method, url: req.url }, 'Unhandled error')
+  if (res.headersSent) {
+    return _next(err)
+  }
   res.status(500).json({ error: 'Internal server error' })
 }
