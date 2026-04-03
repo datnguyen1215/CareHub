@@ -119,11 +119,11 @@ packages/portal/
 │   │   │   ├── call/        # Call UI components (CallModal, CallControls)
 │   │   │   ├── devices/     # Device components (DeviceCard, DeviceStatusDot, BatteryIndicator)
 │   │   │   ├── documents/   # Document components (DocumentsTab, AttachmentCard, AttachmentUpload)
-│   │   │   ├── events/      # Event components (EventModal, EventDetail)
-│   │   │   ├── journal/     # Journal components (JournalTab, JournalEntryModal, JournalEntryDetail)
-│   │   │   ├── medications/ # Medication components (MedicationModal)
+│   │   │   ├── events/      # Event components (CalendarPanel, EventModal, EventDetail)
+│   │   │   ├── journal/     # Journal components (JournalPanel, JournalTab, JournalEntryModal, JournalEntryDetail)
+│   │   │   ├── medications/ # Medication components (MedicationsPanel, MedicationModal)
 │   │   │   ├── navigation/  # Navigation components (TopBar, BottomNav)
-│   │   │   ├── profiles/    # Profile components (ProfileModal, ProfileSelector, AvatarUpload)
+│   │   │   ├── profiles/    # Profile components (OverviewPanel, ProfileModal, ProfileSelector, AvatarUpload)
 │   │   │   ├── shared/      # Shared components (DeleteConfirmModal, QRScanner)
 │   │   │   └── ui/          # UI primitives (Toast)
 │   │   ├── utils/           # Utility modules (focusTrap, error-utils)
@@ -147,7 +147,7 @@ packages/portal/
 - `/login` - OTP authentication flow
 - `/` (protected) - Dashboard
 - `/profiles` (protected) - Profile list and management
-- `/profiles/:id` (protected) - Profile details and medications
+- `/profiles/:id` (protected) - Profile details with tabbed interface (Overview, Meds, Calendar, Journal, Docs)
 
 All routes under `(app)` require authentication and redirect to `/login` if not authenticated.
 
