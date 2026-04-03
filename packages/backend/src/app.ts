@@ -3,16 +3,7 @@ import path from 'path'
 import cookieParser from 'cookie-parser'
 import cors from 'cors'
 import pinoHttp from 'pino-http'
-import { authRouter } from './routes/auth'
-import { usersRouter } from './routes/users'
-import { profilesRouter } from './routes/profiles'
-import { medicationsRouter } from './routes/medications'
-import { eventsRouter } from './routes/events'
-import { journalRouter } from './routes/journal'
-import { attachmentsRouter } from './routes/attachments'
-import { uploadRouter } from './routes/upload'
-import { devicesRouter } from './routes/devices'
-import healthRouter from './routes/health'
+import { registerRoutes } from './routes'
 import { logger } from './services/logger'
 
 const UPLOADS_PATH = process.env.UPLOADS_PATH ?? path.join(process.cwd(), 'uploads')
@@ -52,17 +43,7 @@ export function createApp() {
   // Serve uploaded files statically
   app.use('/uploads', express.static(UPLOADS_PATH))
 
-  app.use('/health', healthRouter)
-  app.use('/api/health', healthRouter)
-  app.use('/api/auth', authRouter)
-  app.use('/api/users', usersRouter)
-  app.use('/api/upload', uploadRouter)
-  app.use('/api/profiles', profilesRouter)
-  app.use('/api/profiles/:profileId/medications', medicationsRouter)
-  app.use('/api/profiles/:profileId/events', eventsRouter)
-  app.use('/api/profiles/:profileId/journal', journalRouter)
-  app.use('/api/profiles/:profileId/attachments', attachmentsRouter)
-  app.use('/api/devices', devicesRouter)
+  registerRoutes(app)
 
   return app
 }
