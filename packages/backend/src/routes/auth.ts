@@ -8,6 +8,8 @@ import { sendOtpEmail } from '../services/email'
 import { signToken, requireAuth } from '../middleware/auth'
 import { authLimiter } from '../middleware/rateLimit'
 import { logger } from '../services/logger'
+import { validate } from '../middleware/validate'
+import { requestOtpSchema, verifyOtpSchema } from '../schemas/auth'
 
 export const authRouter = Router()
 
@@ -52,8 +54,6 @@ setInterval(() => {
   }
 }, 60_000)
 
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-
 /**
  * Generates a cryptographically random 6-digit OTP.
  * @returns {string} 6-digit OTP string
@@ -61,13 +61,9 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const generateOtp = (): string => crypto.randomInt(100000, 1000000).toString()
 
 // POST /api/auth/request-otp
-authRouter.post('/request-otp', authLimiter, async (req: Request, res: Response): Promise<void> => {
+authRouter.post('/request-otp', authLimiter, validate(requestOtpSchema), async (req: Request, res: Response): Promise<void> => {
   try {
-    const { email } = req.body as { email?: string }
-    if (!email || typeof email !== 'string' || !EMAIL_RE.test(email)) {
-      res.status(400).json({ error: 'A valid email is required' })
-      return
-    }
+    const { email } = req.body as { email: string }
 
     // Enforce 60-second cooldown between OTP requests for the same email
     const [{ lastSent }] = await db
@@ -98,13 +94,9 @@ authRouter.post('/request-otp', authLimiter, async (req: Request, res: Response)
 })
 
 // POST /api/auth/verify-otp
-authRouter.post('/verify-otp', authLimiter, async (req: Request, res: Response): Promise<void> => {
+authRouter.post('/verify-otp', authLimiter, validate(verifyOtpSchema), async (req: Request, res: Response): Promise<void> => {
   try {
-    const { email, code } = req.body as { email?: string; code?: string }
-    if (!email || typeof email !== 'string' || !code || typeof code !== 'string') {
-      res.status(400).json({ error: 'email and code are required' })
-      return
-    }
+    const { email, code } = req.body as { email: string; code: string }
 
     const now = new Date()
     const [otp] = await db

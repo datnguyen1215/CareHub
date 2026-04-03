@@ -5,6 +5,8 @@ import { db } from '../db'
 import { careProfiles, profileShares, medications } from '@carehub/shared'
 import { requireAuth } from '../middleware/auth'
 import { logger } from '../services/logger'
+import { validate } from '../middleware/validate'
+import { createProfileSchema, updateProfileSchema } from '../schemas/profiles'
 
 export const profilesRouter = Router()
 
@@ -57,26 +59,21 @@ async function isProfileOwner(userId: string, profileId: string) {
 }
 
 // POST /api/profiles
-profilesRouter.post('/', requireAuth, async (req: Request, res: Response): Promise<void> => {
+profilesRouter.post('/', requireAuth, validate(createProfileSchema), async (req: Request, res: Response): Promise<void> => {
   try {
     const { name, date_of_birth, relationship, conditions, avatar_url } = req.body as {
-      name?: string
+      name: string
       date_of_birth?: string
-      relationship?: string
+      relationship?: string | null
       conditions?: string[]
       avatar_url?: string | null
-    }
-
-    if (!name || typeof name !== 'string' || !name.trim()) {
-      res.status(400).json({ error: 'name is required' })
-      return
     }
 
     const [profile] = await db
       .insert(careProfiles)
       .values({
         user_id: req.user!.userId,
-        name: name.trim(),
+        name,
         date_of_birth: date_of_birth ?? null,
         relationship: relationship ?? null,
         conditions: Array.isArray(conditions) ? conditions : [],
@@ -187,7 +184,7 @@ profilesRouter.get('/:id', requireAuth, async (req: Request, res: Response): Pro
 })
 
 // PATCH /api/profiles/:id
-profilesRouter.patch('/:id', requireAuth, async (req: Request, res: Response): Promise<void> => {
+profilesRouter.patch('/:id', requireAuth, validate(updateProfileSchema), async (req: Request, res: Response): Promise<void> => {
   try {
     const id = req.params['id'] as string
     const { name, date_of_birth, relationship, conditions, avatar_url } = req.body as {
@@ -214,14 +211,8 @@ profilesRouter.patch('/:id', requireAuth, async (req: Request, res: Response): P
       updated_at: Date
     }> = { updated_at: new Date() }
 
-    if (name !== undefined) {
-      if (typeof name !== 'string' || !name.trim()) {
-        res.status(400).json({ error: 'name cannot be empty' })
-        return
-      }
-      updates.name = name.trim()
-    }
-    if (date_of_birth !== undefined) updates.date_of_birth = date_of_birth
+    if (name !== undefined) updates.name = name
+    if (date_of_birth !== undefined) updates.date_of_birth = date_of_birth === '' ? null : date_of_birth
     if (relationship !== undefined) updates.relationship = relationship
     if (conditions !== undefined) updates.conditions = Array.isArray(conditions) ? conditions : []
     if (avatar_url !== undefined) updates.avatar_url = avatar_url

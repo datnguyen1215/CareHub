@@ -8,6 +8,10 @@ import { requireAuth } from '../middleware/auth'
 import { getStorageService } from '../services/storage'
 import { logger } from '../services/logger'
 import { queueAttachmentProcessing } from '../services/attachment-processor'
+import { validate } from '../middleware/validate'
+import { createAttachmentSchema, updateAttachmentSchema } from '../schemas/attachments'
+import { validateQuery } from '../middleware/validate'
+import { paginationSchema } from '../schemas/query'
 
 export const attachmentsRouter = Router({ mergeParams: true })
 
@@ -109,27 +113,21 @@ attachmentsRouter.post(
         return
       }
 
+      // Validate body fields
+      const bodyResult = createAttachmentSchema.safeParse(req.body)
+      if (!bodyResult.success) {
+        res.status(400).json({ error: bodyResult.error.issues[0].message })
+        return
+      }
+      req.body = bodyResult.data
+
       try {
         const profileId = req.params['profileId'] as string
         const { event_id, journal_id, category, description } = req.body as {
-          event_id?: string
-          journal_id?: string
-          category?: string
-          description?: string
-        }
-
-        // Validate category
-        if (!category || !VALID_CATEGORIES.includes(category as AttachmentCategory)) {
-          res.status(400).json({
-            error: `category is required and must be one of: ${VALID_CATEGORIES.join(', ')}`,
-          })
-          return
-        }
-
-        // Validate exactly one parent
-        if ((!event_id && !journal_id) || (event_id && journal_id)) {
-          res.status(400).json({ error: 'Exactly one of event_id or journal_id must be provided' })
-          return
+          event_id?: string | null
+          journal_id?: string | null
+          category: string
+          description?: string | null
         }
 
         // Check profile access
@@ -204,14 +202,14 @@ attachmentsRouter.post(
 
 // GET /api/profiles/:profileId/attachments
 // List attachments with optional filters and search
-attachmentsRouter.get('/', requireAuth, async (req: Request, res: Response): Promise<void> => {
+attachmentsRouter.get('/', requireAuth, validateQuery(paginationSchema), async (req: Request, res: Response): Promise<void> => {
   try {
     const profileId = req.params['profileId'] as string
     const eventId = req.query['event_id'] as string | undefined
     const journalId = req.query['journal_id'] as string | undefined
     const category = req.query['category'] as string | undefined
-    const limit = req.query['limit'] ? parseInt(req.query['limit'] as string, 10) : undefined
-    const offset = req.query['offset'] ? parseInt(req.query['offset'] as string, 10) : undefined
+    const limit = req.query['limit'] as number | undefined
+    const offset = req.query['offset'] as number | undefined
     const search = req.query['search'] as string | undefined
 
     const profile = await canAccessProfile(req.user!.userId, profileId)
@@ -252,11 +250,11 @@ attachmentsRouter.get('/', requireAuth, async (req: Request, res: Response): Pro
       .where(and(...conditions))
       .orderBy(desc(attachments.created_at))
 
-    if (limit && limit > 0) {
+    if (limit) {
       query = query.limit(limit) as typeof query
     }
 
-    if (offset && offset > 0) {
+    if (offset) {
       query = query.offset(offset) as typeof query
     }
 
@@ -302,7 +300,7 @@ attachmentsRouter.get('/:id', requireAuth, async (req: Request, res: Response): 
 
 // PATCH /api/profiles/:profileId/attachments/:id
 // Update attachment metadata (description, category)
-attachmentsRouter.patch('/:id', requireAuth, async (req: Request, res: Response): Promise<void> => {
+attachmentsRouter.patch('/:id', requireAuth, validate(updateAttachmentSchema), async (req: Request, res: Response): Promise<void> => {
   try {
     const profileId = req.params['profileId'] as string
     const id = req.params['id'] as string
@@ -328,12 +326,6 @@ attachmentsRouter.patch('/:id', requireAuth, async (req: Request, res: Response)
     }
 
     if (category !== undefined) {
-      if (!VALID_CATEGORIES.includes(category as AttachmentCategory)) {
-        res.status(400).json({
-          error: `category must be one of: ${VALID_CATEGORIES.join(', ')}`,
-        })
-        return
-      }
       updates.category = category as AttachmentCategory
     }
 

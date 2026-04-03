@@ -16,6 +16,8 @@ import { requireDeviceAuth } from '../middleware/deviceAuth'
 import { deviceRegisterLimiter } from '../middleware/rateLimit'
 import { logger } from '../services/logger'
 import { broadcastToDevice, isDeviceConnected } from '../websocket'
+import { validate } from '../middleware/validate'
+import { updateDeviceSchema, assignProfilesSchema, pairDeviceSchema } from '../schemas/devices'
 
 export const devicesRouter = Router()
 
@@ -244,15 +246,10 @@ devicesRouter.get('/', requireAuth, async (req: Request, res: Response): Promise
  * Complete pairing by scanning QR token.
  * Links device to profiles and grants caretaker access.
  */
-devicesRouter.post('/pair', requireAuth, async (req: Request, res: Response): Promise<void> => {
+devicesRouter.post('/pair', requireAuth, validate(pairDeviceSchema), async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = req.user!.userId
-    const { token, profileIds } = req.body as { token?: string; profileIds?: string[] }
-
-    if (!token || typeof token !== 'string') {
-      res.status(400).json({ error: 'Pairing token is required' })
-      return
-    }
+    const { token, profileIds } = req.body as { token: string; profileIds?: string[] }
 
     // Find valid pairing token
     const now = new Date()
@@ -421,11 +418,11 @@ devicesRouter.get('/:id', requireAuth, async (req: Request, res: Response): Prom
  * PATCH /api/devices/:id
  * Update device name.
  */
-devicesRouter.patch('/:id', requireAuth, async (req: Request, res: Response): Promise<void> => {
+devicesRouter.patch('/:id', requireAuth, validate(updateDeviceSchema), async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = req.user!.userId
     const deviceId = req.params.id as string
-    const { name } = req.body as { name?: string }
+    const { name } = req.body as { name: string }
 
     // Verify user has access
     const [access] = await db
@@ -439,14 +436,9 @@ devicesRouter.patch('/:id', requireAuth, async (req: Request, res: Response): Pr
       return
     }
 
-    if (!name || typeof name !== 'string' || !name.trim()) {
-      res.status(400).json({ error: 'name is required' })
-      return
-    }
-
     const [updated] = await db
       .update(devices)
-      .set({ name: name.trim() })
+      .set({ name })
       .where(eq(devices.id, deviceId))
       .returning()
 
@@ -501,11 +493,12 @@ devicesRouter.delete('/:id', requireAuth, async (req: Request, res: Response): P
 devicesRouter.post(
   '/:id/profiles',
   requireAuth,
+  validate(assignProfilesSchema),
   async (req: Request, res: Response): Promise<void> => {
     try {
       const userId = req.user!.userId
       const deviceId = req.params.id as string
-      const { profileIds } = req.body as { profileIds?: string[] }
+      const { profileIds } = req.body as { profileIds: string[] }
 
       // Verify user has access
       const [access] = await db
@@ -516,11 +509,6 @@ devicesRouter.post(
 
       if (!access) {
         res.status(404).json({ error: 'Device not found' })
-        return
-      }
-
-      if (!profileIds || !Array.isArray(profileIds) || profileIds.length === 0) {
-        res.status(400).json({ error: 'profileIds array is required' })
         return
       }
 
