@@ -547,6 +547,9 @@ export function initializeCallHandlers(): () => void {
 		}
 	});
 
+	// Handle tab visibility changes during active calls
+	const unsubVisibility = setupVisibilityHandler();
+
 	// Return cleanup function
 	return () => {
 		unsubTrack();
@@ -555,8 +558,117 @@ export function initializeCallHandlers(): () => void {
 		unsubError();
 		unsubMessage();
 		unsubDisconnect();
+		unsubVisibility();
 		stopDurationTimer();
 	};
+}
+
+// ─── Tab Visibility ───────────────────────────────────────────────────────────
+
+/**
+ * Whether the tab was hidden while a call was active.
+ * Used to detect return from background during a call.
+ */
+let wasHiddenDuringCall = false;
+
+/**
+ * Checks if local media tracks are still live.
+ * Browsers may pause tracks when tab goes to background.
+ */
+function areLocalTracksLive(): boolean {
+	if (!storedLocalStream) return false;
+	return storedLocalStream.getTracks().some((track) => track.readyState !== 'ended');
+}
+
+/**
+ * Attempts to re-acquire the local media stream if tracks went dead
+ * while the tab was in background. Stops the dead stream first to clear
+ * the cache, acquires a fresh stream, then replaces tracks on the active
+ * peer connection so the remote peer receives the new media.
+ */
+async function recoverLocalStream(): Promise<void> {
+	if (!storedLocalStream || areLocalTracksLive()) return;
+
+	logWebRTCEvent('Media', 'Local tracks appear dead — attempting recovery');
+
+	try {
+		// Stop the dead stream first to clear the cache in webrtc.getLocalStream()
+		webrtc.stopLocalStream();
+
+		// Acquire a fresh local stream
+		const newStream = await webrtc.getLocalStream();
+		storedLocalStream = newStream;
+		callState.localStream = newStream;
+		notify();
+
+		// Capture peer connection AFTER async getLocalStream to avoid stale reference
+		const pc = webrtc.getPeerConnection();
+
+		// Replace tracks on the active peer connection so remote peer gets new media
+		if (pc) {
+			const senders = pc.getSenders();
+			const newTracks = newStream.getTracks();
+
+			for (const sender of senders) {
+				const oldTrack = sender.track;
+				if (!oldTrack) continue;
+				const replacement = newTracks.find(
+					(t) => t.kind === oldTrack.kind
+				);
+				if (replacement) {
+					await sender.replaceTrack(replacement);
+					logWebRTCEvent(
+						'Media',
+						`Replaced ${oldTrack.kind} track on peer connection`
+					);
+				}
+			}
+		}
+
+		logWebRTCEvent('Media', 'Local stream recovered successfully');
+	} catch (err) {
+		logWebRTCEvent('Error', `Failed to recover local stream: ${(err as Error).message}`);
+	}
+}
+
+/**
+ * Sets up a visibilitychange listener to handle tab focus changes during calls.
+ * When the tab becomes visible during an active call, verifies WebSocket and
+ * media stream health, triggering recovery as needed.
+ * @returns Cleanup function to remove the listener
+ */
+function setupVisibilityHandler(): () => void {
+	const handler = () => {
+		if (document.visibilityState === 'hidden') {
+			if (callState.status !== 'idle' && callState.status !== 'ended') {
+				wasHiddenDuringCall = true;
+				logWebRTCEvent('Visibility', 'Tab hidden during active call');
+			}
+			return;
+		}
+
+		// Tab became visible
+		if (!wasHiddenDuringCall) return;
+		wasHiddenDuringCall = false;
+
+		logWebRTCEvent('Visibility', 'Tab visible — checking connection health');
+
+		// If WebSocket disconnected while hidden, reconnect immediately (bypass backoff)
+		if (websocket.getConnectionState() !== 'connected') {
+			logWebRTCEvent('Visibility', 'WebSocket disconnected — forcing immediate reconnect');
+			websocket.immediateReconnect();
+		}
+
+		// If local media tracks went dead, attempt recovery
+		if (callState.status === 'connected') {
+			recoverLocalStream().catch((err) => {
+				logWebRTCEvent('Error', `Unhandled stream recovery error: ${(err as Error).message}`);
+			});
+		}
+	};
+
+	document.addEventListener('visibilitychange', handler);
+	return () => document.removeEventListener('visibilitychange', handler);
 }
 
 // Derived state getters

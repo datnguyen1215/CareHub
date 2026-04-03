@@ -298,7 +298,7 @@ Tablet push notifications, device status monitoring, and video call signaling al
 **Message Handlers:**
 
 - `packages/backend/src/websocket/handlers/device.ts` - Device heartbeat, status updates
-- `packages/backend/src/websocket/handlers/user.ts` - User connection with JWT authentication
+- `packages/backend/src/websocket/handlers/user.ts` - User connection with JWT authentication, heartbeat ping/pong support
 - `packages/backend/src/websocket/handlers/call.ts` - Call signaling (offer/answer/ICE)
 
 **Events (Server → Kiosk):**
@@ -326,6 +326,7 @@ Tablet push notifications, device status monitoring, and video call signaling al
 
 **Events (User → Server):**
 
+- `ping` - Heartbeat keep-alive (server responds with `pong`)
 - `call:initiate` - Initiate call to device (creates call_sessions record)
 - `call:offer` - SDP offer to device (WebRTC)
 - `call:ice-candidate` - ICE candidate for WebRTC connection
@@ -360,9 +361,13 @@ Portal connects to WebSocket on app mount via JWT authentication (`/ws?jwt={toke
 - WebSocket URL built via shared `buildWsUrl()` (protocol-aware ws:/wss: detection)
 - Message parsing via shared `parseMessage()`
 - Automatic reconnection with exponential backoff via shared `createReconnectStrategy()` (1s → 2s → 4s → max 30s)
+- Immediate reconnect (bypasses backoff) for urgent recovery scenarios (e.g., tab visibility restore)
 - Auth failure detection (close code 4001) triggers redirect to login
 - Real-time signaling message routing for video call coordination
 - Connection state management (connecting/connected/disconnected)
+- Heartbeat keep-alive: sends `ping` every 25 seconds; detects dead connections within 30 seconds (5s pong timeout)
+- Message queue: messages sent during disconnection are buffered (max 50, 30s TTL) and flushed on reconnect
+- Race condition prevention: old socket event handlers are nulled before closing to prevent stale async events from corrupting new connections
 - Initialized in `(app)/+layout.svelte` on mount for all authenticated pages
 
 ### Peer-to-Peer Video
@@ -401,6 +406,7 @@ The portal operates as the caller (initiator) in all video calls:
 - Audio/video track toggle without reconnection
 - Connection state monitoring with automatic failure detection
 - Stream and connection cleanup via shared `cleanupStream()` and `cleanupPeerConnection()`
+- Peer connection access via `getPeerConnection()` for track replacement during media recovery
 
 **Call State Store (`packages/portal/src/lib/stores/call.svelte.ts`):**
 
@@ -418,6 +424,7 @@ The portal operates as the caller (initiator) in all video calls:
 - Error messages via shared `getUserFriendlyError()`
 - Top-level state parsing via shared `getTopLevelState()`
 - Automatic cleanup on call end or error
+- **Tab visibility handling** — `visibilitychange` listener detects when the tab is hidden during an active call; on return to visible, checks WebSocket health (forces immediate reconnect if disconnected) and recovers dead local media streams by re-acquiring and replacing tracks on the peer connection
 - **Subscription-based cross-module reactivity** — `subscribe(callback)` registers listeners that receive a shallow copy of state on every mutation; components use `onMount` to subscribe and update local `$state` (Svelte 5 `$state` proxies don't propagate across module boundaries)
 - `notify()` called after every state mutation: `syncStateFromMachine()`, `startDurationTimer()`, `toggleMute()`, `toggleVideo()`
 

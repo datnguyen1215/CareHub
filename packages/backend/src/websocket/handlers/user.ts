@@ -40,6 +40,11 @@ export const handleUserConnection = (ws: WebSocket, userId: string): void => {
       const message = JSON.parse(data.toString()) as UserMessage
 
       switch (message.type) {
+        // Heartbeat keep-alive
+        case 'ping':
+          ws.send(JSON.stringify({ type: 'pong' }))
+          break
+
         // Call signaling messages from user
         case 'call:initiate':
         case 'call:ended':

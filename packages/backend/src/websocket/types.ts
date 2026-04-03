@@ -44,8 +44,14 @@ export type DeviceMessage =
   | CallAnswerMessage
   | IceCandidateMessage
 
+/** Ping message from user (keep-alive heartbeat) */
+export interface PingMessage {
+  type: 'ping'
+}
+
 /** User-originated messages */
 export type UserMessage =
+  | PingMessage
   | CallInitiateMessage
   | CallEndedMessage
   | CallOfferMessage

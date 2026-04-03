@@ -88,6 +88,14 @@ export function closePeerConnection(): void {
 }
 
 /**
+ * Returns the current peer connection (or null if none exists).
+ * Needed for track replacement during media recovery.
+ */
+export function getPeerConnection(): RTCPeerConnection | null {
+	return peerConnection;
+}
+
+/**
  * Returns current ICE connection state.
  */
 export function getPeerConnectionState(): RTCIceConnectionState | null {
