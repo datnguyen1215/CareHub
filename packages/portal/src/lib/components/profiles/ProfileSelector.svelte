@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { CareProfile } from '$lib/api';
-	import { getInitial } from './utils/format';
+	import { getInitial } from '$lib/utils/format';
 
 	interface Props {
 		profiles: CareProfile[];

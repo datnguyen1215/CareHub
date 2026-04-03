@@ -130,6 +130,10 @@ packages/portal/
 │   │   ├── services/        # Core services
 │   │   │   ├── websocket.ts # WebSocket connection manager
 │   │   │   └── webrtc.ts    # WebRTC peer connection manager
+│   │   ├── utils/           # Shared utilities (framework-agnostic)
+│   │   │   ├── format.ts    # Date/time formatting and string helpers
+│   │   │   ├── debounce.ts  # debounce() with .cancel() for cleanup
+│   │   │   └── categories.ts # Category/event type color and label maps
 │   │   ├── api.ts           # API client for backend
 │   │   └── stores/
 │   │       ├── toast.svelte.ts     # Toast notification store (Svelte 5 $state runes)

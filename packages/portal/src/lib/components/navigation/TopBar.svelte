@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	import { getMe, type MeResponse } from '$lib/api';
 	import { goto } from '$app/navigation';
-	import { getInitial } from './utils/format';
+	import { getInitial } from '$lib/utils/format';
 
 	let user = $state<MeResponse | null>(null);
 

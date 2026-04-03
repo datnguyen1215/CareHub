@@ -71,6 +71,10 @@ src/
     stores/
       toast.svelte.ts      # Toast notification store (Svelte 5 $state runes) — delegates to shared createToastStore(), wraps in $state for reactivity
       call.svelte.ts       # Call state store (Svelte 5 $state runes) — idle → calling → connected → ended
+    utils/
+      format.ts            # Date/time formatting (formatDateShort, formatDateLong, formatDateFull, formatDateDefault, formatDateTime, formatTime, formatWeekdayLong, formatMonthYear, formatRelativeTime) and string helpers (getInitial)
+      debounce.ts          # debounce() utility with .cancel() method for cleanup
+      categories.ts        # Shared CATEGORY_COLORS, CATEGORY_LABELS, EVENT_TYPE_COLORS, EVENT_TYPE_LABELS maps
   routes/
     login/                 # Public auth pages (email entry, OTP verify, account setup)
     (app)/
