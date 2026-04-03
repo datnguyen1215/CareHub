@@ -2,13 +2,11 @@
 import { WebSocket } from 'ws'
 import jwt from 'jsonwebtoken'
 import { logger } from '../../services/logger'
+import { env } from '../../config/env'
 import { addClient, removeClient, broadcastToDevice, getUserClients } from '../clients'
 import type { UserMessage } from '../types'
 import { handleCallMessage } from './call'
 import { getActiveCallForUser, markCallFailed } from '../../services/call'
-
-const JWT_SECRET = process.env.JWT_SECRET
-if (!JWT_SECRET) throw new Error('JWT_SECRET environment variable is required')
 
 interface JwtPayload {
   userId: string
@@ -21,7 +19,7 @@ interface JwtPayload {
  */
 export const verifyUserToken = (token: string): JwtPayload | null => {
   try {
-    return jwt.verify(token, JWT_SECRET) as JwtPayload
+    return jwt.verify(token, env.JWT_SECRET) as JwtPayload
   } catch {
     return null
   }
