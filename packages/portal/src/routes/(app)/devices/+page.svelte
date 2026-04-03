@@ -93,7 +93,20 @@
 	</div>
 
 	{#if loading}
-		<p class="text-text-secondary text-sm">Loading…</p>
+		<!-- Loading skeleton -->
+		<div class="space-y-unit-2" aria-label="Loading devices">
+			{#each Array(2) as _}
+				<div class="card animate-pulse space-y-2">
+					<div class="flex items-center gap-3">
+						<div class="w-10 h-10 rounded-card bg-gray-200"></div>
+						<div class="flex-1 space-y-2">
+							<div class="h-4 bg-gray-200 rounded w-1/3"></div>
+							<div class="h-3 bg-gray-200 rounded w-1/2"></div>
+						</div>
+					</div>
+				</div>
+			{/each}
+		</div>
 	{:else if loadError}
 		<div class="card">
 			<p class="text-danger text-sm mb-unit-2">{loadError}</p>

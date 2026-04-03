@@ -96,6 +96,7 @@
 			toast.success('Attachment uploaded');
 			showCategorySelect = false;
 			selectedFile = null;
+				error = '';
 		} catch (err: unknown) {
 			const apiErr = err as { message?: string };
 			error = apiErr?.message ?? 'Failed to upload attachment';
@@ -264,6 +265,12 @@
 				Choose a category for "{selectedFile?.name}"
 			</p>
 
+			{#if error}
+				<div class="mb-unit-3 p-unit-2 bg-red-50 border border-red-200 rounded-card">
+					<p class="text-sm text-danger">{error}</p>
+				</div>
+			{/if}
+
 			<div class="flex flex-col gap-unit-1 mb-unit-3">
 				{#each categories as cat}
 					<button
@@ -301,7 +308,7 @@
 					class="px-unit-3 py-2 rounded-card bg-primary text-white font-semibold text-base
 					       hover:bg-blue-600 disabled:opacity-50 transition-colors"
 				>
-					{uploading ? 'Uploading...' : 'Upload'}
+					{uploading ? 'Uploading...' : error ? 'Retry' : 'Upload'}
 				</button>
 			</div>
 		</div>
