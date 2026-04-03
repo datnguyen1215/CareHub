@@ -9,21 +9,12 @@ import { getStorageService } from '../services/storage'
 import { logger } from '../services/logger'
 import { queueAttachmentProcessing } from '../services/attachment-processor'
 import { validate } from '../middleware/validate'
-import { createAttachmentSchema, updateAttachmentSchema } from '../schemas/attachments'
+import { createAttachmentSchema, updateAttachmentSchema, VALID_CATEGORIES } from '../schemas/attachments'
 import { validateQuery } from '../middleware/validate'
 import { paginationSchema } from '../schemas/query'
 
 export const attachmentsRouter = Router({ mergeParams: true })
 
-// Valid attachment categories
-const VALID_CATEGORIES = [
-  'lab_result',
-  'prescription',
-  'insurance',
-  'billing',
-  'imaging',
-  'other',
-] as const
 type AttachmentCategory = (typeof VALID_CATEGORIES)[number]
 
 // Configure multer for memory storage

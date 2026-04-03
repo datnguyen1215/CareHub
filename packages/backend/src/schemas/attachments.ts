@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-const VALID_CATEGORIES = [
+export const VALID_CATEGORIES = [
   'lab_result',
   'prescription',
   'insurance',
