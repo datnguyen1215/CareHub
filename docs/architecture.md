@@ -703,4 +703,14 @@ The tablet kiosk requires one-time Device Owner provisioning to enable Lock Task
 
 ### Testing Strategy
 
-Integration tests only, using Vitest + Supertest against the Express API. No unit tests or portal component tests. This keeps the test suite lean while covering the critical API surface.
+Integration tests only, using Vitest + Supertest against the Express API and the `ws` package for WebSocket tests. No unit tests or portal component tests. This keeps the test suite lean while covering the critical API surface.
+
+**HTTP endpoint tests** cover authentication, devices, profiles, medications, attachments, and health — using Supertest against the Express app.
+
+**WebSocket tests** cover the real-time communication layer — connection authentication (device token, JWT, ticket), client registry (multi-tab support, broadcast, cleanup), device lifecycle (heartbeat, status transitions), and call signaling (initiate, accept, decline, WebRTC exchange, ring timeout). These tests use an actual HTTP server (`server.listen(0)` for random port allocation) with the `ws` package as client. Tests run with `fileParallelism: false` to avoid WebSocket server conflicts.
+
+Test helpers:
+- `tests/helpers/ws.ts` — Server creation, WS client connection, message/close waiters, JWT/ticket generation
+- `tests/helpers/truncate.ts` — Database table truncation (includes `call_sessions`)
+- `tests/factories.ts` — Entity creation helpers (`createUser`, `createDevice`, `createDeviceAccess`, `createDeviceCareProfile`)
+- `tests/utils.ts` — Auth cookie generation (`makeAuthCookie`)
