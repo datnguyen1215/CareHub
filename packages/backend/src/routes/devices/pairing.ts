@@ -19,8 +19,8 @@ pairingRouter.get('/', requireAuth, async (req: Request, res: Response): Promise
   try {
     const userId = req.user!.userId
 
-    // Get devices user has access to
-    const userDevices = await db
+    // Single query: devices + their profiles via LEFT JOIN
+    const rows = await db
       .select({
         id: devices.id,
         name: devices.name,
@@ -29,32 +29,51 @@ pairingRouter.get('/', requireAuth, async (req: Request, res: Response): Promise
         last_seen_at: devices.last_seen_at,
         paired_at: devices.paired_at,
         created_at: devices.created_at,
+        profile_id: careProfiles.id,
+        profile_name: careProfiles.name,
+        profile_avatar_url: careProfiles.avatar_url,
       })
       .from(deviceAccess)
       .innerJoin(devices, eq(deviceAccess.device_id, devices.id))
+      .leftJoin(deviceCareProfiles, eq(deviceCareProfiles.device_id, devices.id))
+      .leftJoin(careProfiles, eq(deviceCareProfiles.care_profile_id, careProfiles.id))
       .where(eq(deviceAccess.user_id, userId))
 
-    // Get profile counts for each device
-    const result = await Promise.all(
-      userDevices.map(async (device) => {
-        const profiles = await db
-          .select({
-            id: careProfiles.id,
-            name: careProfiles.name,
-            avatar_url: careProfiles.avatar_url,
-          })
-          .from(deviceCareProfiles)
-          .innerJoin(careProfiles, eq(deviceCareProfiles.care_profile_id, careProfiles.id))
-          .where(eq(deviceCareProfiles.device_id, device.id))
+    // Group profiles by device
+    const deviceMap = new Map<string, {
+      id: string
+      name: string
+      status: string
+      battery_level: number | null
+      last_seen_at: Date | null
+      paired_at: Date | null
+      created_at: Date
+      profiles: { id: string; name: string; avatar_url: string | null }[]
+    }>()
 
-        return {
-          ...device,
-          profiles,
-        }
-      })
-    )
+    for (const row of rows) {
+      if (!deviceMap.has(row.id)) {
+        deviceMap.set(row.id, {
+          id: row.id,
+          name: row.name,
+          status: row.status,
+          battery_level: row.battery_level,
+          last_seen_at: row.last_seen_at,
+          paired_at: row.paired_at,
+          created_at: row.created_at,
+          profiles: [],
+        })
+      }
+      if (row.profile_id) {
+        deviceMap.get(row.id)!.profiles.push({
+          id: row.profile_id,
+          name: row.profile_name,
+          avatar_url: row.profile_avatar_url,
+        })
+      }
+    }
 
-    res.json(result)
+    res.json(Array.from(deviceMap.values()))
   } catch (err) {
     logger.error({ err }, 'GET /devices error')
     res.status(500).json({ error: 'Failed to fetch devices' })
