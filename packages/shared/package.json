@@ -21,6 +21,10 @@
     "./websocket/connection": {
       "import": "./dist/websocket/connection.js",
       "types": "./dist/websocket/connection.d.ts"
+    },
+    "./ui/toast": {
+      "import": "./dist/ui/toast.js",
+      "types": "./dist/ui/toast.d.ts"
     }
   },
   "scripts": {

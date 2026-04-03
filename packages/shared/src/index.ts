@@ -86,3 +86,6 @@ export * from './webrtc/index.js'
 
 // Re-export WebSocket utilities
 export * from './websocket/connection.js'
+
+// Re-export UI utilities
+export * from './ui/toast.js'
