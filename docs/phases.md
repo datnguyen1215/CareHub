@@ -99,6 +99,11 @@ Enable the tablet kiosk experience, Capacitor mobile app, and real-time communic
 - [x] **Layout integration** -- WebSocket connects on app mount, handlers auto-initialized
 - [x] **State machine guards** -- Prevent invalid transitions, queue ICE candidates before peer connection ready
 - [x] **Debug logging** -- All state transitions and WebRTC events logged with timestamps
+- [x] **WebSocket heartbeat** -- Ping every 25 seconds with 5-second pong timeout; dead connections detected within 30 seconds
+- [x] **Message queue** -- Signaling messages buffered during disconnection (max 50, 30s TTL), flushed on reconnect
+- [x] **Tab visibility handling** -- Detects hidden tab during call; on return, forces immediate reconnect if WebSocket disconnected, recovers dead local media streams via track replacement
+- [x] **Backend ping/pong** -- User WebSocket handler supports `ping` messages and responds with `pong`
+- [x] **Race condition prevention** -- Old socket event handlers nulled before close to prevent stale events from corrupting new connections
 
 - [x] **Call UI components** -- Full-screen call interface on portal with CallModal and CallControls
 - [x] **Portal call initiation** -- Call from device detail page and profile overview tab, both wired to call store
