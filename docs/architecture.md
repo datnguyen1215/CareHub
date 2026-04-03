@@ -32,7 +32,7 @@
 packages/
   portal/      # SvelteKit + Tailwind CSS caretaker portal web app with Capacitor (Android APK)
   backend/     # Express API server with WebSocket support
-  shared/      # Shared types, utilities, and Drizzle schema
+  shared/      # Shared types, Drizzle schema, WebRTC/WebSocket utilities
   kiosk/       # SvelteKit elderly tablet kiosk app with Capacitor (Android only)
 ```
 
@@ -342,7 +342,9 @@ Tablet push notifications, device status monitoring, and video call signaling al
 
 Portal connects to WebSocket on app mount via JWT authentication (`/ws?jwt={token}`). Connection features:
 
-- Automatic reconnection with exponential backoff (1s → 2s → 4s → max 30s)
+- WebSocket URL built via shared `buildWsUrl()` (protocol-aware ws:/wss: detection)
+- Message parsing via shared `parseMessage()`
+- Automatic reconnection with exponential backoff via shared `createReconnectStrategy()` (1s → 2s → 4s → max 30s)
 - Auth failure detection (close code 4001) triggers redirect to login
 - Real-time signaling message routing for video call coordination
 - Connection state management (connecting/connected/disconnected)
@@ -352,13 +354,22 @@ Portal connects to WebSocket on app mount via JWT authentication (`/ws?jwt={toke
 
 Video calls use WebRTC for direct peer-to-peer connections, avoiding the cost and complexity of a media server. STUN servers handle NAT traversal. A TURN relay serves as fallback when direct connection fails.
 
+**Shared WebRTC/WebSocket Utilities:**
+
+Common WebRTC and WebSocket logic is extracted into the shared package to avoid duplication between Portal and Kiosk:
+
+- `packages/shared/src/webrtc/webrtc-core.ts` — Peer connection cleanup, stream acquisition (`acquireLocalStream`), stream cleanup (`cleanupStream`), peer connection cleanup (`cleanupPeerConnection`), default media constraints (720p video, echo cancellation), re-exports `ICE_SERVERS`
+- `packages/shared/src/webrtc/error-utils.ts` — `getUserFriendlyError()` maps technical errors to user-friendly messages
+- `packages/shared/src/webrtc/call-utils.ts` — `createDurationTimer()` for call length tracking, `getTopLevelState()` for state machine state parsing
+- `packages/shared/src/websocket/connection.ts` — `buildWsUrl()` for protocol-aware WebSocket URL construction, `parseMessage()` for JSON message parsing, `createReconnectStrategy()` (exponential backoff) and `createFixedReconnectStrategy()` for reconnection
+
 **Kiosk WebRTC Implementation:**
 
 The kiosk operates as the callee (receiver) in all video calls:
 
-- `packages/kiosk/src/lib/services/webrtc.ts` — WebRTC manager for peer connections, SDP handling, ICE candidate exchange, and media stream management
-- `packages/kiosk/src/lib/services/websocket.ts` — Extended with call signaling message handlers and methods to send call responses
-- `packages/kiosk/src/lib/stores/call.ts` — Call state store with subscription-based cross-module reactivity and hierarchical state machine for lifecycle management
+- `packages/kiosk/src/lib/services/webrtc.ts` — WebRTC manager for peer connections, SDP handling, ICE candidate exchange, and media stream management (imports stream/cleanup utilities from shared)
+- `packages/kiosk/src/lib/services/websocket.ts` — Extended with call signaling message handlers and methods to send call responses (imports URL builder and reconnect strategy from shared)
+- `packages/kiosk/src/lib/stores/call.ts` — Call state store with subscription-based cross-module reactivity and hierarchical state machine for lifecycle management (imports error utils, duration timer, and state helpers from shared)
 - `packages/shared/src/webrtc/call-state-machine.ts` — Shared state machine configuration, event definitions, and context types
 
 **Portal WebRTC Implementation:**
@@ -367,13 +378,14 @@ The portal operates as the caller (initiator) in all video calls:
 
 **WebRTC Manager (`packages/portal/src/lib/services/webrtc.ts`):**
 
-- Peer connection lifecycle with ICE server configuration (Google STUN)
-- Local media stream acquisition with 720p video and echo cancellation
+- Peer connection lifecycle with ICE server configuration (imports `ICE_SERVERS` from shared)
+- Local media stream acquisition via shared `acquireLocalStream()` with 720p video and echo cancellation
 - SDP offer/answer negotiation for call setup
-- ICE candidate gathering with 10-second timeout
+- ICE candidate gathering with configurable timeout (imports `ICE_GATHERING_TIMEOUT_MS` from shared)
 - Remote stream attachment to video elements
 - Audio/video track toggle without reconnection
 - Connection state monitoring with automatic failure detection
+- Stream and connection cleanup via shared `cleanupStream()` and `cleanupPeerConnection()`
 
 **Call State Store (`packages/portal/src/lib/stores/call.svelte.ts`):**
 
@@ -384,10 +396,12 @@ The portal operates as the caller (initiator) in all video calls:
 - All state transitions logged with timestamps for debugging
 - Call only marked "connected" when ICE connection actually established
 - Pending ICE candidates queued and flushed when appropriate
-- Local and remote stream management
-- Call duration counter (updates every second when connected)
+- Local and remote stream management (stream cleanup via shared utilities)
+- Call duration counter via shared `createDurationTimer()` (updates every second when connected)
 - Mute and video toggle controls
 - WebSocket signaling integration (ICE candidates, SDP exchange)
+- Error messages via shared `getUserFriendlyError()`
+- Top-level state parsing via shared `getTopLevelState()`
 - Automatic cleanup on call end or error
 - **Subscription-based cross-module reactivity** — `subscribe(callback)` registers listeners that receive a shallow copy of state on every mutation; components use `onMount` to subscribe and update local `$state` (Svelte 5 `$state` proxies don't propagate across module boundaries)
 - `notify()` called after every state mutation: `syncStateFromMachine()`, `startDurationTimer()`, `toggleMute()`, `toggleVideo()`

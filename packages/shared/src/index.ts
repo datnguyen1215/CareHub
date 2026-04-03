@@ -1,4 +1,4 @@
-// Shared types for CareHub — used by both portal and backend
+// Shared types, utilities, and schema for CareHub — used by portal, kiosk, and backend
 
 /** Roles a user can have within a household */
 export type UserRole = 'admin' | 'caregiver' | 'viewer'
@@ -81,5 +81,8 @@ export interface DevicePairingToken {
 // Re-export Drizzle schema
 export * from './schema.js'
 
-// Re-export WebRTC types and constants
+// Re-export WebRTC types, constants, and utilities
 export * from './webrtc/index.js'
+
+// Re-export WebSocket utilities
+export * from './websocket/connection.js'

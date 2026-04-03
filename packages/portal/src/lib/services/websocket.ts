@@ -5,6 +5,7 @@
  */
 
 import type { SignalingMessage } from '@carehub/shared';
+import { buildWsUrl, createReconnectStrategy, parseMessage } from '@carehub/shared';
 import { getWsTicket } from '$lib/api';
 
 export type ConnectionState = 'connecting' | 'connected' | 'disconnected';
@@ -32,26 +33,11 @@ const messageHandlers = new Set<MessageHandler>();
 const connectHandlers = new Set<ConnectionHandler>();
 const disconnectHandlers = new Set<ConnectionHandler>();
 
-/**
- * Builds WebSocket URL with ticket authentication.
- * @param ticket - The one-time ticket for authentication
- * @returns WebSocket URL with ticket query parameter
- */
-function buildWebSocketUrl(ticket: string): string {
-	const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-	const host = window.location.host;
-	return `${protocol}//${host}/ws?ticket=${ticket}`;
-}
-
-/**
- * Calculates reconnect delay with exponential backoff.
- * @returns Delay in milliseconds
- */
-function getReconnectDelay(): number {
-	const delay =
-		INITIAL_RECONNECT_DELAY_MS * Math.pow(RECONNECT_BACKOFF_MULTIPLIER, reconnectAttempts);
-	return Math.min(delay, MAX_RECONNECT_DELAY_MS);
-}
+const reconnectStrategy = createReconnectStrategy({
+	initialDelayMs: INITIAL_RECONNECT_DELAY_MS,
+	maxDelayMs: MAX_RECONNECT_DELAY_MS,
+	multiplier: RECONNECT_BACKOFF_MULTIPLIER
+});
 
 /**
  * Schedules a reconnection attempt with exponential backoff.
@@ -60,7 +46,7 @@ function scheduleReconnect(): void {
 	if (isUserInitiatedClose) return;
 	if (reconnectTimeoutId) return;
 
-	const delay = getReconnectDelay();
+	const delay = reconnectStrategy.getDelay(reconnectAttempts);
 	reconnectTimeoutId = setTimeout(() => {
 		reconnectTimeoutId = null;
 		reconnectAttempts++;
@@ -92,7 +78,7 @@ export async function connect(): Promise<void> {
 		return;
 	}
 
-	const url = buildWebSocketUrl(ticket);
+	const url = buildWsUrl({ ticket });
 
 	try {
 		socket = new WebSocket(url);
@@ -133,12 +119,10 @@ export async function connect(): Promise<void> {
 	};
 
 	socket.onmessage = (event) => {
-		try {
-			const message = JSON.parse(event.data) as SignalingMessage;
+		const message = parseMessage<SignalingMessage>(event.data);
+		if (message) {
 			console.log('[WebSocket] Received:', message.type, message);
 			messageHandlers.forEach((handler) => handler(message));
-		} catch (err) {
-			console.error('[WebSocket] Failed to parse message:', err);
 		}
 	};
 }

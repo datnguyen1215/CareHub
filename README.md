@@ -120,7 +120,7 @@ carehub/
 ├── packages/
 │   ├── backend/      # Express REST API
 │   ├── portal/       # SvelteKit caretaker portal
-│   ├── shared/       # Drizzle schema and shared types
+│   ├── shared/       # Drizzle schema, shared types, WebRTC/WebSocket utilities
 │   └── kiosk/        # SvelteKit kiosk app with Capacitor (Android)
 ├── docs/             # Project documentation
 ├── .env.example      # Environment template

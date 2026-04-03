@@ -1,6 +1,7 @@
 /** WebSocket service for real-time communication. */
 
 import { getDeviceCredentials } from './storage'
+import { buildWsUrl, parseMessage, createFixedReconnectStrategy } from '@carehub/shared'
 import type {
 	IceCandidate,
 	CallIncomingMessage,
@@ -32,8 +33,9 @@ let ws: WebSocket | null = null;
 let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 let messageHandlers: MessageHandler[] = [];
 
-const RECONNECT_DELAY = 3000; // 3 seconds
 const HEARTBEAT_INTERVAL = 25000; // 25 seconds
+
+const reconnectStrategy = createFixedReconnectStrategy(3000);
 
 let heartbeatTimer: ReturnType<typeof setInterval> | null = null;
 let isConnected = false;
@@ -47,9 +49,7 @@ async function getWsUrl(): Promise<string | null> {
 	const creds = await getDeviceCredentials();
 	if (!creds) return null;
 
-	const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-	const host = window.location.host;
-	return `${protocol}//${host}/ws?token=${creds.deviceToken}`;
+	return buildWsUrl({ token: creds.deviceToken });
 }
 
 /**
@@ -77,13 +77,11 @@ export async function connect(): Promise<void> {
 		};
 
 		ws.onmessage = (event) => {
-			try {
-				const message = JSON.parse(event.data) as WsMessage
+			const message = parseMessage<WsMessage>(event.data);
+			if (message) {
 				// Route call signaling messages to dedicated handlers
 				routeCallMessage(message)
 				messageHandlers.forEach((handler) => handler(message))
-			} catch (err) {
-				console.error('Failed to parse WebSocket message:', err)
 			}
 		}
 
@@ -129,10 +127,11 @@ export function disconnect(): void {
 function scheduleReconnect(): void {
 	if (reconnectTimer) return;
 
+	const delay = reconnectStrategy.getDelay(0);
 	reconnectTimer = setTimeout(() => {
 		reconnectTimer = null;
 		connect();
-	}, RECONNECT_DELAY);
+	}, delay);
 }
 
 /**

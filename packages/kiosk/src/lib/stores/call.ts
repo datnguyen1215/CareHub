@@ -13,6 +13,7 @@ import type {
 	CallEndedMessage,
 	IceCandidate
 } from '@carehub/shared';
+import { getUserFriendlyError, getTopLevelState, createDurationTimer } from '@carehub/shared';
 import {
 	createMachine,
 	createCalleeMachineConfig,
@@ -32,45 +33,6 @@ import {
 } from '$lib/services/websocket';
 import * as webrtc from '$lib/services/webrtc';
 import { notification } from '$lib/stores/notifications';
-
-/** Maps technical errors to user-friendly messages */
-function getUserFriendlyError(error: string | null): string {
-	if (!error) return 'Call failed. Please try again.';
-
-	const errorLower = error.toLowerCase();
-
-	// WebSocket/connection issues
-	if (errorLower.includes('websocket') || errorLower.includes('unable to connect')) {
-		return 'Connection lost. Please check your internet and try again.';
-	}
-
-	// ICE/network issues
-	if (errorLower.includes('ice') || errorLower.includes('network')) {
-		return 'Could not establish video connection. Check your network.';
-	}
-
-	// Timeout
-	if (errorLower.includes('timeout') || errorLower.includes('timed out')) {
-		return 'Call timed out. Please try again.';
-	}
-
-	// Media permissions
-	if (
-		errorLower.includes('permission') ||
-		errorLower.includes('notallowed') ||
-		errorLower.includes('not allowed')
-	) {
-		return 'Camera/microphone access denied. Please allow permissions.';
-	}
-
-	// Media device issues
-	if (errorLower.includes('notfound') || errorLower.includes('not found')) {
-		return 'Camera or microphone not found. Please check your devices.';
-	}
-
-	// Return original error if already user-friendly or unrecognized
-	return error;
-}
 
 /** Call status values */
 export type CallStatus = 'idle' | 'incoming' | 'connecting' | 'connected' | 'ended';
@@ -113,8 +75,13 @@ let callState: CallState = { ...initialState };
 let storedLocalStream: MediaStream | null = null;
 let storedRemoteStream: MediaStream | null = null;
 
-/** Duration timer interval */
-let durationTimer: ReturnType<typeof setInterval> | null = null;
+/** Duration timer from shared package */
+const durationTimer = createDurationTimer((seconds) => {
+	if (callState.status === 'connected') {
+		callState.duration = seconds;
+		notify();
+	}
+});
 
 /** State machine instance */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -163,7 +130,7 @@ export function getCallState(): CallState {
  */
 function mapMachineStateToStatus(machineState: string): CallStatus {
 	// Handle hierarchical states (e.g., "signaling.incoming")
-	const topLevelState = machineState.split('.')[0];
+	const topLevelState = getTopLevelState(machineState);
 	const subState = machineState.split('.')[1];
 
 	switch (topLevelState) {
@@ -221,23 +188,14 @@ function syncStateFromMachine(state: string, context: CallContext): void {
  * Increments duration every second while connected.
  */
 function startDurationTimer(): void {
-	stopDurationTimer();
-	durationTimer = setInterval(() => {
-		if (callState.status === 'connected') {
-			callState.duration += 1;
-			notify();
-		}
-	}, 1000);
+	durationTimer.start(new Date());
 }
 
 /**
  * Stop duration timer.
  */
 function stopDurationTimer(): void {
-	if (durationTimer) {
-		clearInterval(durationTimer);
-		durationTimer = null;
-	}
+	durationTimer.stop();
 }
 
 /**

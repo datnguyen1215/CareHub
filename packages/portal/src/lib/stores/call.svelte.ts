@@ -5,6 +5,7 @@
  */
 
 import type { SignalingMessage, CallEndReason, IceCandidate } from '@carehub/shared';
+import { getUserFriendlyError, getTopLevelState, createDurationTimer } from '@carehub/shared';
 import {
 	createMachine,
 	createCallerMachineConfig,
@@ -18,55 +19,6 @@ import {
 import * as websocket from '$lib/services/websocket';
 import * as webrtc from '$lib/services/webrtc';
 import { toast } from '$lib/stores/toast';
-
-/** Maps technical errors to user-friendly messages */
-function getUserFriendlyError(error: string | null): string {
-	if (!error) return 'Call failed. Please try again.';
-
-	const errorLower = error.toLowerCase();
-
-	// WebSocket/connection issues
-	if (errorLower.includes('websocket') || errorLower.includes('unable to connect')) {
-		return 'Connection lost. Please check your internet and try again.';
-	}
-
-	// Device status issues
-	if (errorLower.includes('offline') || errorLower.includes('not connected')) {
-		return 'Device is offline. Please check the tablet.';
-	}
-
-	// Call declined
-	if (errorLower.includes('declined')) {
-		return 'Call was declined.';
-	}
-
-	// ICE/network issues
-	if (errorLower.includes('ice') || errorLower.includes('network')) {
-		return 'Could not establish video connection. Check your network.';
-	}
-
-	// Timeout
-	if (errorLower.includes('timeout') || errorLower.includes('timed out')) {
-		return 'Call timed out. Please try again.';
-	}
-
-	// Media permissions
-	if (
-		errorLower.includes('permission') ||
-		errorLower.includes('notallowed') ||
-		errorLower.includes('not allowed')
-	) {
-		return 'Camera/microphone access denied. Please allow permissions.';
-	}
-
-	// Media device issues
-	if (errorLower.includes('notfound') || errorLower.includes('not found')) {
-		return 'Camera or microphone not found. Please check your devices.';
-	}
-
-	// Return original error if already user-friendly or unrecognized
-	return error;
-}
 
 /** Call status representing the call lifecycle */
 export type CallStatusType =
@@ -145,8 +97,13 @@ export function subscribe(listener: CallStateListener): () => void {
 	};
 }
 
-/** Duration timer interval ID */
-let durationIntervalId: ReturnType<typeof setInterval> | null = null;
+/** Duration timer from shared package */
+const durationTimer = createDurationTimer((seconds) => {
+	if (callState.status === 'connected') {
+		callState.duration = seconds;
+		notify();
+	}
+});
 
 /** State machine instance */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -157,7 +114,7 @@ let machine: any = null;
  */
 function mapMachineStateToStatus(machineState: string): CallStatusType {
 	// Handle hierarchical states (e.g., "signaling.waitingForAccept")
-	const topLevelState = machineState.split('.')[0];
+	const topLevelState = getTopLevelState(machineState);
 
 	switch (topLevelState) {
 		case 'idle':
@@ -219,24 +176,16 @@ function syncStateFromMachine(state: string, context: CallContext): void {
  * Updates the duration counter every second when connected.
  */
 function startDurationTimer(): void {
-	if (durationIntervalId) return;
-
-	durationIntervalId = setInterval(() => {
-		if (callState.status === 'connected' && callState.startedAt) {
-			callState.duration = Math.floor((Date.now() - callState.startedAt.getTime()) / 1000);
-			notify();
-		}
-	}, 1000);
+	if (callState.startedAt) {
+		durationTimer.start(callState.startedAt);
+	}
 }
 
 /**
  * Stops the duration counter.
  */
 function stopDurationTimer(): void {
-	if (durationIntervalId) {
-		clearInterval(durationIntervalId);
-		durationIntervalId = null;
-	}
+	durationTimer.stop();
 }
 
 /**

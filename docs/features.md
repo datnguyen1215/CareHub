@@ -256,6 +256,7 @@ Detailed feature breakdown organized by area. See [phases.md](phases.md) for imp
 
 - WebRTC peer-to-peer video
 - Hierarchical state machines (@datnguyen1215/hsmjs) for call lifecycle management
+- Shared WebRTC/WebSocket utilities in `packages/shared` (stream management, error handling, duration timers, reconnection strategies)
 - Signaling via WebSocket server (call:incoming, call:offer, call:ice-candidate, call:ended, call:error messages)
 - ICE/STUN/TURN for NAT traversal
 - Firebase Cloud Messaging (FCM) for call notifications to caretaker devices
