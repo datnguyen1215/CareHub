@@ -2,6 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { getProfile, updateProfile, type CareProfile, type CreateProfileInput } from '$lib/api';
+	import { getErrorMessage, isRetryable } from '$lib/utils/error-utils';
 	import OverviewPanel from '$lib/components/profiles/OverviewPanel.svelte';
 	import MedicationsPanel from '$lib/components/medications/MedicationsPanel.svelte';
 	import CalendarPanel from '$lib/components/events/CalendarPanel.svelte';
@@ -12,6 +13,9 @@
 	const profileId = $derived($page.params.id ?? '');
 
 	let profile = $state<CareProfile | null>(null);
+	let loading = $state(true);
+	let loadError = $state('');
+	let canRetry = $state(false);
 	let activeTab = $state<'overview' | 'meds' | 'calendar' | 'journal' | 'documents'>('overview');
 	let showEditModal = $state(false);
 
@@ -20,10 +24,22 @@
 	let initialEventId = $state<string | null>(null);
 
 	async function loadProfile() {
+		loading = true;
+		loadError = '';
+		canRetry = false;
+
 		try {
 			profile = await getProfile(profileId);
-		} catch {
-			// Error handled by parent page
+		} catch (err: unknown) {
+			const apiErr = err as { status?: number };
+			if (apiErr?.status === 401) {
+				goto('/login');
+				return;
+			}
+			loadError = getErrorMessage(err, 'load profile');
+			canRetry = isRetryable(err);
+		} finally {
+			loading = false;
 		}
 	}
 
@@ -116,6 +132,49 @@
 <!-- Spacer for fixed top bar -->
 <div class="h-14"></div>
 
+{#if loading}
+	<!-- Loading skeleton -->
+	<div class="max-w-2xl mx-auto px-unit-2 py-unit-3 animate-pulse space-y-unit-3" aria-label="Loading profile">
+		<div class="card">
+			<div class="flex items-center gap-unit-3">
+				<div class="w-16 h-16 rounded-full bg-gray-200 shrink-0"></div>
+				<div class="flex-1 space-y-2">
+					<div class="h-5 bg-gray-200 rounded w-1/3"></div>
+					<div class="h-3 bg-gray-200 rounded w-1/2"></div>
+					<div class="h-3 bg-gray-200 rounded w-2/3"></div>
+				</div>
+			</div>
+		</div>
+		<div class="flex gap-unit-1">
+			{#each ['Overview', 'Meds', 'Calendar', 'Journal', 'Docs'] as _}
+				<div class="h-9 bg-gray-200 rounded-lg w-16"></div>
+			{/each}
+		</div>
+		<div class="grid grid-cols-3 gap-unit-2">
+			{#each Array(3) as _}
+				<div class="card p-unit-2 space-y-2">
+					<div class="h-3 bg-gray-200 rounded w-2/3"></div>
+					<div class="h-4 bg-gray-200 rounded w-1/2"></div>
+				</div>
+			{/each}
+		</div>
+	</div>
+{:else if loadError}
+	<!-- Error state -->
+	<div class="max-w-2xl mx-auto px-unit-2 py-unit-3">
+		<div class="card">
+			<p class="text-danger text-sm mb-unit-2">{loadError}</p>
+			{#if canRetry}
+				<button
+					onclick={loadProfile}
+					class="bg-primary text-white rounded-card px-unit-3 py-1.5 text-sm font-semibold hover:bg-blue-600 transition-colors"
+				>
+					Retry
+				</button>
+			{/if}
+		</div>
+	</div>
+{:else}
 <!-- Tab bar -->
 <div class="sticky top-14 z-40 bg-surface border-b border-gray-200">
 	<div class="max-w-2xl mx-auto flex">
@@ -192,4 +251,5 @@
 
 {#if showEditModal && profile}
 	<ProfileModal {profile} onSave={handleEditSave} onClose={() => (showEditModal = false)} />
+{/if}
 {/if}
