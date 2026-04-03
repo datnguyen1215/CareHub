@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/svelte';
-import DeleteConfirmModal from '$lib/DeleteConfirmModal.svelte';
+import DeleteConfirmModal from '$lib/components/shared/DeleteConfirmModal.svelte';
 
 describe('DeleteConfirmModal', () => {
 	const defaultProps = {

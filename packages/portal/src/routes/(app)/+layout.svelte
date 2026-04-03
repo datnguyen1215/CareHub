@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import TopBar from '$lib/TopBar.svelte';
-	import BottomNav from '$lib/BottomNav.svelte';
+	import TopBar from '$lib/components/navigation/TopBar.svelte';
+	import BottomNav from '$lib/components/navigation/BottomNav.svelte';
 	import Toast from '$lib/components/ui/Toast.svelte';
 	import type { Snippet } from 'svelte';
 	import * as websocket from '$lib/services/websocket';

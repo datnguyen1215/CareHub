@@ -1,29 +1,29 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import {
-		getJournalEntry,
-		deleteJournalEntry,
+		getEvent,
+		deleteEvent,
 		listAttachments,
 		deleteAttachment,
-		type JournalEntry,
+		type Event,
 		type Attachment
-	} from './api';
-	import { createFocusTrap } from './focusTrap';
-	import AttachmentCard from './AttachmentCard.svelte';
-	import AttachmentUpload from './AttachmentUpload.svelte';
-	import { toast } from './stores/toast.svelte';
+	} from '$lib/api';
+	import { createFocusTrap } from '$lib/utils/focusTrap';
+	import AttachmentCard from '$lib/components/documents/AttachmentCard.svelte';
+	import AttachmentUpload from '$lib/components/documents/AttachmentUpload.svelte';
+	import { toast } from '$lib/stores/toast.svelte';
 
 	interface Props {
 		profileId: string;
-		entryId: string;
+		eventId: string;
 		onClose: () => void;
-		onEdit: (entry: JournalEntry) => void;
+		onEdit: (event: Event) => void;
 		onDeleted: () => void;
 	}
 
-	let { profileId, entryId, onClose, onEdit, onDeleted }: Props = $props();
+	let { profileId, eventId, onClose, onEdit, onDeleted }: Props = $props();
 
-	let entry = $state<JournalEntry | null>(null);
+	let event = $state<Event | null>(null);
 	let loading = $state(true);
 	let error = $state('');
 	let showDeleteConfirm = $state(false);
@@ -35,21 +35,28 @@
 	let attachmentsLoading = $state(false);
 	let attachmentsError = $state('');
 
+	const eventTypeLabels: Record<string, string> = {
+		doctor_visit: 'Doctor Visit',
+		lab_work: 'Lab Work',
+		therapy: 'Therapy',
+		general: 'General'
+	};
+
 	onMount(() => {
 		const cleanup = createFocusTrap(modalElement, onClose);
-		loadEntry();
+		loadEvent();
 		loadAttachments();
 		return cleanup;
 	});
 
-	async function loadEntry() {
+	async function loadEvent() {
 		loading = true;
 		error = '';
 		try {
-			entry = await getJournalEntry(profileId, entryId);
+			event = await getEvent(profileId, eventId);
 		} catch (err: unknown) {
 			const apiErr = err as { message?: string };
-			error = apiErr?.message ?? 'Failed to load journal entry';
+			error = apiErr?.message ?? 'Failed to load event';
 		} finally {
 			loading = false;
 		}
@@ -59,7 +66,7 @@
 		attachmentsLoading = true;
 		attachmentsError = '';
 		try {
-			attachments = await listAttachments(profileId, { journal_id: entryId });
+			attachments = await listAttachments(profileId, { event_id: eventId });
 		} catch (err: unknown) {
 			const apiErr = err as { message?: string };
 			attachmentsError = apiErr?.message ?? 'Failed to load attachments';
@@ -84,24 +91,30 @@
 	}
 
 	async function handleDelete() {
-		if (!entry) return;
+		if (!event) return;
 		deleting = true;
 		try {
-			await deleteJournalEntry(profileId, entry.id);
-			toast.destructive('Entry deleted');
+			await deleteEvent(profileId, event.id);
+			toast.destructive('Event deleted');
 			onDeleted();
 		} catch (err: unknown) {
 			const apiErr = err as { message?: string };
-			error = apiErr?.message ?? 'Failed to delete entry';
+			error = apiErr?.message ?? 'Failed to delete event';
 		} finally {
 			deleting = false;
 			showDeleteConfirm = false;
 		}
 	}
 
-	function formatDate(dateStr: string): string {
-		const d = new Date(dateStr + 'T00:00:00');
-		return d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+	function formatDateTime(dateStr: string): string {
+		const d = new Date(dateStr);
+		return d.toLocaleDateString('en-US', {
+			year: 'numeric',
+			month: 'long',
+			day: 'numeric',
+			hour: 'numeric',
+			minute: '2-digit'
+		});
 	}
 
 	function handleBackdropClick(e: MouseEvent) {
@@ -115,13 +128,13 @@
 	class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-unit-2"
 	role="dialog"
 	aria-modal="true"
-	aria-labelledby="journal-detail-title"
+	aria-labelledby="event-detail-title"
 	onmousedown={handleBackdropClick}
 >
 	<div class="card w-full max-w-md max-h-[90vh] overflow-y-auto">
 		{#if loading}
 			<p class="text-text-secondary text-sm">Loading...</p>
-		{:else if error && !entry}
+		{:else if error && !event}
 			<div>
 				<p class="text-danger text-sm mb-unit-2">{error}</p>
 				<button
@@ -131,7 +144,7 @@
 					Close
 				</button>
 			</div>
-		{:else if entry}
+		{:else if event}
 			<!-- Header -->
 			<div class="flex items-start justify-between gap-2 mb-unit-2">
 				<div class="flex items-center gap-2">
@@ -153,17 +166,17 @@
 							/>
 						</svg>
 					</button>
-					<h2 id="journal-detail-title" class="text-h3 font-semibold text-text-primary truncate">
-						{entry.title}
+					<h2 id="event-detail-title" class="text-h3 font-semibold text-text-primary truncate">
+						{event.title}
 					</h2>
 				</div>
 
 				<!-- More options -->
 				<div class="flex items-center gap-1">
 					<button
-						onclick={() => onEdit(entry!)}
+						onclick={() => onEdit(event!)}
 						class="p-1.5 rounded-full hover:bg-gray-100 transition-colors"
-						aria-label="Edit entry"
+						aria-label="Edit event"
 					>
 						<svg
 							xmlns="http://www.w3.org/2000/svg"
@@ -179,7 +192,7 @@
 					<button
 						onclick={() => (showDeleteConfirm = true)}
 						class="p-1.5 rounded-full hover:bg-red-50 transition-colors"
-						aria-label="Delete entry"
+						aria-label="Delete event"
 					>
 						<svg
 							xmlns="http://www.w3.org/2000/svg"
@@ -197,32 +210,42 @@
 				</div>
 			</div>
 
-			<!-- Date and starred indicator -->
-			<div class="flex items-center gap-2 mb-unit-2 text-sm text-text-secondary">
-				<span>{formatDate(entry.entry_date)}</span>
-				{#if entry.starred}
-					<svg
-						xmlns="http://www.w3.org/2000/svg"
-						viewBox="0 0 20 20"
-						fill="currentColor"
-						class="w-4 h-4 text-yellow-500"
-					>
-						<path
-							fill-rule="evenodd"
-							d="M10.868 2.884c-.321-.772-1.415-.772-1.736 0l-1.83 4.401-4.753.381c-.833.067-1.171 1.107-.536 1.651l3.62 3.102-1.106 4.637c-.194.813.691 1.456 1.405 1.02L10 15.591l4.069 2.485c.713.436 1.598-.207 1.404-1.02l-1.106-4.637 3.62-3.102c.635-.544.297-1.584-.536-1.65l-4.752-.382-1.831-4.401z"
-							clip-rule="evenodd"
-						/>
-					</svg>
-				{/if}
+			<!-- Event type badge -->
+			<div class="mb-unit-2">
+				<span
+					class="text-xs bg-blue-50 text-primary rounded-full px-2 py-0.5 border border-blue-100"
+				>
+					{eventTypeLabels[event.event_type] ?? event.event_type}
+				</span>
 			</div>
 
-			<!-- Notes -->
-			<div>
-				<h3 class="text-xs font-semibold text-text-secondary uppercase tracking-wide mb-1.5">
-					Notes
+			<!-- Date/Time -->
+			<div class="mb-unit-2">
+				<h3 class="text-xs font-semibold text-text-secondary uppercase tracking-wide mb-1">
+					Date & Time
 				</h3>
-				<div class="text-sm text-text-primary whitespace-pre-wrap">{entry.content}</div>
+				<p class="text-sm text-text-primary">{formatDateTime(event.event_date)}</p>
 			</div>
+
+			<!-- Location (if present) -->
+			{#if event.location}
+				<div class="mb-unit-2">
+					<h3 class="text-xs font-semibold text-text-secondary uppercase tracking-wide mb-1">
+						Location
+					</h3>
+					<p class="text-sm text-text-primary">{event.location}</p>
+				</div>
+			{/if}
+
+			<!-- Notes (if present) -->
+			{#if event.notes}
+				<div class="mb-unit-2">
+					<h3 class="text-xs font-semibold text-text-secondary uppercase tracking-wide mb-1">
+						Notes
+					</h3>
+					<p class="text-sm text-text-primary whitespace-pre-wrap">{event.notes}</p>
+				</div>
+			{/if}
 
 			<!-- Attachments Section -->
 			<div class="mt-unit-3 pt-unit-3 border-t border-gray-100">
@@ -230,11 +253,7 @@
 					<h3 class="text-xs font-semibold text-text-secondary uppercase tracking-wide">
 						Attachments
 					</h3>
-					<AttachmentUpload
-						{profileId}
-						journalId={entryId}
-						onUploaded={handleAttachmentUploaded}
-					/>
+					<AttachmentUpload {profileId} {eventId} onUploaded={handleAttachmentUploaded} />
 				</div>
 
 				{#if attachmentsLoading}
@@ -267,9 +286,9 @@
 			}}
 		>
 			<div class="card w-full max-w-sm">
-				<h3 class="text-h3 font-semibold text-text-primary mb-unit-2">Delete Entry?</h3>
+				<h3 class="text-h3 font-semibold text-text-primary mb-unit-2">Delete Event?</h3>
 				<p class="text-sm text-text-secondary mb-unit-3">
-					Are you sure you want to delete "{entry?.title}"? This cannot be undone.
+					Are you sure you want to delete "{event?.title}"? This cannot be undone.
 				</p>
 				<div class="flex gap-unit-2 justify-end">
 					<button

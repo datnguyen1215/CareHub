@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { uploadFile } from './api';
+	import { uploadFile } from '$lib/api';
 
 	interface Props {
 		currentUrl?: string | null;

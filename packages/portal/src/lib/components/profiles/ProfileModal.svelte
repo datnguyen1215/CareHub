@@ -1,9 +1,9 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import type { CareProfile, CreateProfileInput } from './api';
-	import { createFocusTrap } from './focusTrap';
-	import AvatarUpload from './AvatarUpload.svelte';
-	import { toast } from './stores/toast.svelte';
+	import type { CareProfile, CreateProfileInput } from '$lib/api';
+	import { createFocusTrap } from '$lib/utils/focusTrap';
+	import AvatarUpload from '$lib/components/profiles/AvatarUpload.svelte';
+	import { toast } from '$lib/stores/toast.svelte';
 
 	interface Props {
 		profile?: CareProfile | null;

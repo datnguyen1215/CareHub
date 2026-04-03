@@ -9,8 +9,8 @@
 		type CreateProfileInput,
 		type Device
 	} from '$lib/api';
-	import { getErrorMessage, isRetryable } from '$lib/error-utils';
-	import ProfileModal from '$lib/ProfileModal.svelte';
+	import { getErrorMessage, isRetryable } from '$lib/utils/error-utils';
+	import ProfileModal from '$lib/components/profiles/ProfileModal.svelte';
 
 	let profiles = $state<CareProfile[]>([]);
 	let devices = $state<Device[]>([]);

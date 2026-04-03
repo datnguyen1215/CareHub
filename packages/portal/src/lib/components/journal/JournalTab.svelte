@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { listJournalEntries, updateJournalEntry, type JournalEntry } from './api';
+	import { listJournalEntries, updateJournalEntry, type JournalEntry } from '$lib/api';
 
 	interface Props {
 		profileId: string;

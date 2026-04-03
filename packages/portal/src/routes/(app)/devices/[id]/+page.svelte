@@ -12,9 +12,9 @@
 		type Device,
 		type CareProfile
 	} from '$lib/api';
-	import { getErrorMessage, isRetryable } from '$lib/error-utils';
-	import DeviceStatusDot from '$lib/DeviceStatusDot.svelte';
-	import BatteryIndicator from '$lib/BatteryIndicator.svelte';
+	import { getErrorMessage, isRetryable } from '$lib/utils/error-utils';
+	import DeviceStatusDot from '$lib/components/devices/DeviceStatusDot.svelte';
+	import BatteryIndicator from '$lib/components/devices/BatteryIndicator.svelte';
 	import CallModal from '$lib/components/call/CallModal.svelte';
 	import {
 		callState,

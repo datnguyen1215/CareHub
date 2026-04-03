@@ -11,10 +11,10 @@
 		type CareProfile,
 		type CreateEventInput
 	} from '$lib/api';
-	import EventModal from '$lib/EventModal.svelte';
-	import DeleteConfirmModal from '$lib/DeleteConfirmModal.svelte';
+	import EventModal from '$lib/components/events/EventModal.svelte';
+	import DeleteConfirmModal from '$lib/components/shared/DeleteConfirmModal.svelte';
 	import { toast } from '$lib/stores/toast.svelte';
-	import { getErrorMessage, isRetryable } from '$lib/error-utils';
+	import { getErrorMessage, isRetryable } from '$lib/utils/error-utils';
 
 	let profiles = $state<CareProfile[]>([]);
 	let events = $state<Event[]>([]);
