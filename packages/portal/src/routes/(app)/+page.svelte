@@ -15,7 +15,7 @@
 	import DeleteConfirmModal from '$lib/components/shared/DeleteConfirmModal.svelte';
 	import { toast } from '$lib/stores/toast.svelte';
 	import { getErrorMessage, isRetryable } from '$lib/utils/error-utils';
-	import { getInitial, formatTime, formatWeekdayLong, formatDateFull } from '$lib/utils/format';
+	import { getInitial, formatTime, formatWeekdayLong, formatDateFull, formatDateDefault } from '$lib/utils/format';
 	import { EVENT_TYPE_LABELS, EVENT_TYPE_COLORS } from '$lib/utils/categories';
 
 	let profiles = $state<CareProfile[]>([]);
@@ -503,7 +503,7 @@
 							<p class="font-medium text-text-primary">{profile.name}</p>
 							{#if profile.date_of_birth}
 								<p class="text-xs text-text-secondary">
-									Born {formatDateFull(profile.date_of_birth)}
+									Born {formatDateDefault(profile.date_of_birth)}
 								</p>
 							{/if}
 						</div>

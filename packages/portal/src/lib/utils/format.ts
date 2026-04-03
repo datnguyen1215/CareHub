@@ -107,6 +107,15 @@ export function formatRelativeTime(dateStr: string | null): string {
 	return `${diffDays}d ago`;
 }
 
+/**
+ * Format a date using the browser's default locale (e.g., "1/15/2000" in en-US).
+ * Use this only for backward compatibility with existing display behavior.
+ */
+export function formatDateDefault(input: Date | string): string {
+	const d = toDate(input);
+	return d.toLocaleDateString();
+}
+
 // --- String utilities ---
 
 /**
