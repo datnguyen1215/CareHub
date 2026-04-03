@@ -10,6 +10,7 @@ The backend provides a REST API for user authentication, profile management, and
 - **TypeScript** - Type safety
 - **PostgreSQL** - Database
 - **Drizzle ORM** - Type-safe database queries
+- **Zod** - Request validation schemas
 - **JWT** - Authentication tokens (httpOnly cookies)
 - **Nodemailer** - OTP email delivery
 
@@ -214,7 +215,17 @@ packages/backend/
 │   │   ├── profiles.ts  # Profile management
 │   │   └── medications.ts # Medication tracking
 │   ├── middleware/      # Express middleware
-│   │   └── auth.ts      # JWT authentication
+│   │   ├── auth.ts      # JWT authentication
+│   │   └── validate.ts  # Zod request validation middleware
+│   ├── schemas/         # Zod validation schemas
+│   │   ├── auth.ts      # Auth request schemas
+│   │   ├── profiles.ts  # Profile request schemas
+│   │   ├── medications.ts # Medication request schemas
+│   │   ├── events.ts    # Event request schemas
+│   │   ├── journal.ts   # Journal request schemas
+│   │   ├── attachments.ts # Attachment request schemas
+│   │   ├── devices.ts   # Device request schemas
+│   │   └── query.ts     # Query param schemas (pagination)
 │   ├── services/        # Business logic
 │   │   └── email.ts     # OTP email delivery
 │   ├── db/              # Database connection
@@ -229,6 +240,7 @@ packages/backend/
 - **Express** 4.x - Web framework
 - **TypeScript** 5.x - Language
 - **Drizzle ORM** - Database queries
+- **Zod** - Request validation
 - **PostgreSQL** - Database
 - **jsonwebtoken** - JWT tokens
 - **cookie-parser** - Cookie handling

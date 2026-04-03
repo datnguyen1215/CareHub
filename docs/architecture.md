@@ -7,6 +7,7 @@
 | Package Manager    | npm with workspaces                                               | Monorepo support, standard tooling                                                                                                                                               |
 | Frontend           | SvelteKit + Tailwind CSS                                          | SSR + SPA hybrid, mobile-first responsive, fast builds                                                                                                                           |
 | Backend/API        | Express + nodemon                                                 | Separate service, clear API boundary, fast dev iteration                                                                                                                         |
+| Validation         | Zod                                                               | Declarative request validation schemas with middleware; replaces ad-hoc inline checks across all routes                                                                            |
 | Database           | PostgreSQL via Docker (self-hosted)                               | Relational data, full control, no external dependency                                                                                                                            |
 | ORM / Migrations   | Drizzle ORM                                                       | Type-safe queries, SQL-first migrations                                                                                                                                          |
 | Auth               | Email + OTP (Nodemailer + Gmail SMTP)                             | Passwordless email login without third-party auth service                                                                                                                        |
@@ -31,8 +32,8 @@
 ```
 packages/
   portal/      # SvelteKit + Tailwind CSS caretaker portal web app with Capacitor (Android APK)
-  backend/     # Express API server with WebSocket support
-  shared/      # Shared types, Drizzle schema, WebRTC/WebSocket utilities
+  backend/     # Express API server with WebSocket support + Zod request validation
+  shared/      # Shared types, utilities, and Drizzle schema
   kiosk/       # SvelteKit elderly tablet kiosk app with Capacitor (Android only)
 ```
 
@@ -603,20 +604,20 @@ Email + OTP passwordless login via Nodemailer + Gmail SMTP.
 
 | Method   | Path                                                       | Auth        | Description                                                                                                            |
 | -------- | ---------------------------------------------------------- | ----------- | ---------------------------------------------------------------------------------------------------------------------- |
-| `POST`   | `/api/auth/email`                                          | Public      | Send OTP to email address                                                                                              |
-| `POST`   | `/api/auth/verify`                                         | Public      | Verify OTP; issues JWT httpOnly cookie                                                                                 |
+| `POST`   | `/api/auth/email`                                          | Public      | Send OTP to email address (body validated with Zod)                                                                   |
+| `POST`   | `/api/auth/verify`                                         | Public      | Verify OTP; issues JWT httpOnly cookie (body validated with Zod)                                                      |
 | `PATCH`  | `/api/users/me`                                            | Required    | Update authenticated user's first and last name                                                                        |
 | `POST`   | `/api/groups`                                              | Required    | Create a group; creator is added as admin                                                                              |
 | `PATCH`  | `/api/groups/:id`                                          | Required    | Rename a group (admin only)                                                                                            |
 | `GET`    | `/api/groups`                                              | Required    | Return all groups the authenticated user belongs to                                                                    |
-| `POST`   | `/api/groups/:groupId/profiles`                            | Admin only  | Create a care profile; `name` required                                                                                 |
+| `POST`   | `/api/groups/:groupId/profiles`                            | Admin only  | Create a care profile; `name` required (body validated with Zod)                                                       |
 | `GET`    | `/api/groups/:groupId/profiles`                            | Member only | List all care profiles in the group                                                                                    |
 | `GET`    | `/api/groups/:groupId/profiles/:id`                        | Member only | Get a single care profile                                                                                              |
-| `PATCH`  | `/api/groups/:groupId/profiles/:id`                        | Admin only  | Partial update of any care profile field                                                                               |
+| `PATCH`  | `/api/groups/:groupId/profiles/:id`                        | Admin only  | Partial update of any care profile field (body validated with Zod)                                                     |
 | `DELETE` | `/api/groups/:groupId/profiles/:id`                        | Admin only  | Delete a care profile                                                                                                  |
-| `POST`   | `/api/groups/:groupId/profiles/:profileId/medications`     | Member only | Create a medication; `name` required; optional: `dosage`, `schedule`, `status`                                         |
+| `POST`   | `/api/groups/:groupId/profiles/:profileId/medications`     | Member only | Create a medication; `name` required; optional: `dosage`, `schedule`, `status` (body validated with Zod)               |
 | `GET`    | `/api/groups/:groupId/profiles/:profileId/medications`     | Member only | List medications; active only by default; add `?include_discontinued=true` to include discontinued ones                |
-| `PATCH`  | `/api/groups/:groupId/profiles/:profileId/medications/:id` | Member only | Partial update of any medication field; use `status: "discontinued"` to discontinue                                    |
+| `PATCH`  | `/api/groups/:groupId/profiles/:profileId/medications/:id` | Member only | Partial update of any medication field; use `status: "discontinued"` to discontinue (body validated with Zod)          |
 | `DELETE` | `/api/groups/:groupId/profiles/:profileId/medications/:id` | Member only | Hard delete a medication                                                                                               |
 | `GET`    | `/api/health`                                              | Public      | Health check — returns `{ status: "ok" }`; used by Traefik and Docker health checks                                    |
 | `POST`   | `/api/devices/register`                                    | Public      | Register new device; returns device_token                                                                              |
@@ -626,9 +627,9 @@ Email + OTP passwordless login via Nodemailer + Gmail SMTP.
 | `GET`    | `/api/devices`                                             | Required    | List devices user has access to                                                                                        |
 | `POST`   | `/api/devices/pair`                                        | Required    | Complete pairing by scanning QR token; link device to profiles; sets status based on actual WebSocket connection state |
 | `GET`    | `/api/devices/:id`                                         | Required    | Get device details (requires access)                                                                                   |
-| `PATCH`  | `/api/devices/:id`                                         | Required    | Update device name                                                                                                     |
+| `PATCH`  | `/api/devices/:id`                                         | Required    | Update device name (body validated with Zod)                                                                           |
 | `DELETE` | `/api/devices/:id`                                         | Required    | Unpair/remove device                                                                                                   |
-| `POST`   | `/api/devices/:id/profiles`                                | Required    | Assign profiles to device                                                                                              |
+| `POST`   | `/api/devices/:id/profiles`                                | Required    | Assign profiles to device (body validated with Zod)                                                                    |
 | `DELETE` | `/api/devices/:id/profiles/:profileId`                     | Required    | Remove profile from device                                                                                             |
 
 **SMTP configuration via environment variables:**
@@ -642,6 +643,15 @@ Email + OTP passwordless login via Nodemailer + Gmail SMTP.
 | `SMTP_FROM_NAME` | Display name for sent emails  |
 
 A dedicated Gmail account is recommended for sending OTP emails.
+
+### Request Validation
+
+All POST and PATCH endpoints use Zod schemas for request validation. Schemas are defined in `packages/backend/src/schemas/` (one file per domain: `auth.ts`, `profiles.ts`, `medications.ts`, `events.ts`, `journal.ts`, `attachments.ts`, `devices.ts`, `query.ts`). Validation is applied via Express middleware in `src/middleware/validate.ts`:
+
+- `validate(schema)` — validates `req.body` against a Zod schema, returns 400 with the first error message on failure
+- `validateQuery(schema)` — validates `req.query` against a Zod schema (used for pagination params like `limit` and `offset`)
+
+POST routes use full schemas (all required fields enforced). PATCH routes use `.partial()` variants (all fields optional). String fields have max-length constraints; date fields validate ISO format; enum fields use `z.enum()` referencing existing constants (e.g., `VALID_SCHEDULE`, `VALID_EVENT_TYPES`, `VALID_CATEGORIES`). Database-level foreign key checks remain — Zod validates format, the database validates existence.
 
 ### Application-Level Access Control
 

@@ -5,6 +5,8 @@ import { db } from '../db'
 import { medications, careProfiles, profileShares } from '@carehub/shared'
 import { requireAuth } from '../middleware/auth'
 import { logger } from '../services/logger'
+import { validate } from '../middleware/validate'
+import { createMedicationSchema, updateMedicationSchema } from '../schemas/medications'
 
 export const medicationsRouter = Router({ mergeParams: true })
 
@@ -37,22 +39,15 @@ async function canAccessProfile(userId: string, profileId: string) {
   return null
 }
 
-const VALID_SCHEDULE = ['morning', 'afternoon', 'evening', 'bedtime']
-
 // POST /api/profiles/:profileId/medications
-medicationsRouter.post('/', requireAuth, async (req: Request, res: Response): Promise<void> => {
+medicationsRouter.post('/', requireAuth, validate(createMedicationSchema), async (req: Request, res: Response): Promise<void> => {
   try {
     const profileId = req.params['profileId'] as string
     const { name, dosage, schedule, status } = req.body as {
-      name?: string
-      dosage?: string
+      name: string
+      dosage?: string | null
       schedule?: string[]
       status?: string
-    }
-
-    if (!name || typeof name !== 'string' || !name.trim()) {
-      res.status(400).json({ error: 'name is required' })
-      return
     }
 
     const profile = await canAccessProfile(req.user!.userId, profileId)
@@ -61,15 +56,13 @@ medicationsRouter.post('/', requireAuth, async (req: Request, res: Response): Pr
       return
     }
 
-    const scheduleValue = Array.isArray(schedule)
-      ? schedule.filter((s) => VALID_SCHEDULE.includes(s))
-      : []
+    const scheduleValue = Array.isArray(schedule) ? schedule : []
 
     const [medication] = await db
       .insert(medications)
       .values({
         care_profile_id: profileId,
-        name: name.trim(),
+        name,
         dosage: dosage ?? null,
         schedule: scheduleValue,
         status: status === 'discontinued' ? 'discontinued' : 'active',
@@ -110,7 +103,7 @@ medicationsRouter.get('/', requireAuth, async (req: Request, res: Response): Pro
 })
 
 // PATCH /api/profiles/:profileId/medications/:id
-medicationsRouter.patch('/:id', requireAuth, async (req: Request, res: Response): Promise<void> => {
+medicationsRouter.patch('/:id', requireAuth, validate(updateMedicationSchema), async (req: Request, res: Response): Promise<void> => {
   try {
     const profileId = req.params['profileId'] as string
     const id = req.params['id'] as string
@@ -118,7 +111,7 @@ medicationsRouter.patch('/:id', requireAuth, async (req: Request, res: Response)
       name?: string
       dosage?: string | null
       schedule?: string[]
-      status?: string
+      status?: 'active' | 'discontinued'
     }
 
     const profile = await canAccessProfile(req.user!.userId, profileId)
@@ -135,26 +128,10 @@ medicationsRouter.patch('/:id', requireAuth, async (req: Request, res: Response)
       updated_at: Date
     }> = { updated_at: new Date() }
 
-    if (name !== undefined) {
-      if (typeof name !== 'string' || !name.trim()) {
-        res.status(400).json({ error: 'name cannot be empty' })
-        return
-      }
-      updates.name = name.trim()
-    }
+    if (name !== undefined) updates.name = name
     if (dosage !== undefined) updates.dosage = dosage
-    if (schedule !== undefined) {
-      updates.schedule = Array.isArray(schedule)
-        ? schedule.filter((s) => VALID_SCHEDULE.includes(s))
-        : []
-    }
-    if (status !== undefined) {
-      if (status !== 'active' && status !== 'discontinued') {
-        res.status(400).json({ error: 'status must be active or discontinued' })
-        return
-      }
-      updates.status = status
-    }
+    if (schedule !== undefined) updates.schedule = Array.isArray(schedule) ? schedule : []
+    if (status !== undefined) updates.status = status
 
     const [updated] = await db
       .update(medications)
