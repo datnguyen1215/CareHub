@@ -45,7 +45,7 @@
 	</div>
 
 	<h1 class="text-h2 font-semibold text-text-primary mb-unit-1">
-		{status ? "Error #{status}" : 'Something went wrong'}
+		{status ? `Error #${status}` : 'Something went wrong'}
 	</h1>
 
 	<p class="text-text-secondary mb-unit-3">
