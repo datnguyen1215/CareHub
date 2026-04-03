@@ -130,7 +130,8 @@ carehub/
 ### Backend Structure
 
 - `src/routes/` - API endpoints
-- `src/middleware/` - Express middleware (auth)
+- `src/middleware/` - Express middleware (auth, request validation)
+- `src/schemas/` - Zod validation schemas (one per domain)
 - `src/services/` - Business logic (email)
 - `src/db/` - Database connection
 
