@@ -80,7 +80,7 @@ describe('isRetryable', () => {
 		expect(isRetryable({ status: 409, message: 'Conflict' })).toBe(false);
 	});
 
-	it('returns false for unknown error types', () => {
+	it('returns true for values without status', () => {
 		expect(isRetryable(undefined)).toBe(true); // no status -> retryable
 		expect(isRetryable('string error' as unknown)).toBe(true); // no status -> retryable
 	});
