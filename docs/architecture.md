@@ -33,7 +33,7 @@
 packages/
   portal/      # SvelteKit + Tailwind CSS caretaker portal web app with Capacitor (Android APK)
   backend/     # Express API server with WebSocket support + Zod request validation
-  shared/      # Shared types, utilities, and Drizzle schema
+  shared/      # Shared types, utilities, Drizzle schema, and UI logic
   kiosk/       # SvelteKit elderly tablet kiosk app with Capacitor (Android only)
 ```
 
@@ -48,7 +48,7 @@ src/
   lib/
     TopBar.svelte          # Fixed top bar — "CareHub" branding left, user avatar right
     BottomNav.svelte       # Fixed bottom navigation — Home, Profiles, Devices, Settings tabs
-    Toast.svelte           # Toast notification component — displays success/error/destructive messages
+    Toast.svelte           # Toast notification component — displays success/error/destructive messages (backed by shared store)
     ProfileModal.svelte    # Create/edit care profile modal
     MedicationModal.svelte # Create/edit medication modal — name, dosage, schedule chips, status toggle (edit only)
     EventModal.svelte      # Create/edit event modal — title, date/time, type, location, notes
@@ -58,7 +58,7 @@ src/
     error-utils.ts         # Error display utilities — getErrorMessage() for user-friendly messages, isRetryable() for retry eligibility
     api.ts                 # API client with auth cookie handling
     stores/
-      toast.svelte.ts      # Toast notification store (Svelte 5 $state runes) — manage toast queue with auto-dismiss
+      toast.svelte.ts      # Toast notification store (Svelte 5 $state runes) — delegates to shared createToastStore(), wraps in $state for reactivity
       call.svelte.ts       # Call state store (Svelte 5 $state runes) — idle → calling → connected → ended
   routes/
     login/                 # Public auth pages (email entry, OTP verify, account setup)
@@ -82,7 +82,7 @@ All main pages (home, profiles, devices, settings) are wrapped by `src/routes/(a
 
 1. `TopBar` — Fixed top bar with "CareHub" title and user avatar. Avatar fetches `GET /api/users/me` and displays the user's initial. Tapping navigates to `/settings`.
 2. `<main>` — Page content with top and bottom padding to clear the fixed bars.
-3. `Toast` — Toast notification component positioned above bottom navigation (z-index 40) to display success, error, and destructive messages. Success/destructive toasts auto-dismiss after 3 seconds; error toasts require manual dismissal.
+3. `Toast` — Toast notification component positioned above bottom navigation (z-index 40) to display success, error, and destructive messages. Backed by shared `createToastStore()` from `@carehub/shared/ui/toast` with portal-specific styling (bottom position, compact sizing). Success/destructive toasts auto-dismiss after 3 seconds; error toasts auto-dismiss after 10 seconds.
 4. `BottomNav` — Fixed bottom navigation with four tabs. Active tab is highlighted with primary blue using the `$page` store. Tabs: Home (`/`), Profiles (`/profiles`), Devices (`/devices`), Settings (`/settings`).
 
 Unhandled route errors are caught by `+error.svelte`, which displays a user-friendly error page with "Go back" and "Go home" recovery actions. Error messages are contextualized by HTTP status code (404, 403, 401, 5xx). The raw error message is shown in a styled code block when it differs from the generic message.
@@ -376,7 +376,13 @@ Video calls use WebRTC for direct peer-to-peer connections, avoiding the cost an
 
 **Shared WebRTC/WebSocket Utilities:**
 
-Common WebRTC and WebSocket logic is extracted into the shared package to avoid duplication between Portal and Kiosk:
+Common UI, WebRTC, and WebSocket logic is extracted into the shared package to avoid duplication between Portal and Kiosk:
+
+**Shared UI Utilities:**
+
+- `packages/shared/src/ui/toast.ts` — `createToastStore()` factory function for framework-agnostic toast notification management; types (`Toast`, `ToastType` with success/error/warning/info/destructive); configurable auto-dismiss durations per type; subscriber pattern for reactivity; both portal and kiosk delegate their toast/notification stores to this shared logic (Svelte components remain in each app to handle app-specific positioning and sizing)
+
+**Shared WebRTC/WebSocket Utilities:**
 
 - `packages/shared/src/webrtc/webrtc-core.ts` — Peer connection cleanup, stream acquisition (`acquireLocalStream`), stream cleanup (`cleanupStream`), peer connection cleanup (`cleanupPeerConnection`), default media constraints (720p video, echo cancellation), re-exports `ICE_SERVERS`
 - `packages/shared/src/webrtc/error-utils.ts` — `getUserFriendlyError()` maps technical errors to user-friendly messages

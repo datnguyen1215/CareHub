@@ -61,13 +61,14 @@ Styles are implemented with Tailwind CSS within the SvelteKit portal package. Mo
 
 ### Toast Notifications
 
-- Positioned at bottom of screen, above bottom navigation (z-index 40)
-- Three types: success (green), error (red), destructive (red)
-- Success/destructive: auto-dismiss after 3 seconds with slide-up animation
-- Error: manual dismiss button required
+- Store logic shared between portal and kiosk via `createToastStore()` in `@carehub/shared/ui/toast`
+- **Portal:** Positioned at bottom of screen, above bottom navigation (z-index 40), compact sizing
+- **Kiosk:** Positioned at top of screen, large sizing for tablet touch targets
+- Five types: success (green), error (red), warning (amber), info (blue), destructive (red)
+- Auto-dismiss timers: success 3s, info 5s, warning 5s, destructive 3s, error 10s
 - Each toast includes icon (checkmark for success, X for destructive, exclamation for error) and message
 - Rounded card style with colored background and border
-- Maximum width: responsive (full width on mobile with padding, max-w-md on larger screens)
+- Svelte components remain in each app (portal: `Toast.svelte`, kiosk: `Toast.svelte`) with app-specific positioning and sizing
 
 ### Navigation -- Portal
 
