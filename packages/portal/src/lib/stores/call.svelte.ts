@@ -582,17 +582,48 @@ function areLocalTracksLive(): boolean {
 
 /**
  * Attempts to re-acquire the local media stream if tracks went dead
- * while the tab was in background.
+ * while the tab was in background. Stops the dead stream first to clear
+ * the cache, acquires a fresh stream, then replaces tracks on the active
+ * peer connection so the remote peer receives the new media.
  */
 async function recoverLocalStream(): Promise<void> {
 	if (!storedLocalStream || areLocalTracksLive()) return;
 
 	logWebRTCEvent('Media', 'Local tracks appear dead — attempting recovery');
+
+	const pc = webrtc.getPeerConnection();
+
 	try {
-		const stream = await webrtc.getLocalStream();
-		storedLocalStream = stream;
-		callState.localStream = stream;
+		// Stop the dead stream first to clear the cache in webrtc.getLocalStream()
+		webrtc.stopLocalStream();
+
+		// Acquire a fresh local stream
+		const newStream = await webrtc.getLocalStream();
+		storedLocalStream = newStream;
+		callState.localStream = newStream;
 		notify();
+
+		// Replace tracks on the active peer connection so remote peer gets new media
+		if (pc) {
+			const senders = pc.getSenders();
+			const newTracks = newStream.getTracks();
+
+			for (const sender of senders) {
+				const oldTrack = sender.track;
+				if (!oldTrack) continue;
+				const replacement = newTracks.find(
+					(t) => t.kind === oldTrack.kind
+				);
+				if (replacement) {
+					await sender.replaceTrack(replacement);
+					logWebRTCEvent(
+						'Media',
+						`Replaced ${oldTrack.kind} track on peer connection`
+					);
+				}
+			}
+		}
+
 		logWebRTCEvent('Media', 'Local stream recovered successfully');
 	} catch (err) {
 		logWebRTCEvent('Error', `Failed to recover local stream: ${(err as Error).message}`);
