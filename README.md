@@ -140,7 +140,7 @@ carehub/
 
 - `src/routes/(app)/` - Protected application routes
 - `src/routes/login/` - Authentication flow
-- `src/lib/` - Reusable components and API client
+- `src/lib/` - Reusable components (organized by domain under `components/`), utilities (`utils/`), and API client
 
 ## Troubleshooting
 

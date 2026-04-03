@@ -166,11 +166,11 @@ Styles are implemented with Tailwind CSS within the SvelteKit portal package. Mo
 
 | Component                 | File                       | Purpose                                                                                                                  |
 | ------------------------- | -------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| `DeviceCard.svelte`       | `src/lib/`                 | Device card with name, status dot, battery indicator, assigned profiles, and action buttons (Send Photo, Call, Settings) |
-| `DeviceStatusDot.svelte`  | `src/lib/`                 | Reusable online (green) / offline (gray) status indicator                                                                |
-| `BatteryIndicator.svelte` | `src/lib/`                 | Battery level progress bar with percentage (color-coded: green > 50%, yellow 20-50%, red < 20%)                          |
-| `QRScanner.svelte`        | `src/lib/`                 | Camera-based QR scanner using html5-qrcode with corner bracket overlay and manual code entry fallback                    |
-| `ProfileSelector.svelte`  | `src/lib/`                 | Checkbox list for selecting profiles with avatars                                                                        |
+| `DeviceCard.svelte`       | `src/lib/components/devices/` | Device card with name, status dot, battery indicator, assigned profiles, and action buttons (Send Photo, Call, Settings) |
+| `DeviceStatusDot.svelte`  | `src/lib/components/devices/` | Reusable online (green) / offline (gray) status indicator                                                                |
+| `BatteryIndicator.svelte` | `src/lib/components/devices/` | Battery level progress bar with percentage (color-coded: green > 50%, yellow 20-50%, red < 20%)                          |
+| `QRScanner.svelte`        | `src/lib/components/shared/` | Camera-based QR scanner using html5-qrcode with corner bracket overlay and manual code entry fallback                    |
+| `ProfileSelector.svelte`  | `src/lib/components/profiles/` | Checkbox list for selecting profiles with avatars                                                                        |
 | `CallModal.svelte`        | `src/lib/components/call/` | Full-screen modal for active video calls with local/remote video, call status, and controls                              |
 | `CallControls.svelte`     | `src/lib/components/call/` | Control buttons for mute, video toggle, and end call with keyboard shortcuts (M, V, Escape)                              |
 
