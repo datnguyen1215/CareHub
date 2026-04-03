@@ -20,7 +20,7 @@
 | OCR/AI             | Google Vision API or AWS Textract                                 | Document text extraction; Tesseract as self-hosted alternative                                                                                                                   |
 | Search             | PostgreSQL full-text search                                       | Search over OCR-extracted text, no extra infrastructure                                                                                                                          |
 | Hosting            | Self-hosted via Docker — Traefik reverse proxy, Let's Encrypt SSL | Full control, no cloud vendor dependency                                                                                                                                         |
-| Testing            | Vitest + Supertest                                                | Integration tests only; no unit or portal tests                                                                                                                                  |
+| Testing            | Vitest + Supertest + Testing Library                              | Backend integration tests (Supertest); portal unit and component tests (Vitest, jsdom, @testing-library/svelte)                                                                 |
 | TypeScript         | Default SvelteKit config                                          | Standard configuration, no custom overrides                                                                                                                                      |
 | Linting            | ESLint + Prettier (SvelteKit defaults)                            | Consistent code style with minimal setup                                                                                                                                         |
 | Tablet Runtime     | Capacitor APK with Android Lock Task Mode                         | Native app shell prevents exit, auto-restarts on boot; WebSocket stays alive via foreground service                                                                              |
@@ -748,7 +748,7 @@ The tablet kiosk requires one-time Device Owner provisioning to enable Lock Task
 
 ### Testing Strategy
 
-Integration tests only, using Vitest + Supertest against the Express API and the `ws` package for WebSocket tests. No unit tests or portal component tests. This keeps the test suite lean while covering the critical API surface.
+**Backend:** Integration tests using Vitest + Supertest against the Express API and the `ws` package for WebSocket tests. Covers the critical API surface.
 
 **HTTP endpoint tests** cover authentication, devices, profiles, medications, attachments, and health — using Supertest against the Express app.
 
@@ -759,3 +759,19 @@ Test helpers:
 - `tests/helpers/truncate.ts` — Database table truncation (includes `call_sessions`)
 - `tests/factories.ts` — Entity creation helpers (`createUser`, `createDevice`, `createDeviceAccess`, `createDeviceCareProfile`)
 - `tests/utils.ts` — Auth cookie generation (`makeAuthCookie`)
+
+**Portal:** Unit and component tests using Vitest with jsdom environment and `@testing-library/svelte`.
+
+- **Vitest config:** `packages/portal/vitest.config.ts` — Svelte 5 compiler plugin, `$lib` path alias, jsdom environment, v8 coverage
+- **Test setup:** `packages/portal/vitest-setup.ts` — jest-dom matchers
+- **Scripts:** `npm run test` (single run), `npm run test:watch` (watch mode), `npm run test:coverage` (with coverage report)
+- **Run from root:** `npm run test:portal`
+
+Test coverage targets business logic and error handling rather than aiming for 100%. `fetch` is mocked for API tests to avoid hitting the backend. Svelte 5 runes (`.svelte.ts` files) are handled by the Svelte compiler plugin; pure logic functions are extracted for testing without Svelte dependency where possible.
+
+Current test files:
+- `src/lib/__tests__/api.test.ts` — API client unit tests (request helper, error extraction, 204 handling, query string construction, `isAttachmentProcessing`)
+- `src/lib/__tests__/call-helpers.test.ts` — Call helper functions (`getUserFriendlyError`, `formattedDuration`)
+- `src/lib/__tests__/error-utils.test.ts` — Error utility functions (`getErrorMessage`, `isRetryable`)
+- `src/lib/components/__tests__/DeleteConfirmModal.test.ts` — Delete confirmation modal component
+- `src/lib/stores/__tests__/toast.test.ts` — Toast store
