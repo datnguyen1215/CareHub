@@ -26,11 +26,10 @@ export type ConnectionStateHandler = (state: RTCPeerConnectionState | RTCIceConn
 export type ErrorHandler = (error: string) => void
 
 /**
- * Acquires local camera and microphone stream.
- * Returns cached stream if already acquired.
+ * Acquires local camera and microphone stream via getUserMedia.
  * @param constraints - Media constraints (defaults to DEFAULT_MEDIA_CONSTRAINTS)
  * @returns Local MediaStream
- * @throws Error with user-friendly message if access denied or unavailable
+ * @throws DOMException if access denied or media unavailable
  */
 export async function acquireLocalStream(
 	constraints: MediaStreamConstraints = DEFAULT_MEDIA_CONSTRAINTS

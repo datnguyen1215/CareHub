@@ -7,7 +7,11 @@
 import type { IceCandidate } from '@carehub/shared';
 import {
 	ICE_SERVERS,
+	ICE_GATHERING_TIMEOUT_MS,
 	DEFAULT_MEDIA_CONSTRAINTS,
+	acquireLocalStream,
+	cleanupStream,
+	cleanupPeerConnection,
 	type IceCandidateHandler,
 	type TrackHandler,
 	type ConnectionStateHandler,
@@ -79,15 +83,8 @@ export function createPeerConnection(): RTCPeerConnection {
  * Closes peer connection and cleans up resources.
  */
 export function closePeerConnection(): void {
-	if (peerConnection) {
-		// Remove all tracks
-		peerConnection.getSenders().forEach((sender) => {
-			peerConnection!.removeTrack(sender);
-		});
-
-		peerConnection.close();
-		peerConnection = null;
-	}
+	cleanupPeerConnection(peerConnection);
+	peerConnection = null;
 }
 
 /**
@@ -108,7 +105,7 @@ export async function getLocalStream(): Promise<MediaStream> {
 	}
 
 	try {
-		localStream = await navigator.mediaDevices.getUserMedia(DEFAULT_MEDIA_CONSTRAINTS);
+		localStream = await acquireLocalStream(DEFAULT_MEDIA_CONSTRAINTS);
 		return localStream;
 	} catch (err) {
 		const error = err as Error;
@@ -131,10 +128,8 @@ export async function getLocalStream(): Promise<MediaStream> {
  * Stops all local media tracks and releases camera/microphone.
  */
 export function stopLocalStream(): void {
-	if (localStream) {
-		localStream.getTracks().forEach((track) => track.stop());
-		localStream = null;
-	}
+	cleanupStream(localStream);
+	localStream = null;
 }
 
 /**
@@ -277,7 +272,7 @@ async function waitForIceGathering(): Promise<void> {
 		const timeoutId = setTimeout(() => {
 			pc.removeEventListener('icegatheringstatechange', checkState);
 			resolve();
-		}, 10_000);
+		}, ICE_GATHERING_TIMEOUT_MS);
 
 		pc.addEventListener('icegatheringstatechange', checkState);
 	});

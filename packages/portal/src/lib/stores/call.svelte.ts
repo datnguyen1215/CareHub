@@ -5,7 +5,7 @@
  */
 
 import type { SignalingMessage, CallEndReason, IceCandidate } from '@carehub/shared';
-import { getUserFriendlyError } from '@carehub/shared';
+import { getUserFriendlyError, getTopLevelState, createDurationTimer } from '@carehub/shared';
 import {
 	createMachine,
 	createCallerMachineConfig,
@@ -97,8 +97,13 @@ export function subscribe(listener: CallStateListener): () => void {
 	};
 }
 
-/** Duration timer interval ID */
-let durationIntervalId: ReturnType<typeof setInterval> | null = null;
+/** Duration timer from shared package */
+const durationTimer = createDurationTimer((seconds) => {
+	if (callState.status === 'connected') {
+		callState.duration = seconds;
+		notify();
+	}
+});
 
 /** State machine instance */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -109,7 +114,7 @@ let machine: any = null;
  */
 function mapMachineStateToStatus(machineState: string): CallStatusType {
 	// Handle hierarchical states (e.g., "signaling.waitingForAccept")
-	const topLevelState = machineState.split('.')[0];
+	const topLevelState = getTopLevelState(machineState);
 
 	switch (topLevelState) {
 		case 'idle':
@@ -171,24 +176,16 @@ function syncStateFromMachine(state: string, context: CallContext): void {
  * Updates the duration counter every second when connected.
  */
 function startDurationTimer(): void {
-	if (durationIntervalId) return;
-
-	durationIntervalId = setInterval(() => {
-		if (callState.status === 'connected' && callState.startedAt) {
-			callState.duration = Math.floor((Date.now() - callState.startedAt.getTime()) / 1000);
-			notify();
-		}
-	}, 1000);
+	if (callState.startedAt) {
+		durationTimer.start(callState.startedAt);
+	}
 }
 
 /**
  * Stops the duration counter.
  */
 function stopDurationTimer(): void {
-	if (durationIntervalId) {
-		clearInterval(durationIntervalId);
-		durationIntervalId = null;
-	}
+	durationTimer.stop();
 }
 
 /**

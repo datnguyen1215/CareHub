@@ -4,6 +4,9 @@ import type { IceCandidate } from '@carehub/shared';
 import {
 	ICE_SERVERS,
 	DEFAULT_MEDIA_CONSTRAINTS,
+	acquireLocalStream,
+	cleanupStream,
+	cleanupPeerConnection,
 	type IceCandidateHandler,
 	type TrackHandler,
 	type ConnectionStateHandler
@@ -70,7 +73,7 @@ export function closePeerConnection(): void {
 		peerConnection.onicecandidate = null;
 		peerConnection.ontrack = null;
 		peerConnection.onconnectionstatechange = null;
-		peerConnection.close();
+		cleanupPeerConnection(peerConnection);
 		peerConnection = null;
 	}
 }
@@ -94,7 +97,7 @@ export async function getLocalStream(): Promise<MediaStream> {
 	}
 
 	try {
-		localStream = await navigator.mediaDevices.getUserMedia(DEFAULT_MEDIA_CONSTRAINTS);
+		localStream = await acquireLocalStream(DEFAULT_MEDIA_CONSTRAINTS);
 		return localStream;
 	} catch (err) {
 		const error = err as Error;
@@ -114,10 +117,8 @@ export async function getLocalStream(): Promise<MediaStream> {
  * Stop and release local media stream.
  */
 export function stopLocalStream(): void {
-	if (localStream) {
-		localStream.getTracks().forEach((track) => track.stop());
-		localStream = null;
-	}
+	cleanupStream(localStream);
+	localStream = null;
 }
 
 /**

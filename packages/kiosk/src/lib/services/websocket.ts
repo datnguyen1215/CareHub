@@ -1,7 +1,7 @@
 /** WebSocket service for real-time communication. */
 
 import { getDeviceCredentials } from './storage'
-import { buildWsUrl, parseMessage } from '@carehub/shared'
+import { buildWsUrl, parseMessage, createFixedReconnectStrategy } from '@carehub/shared'
 import type {
 	IceCandidate,
 	CallIncomingMessage,
@@ -33,8 +33,9 @@ let ws: WebSocket | null = null;
 let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 let messageHandlers: MessageHandler[] = [];
 
-const RECONNECT_DELAY = 3000; // 3 seconds
 const HEARTBEAT_INTERVAL = 25000; // 25 seconds
+
+const reconnectStrategy = createFixedReconnectStrategy(3000);
 
 let heartbeatTimer: ReturnType<typeof setInterval> | null = null;
 let isConnected = false;
@@ -126,10 +127,11 @@ export function disconnect(): void {
 function scheduleReconnect(): void {
 	if (reconnectTimer) return;
 
+	const delay = reconnectStrategy.getDelay(0);
 	reconnectTimer = setTimeout(() => {
 		reconnectTimer = null;
 		connect();
-	}, RECONNECT_DELAY);
+	}, delay);
 }
 
 /**

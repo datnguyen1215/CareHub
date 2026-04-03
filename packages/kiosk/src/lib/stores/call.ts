@@ -13,7 +13,7 @@ import type {
 	CallEndedMessage,
 	IceCandidate
 } from '@carehub/shared';
-import { getUserFriendlyError } from '@carehub/shared';
+import { getUserFriendlyError, getTopLevelState, createDurationTimer } from '@carehub/shared';
 import {
 	createMachine,
 	createCalleeMachineConfig,
@@ -75,8 +75,13 @@ let callState: CallState = { ...initialState };
 let storedLocalStream: MediaStream | null = null;
 let storedRemoteStream: MediaStream | null = null;
 
-/** Duration timer interval */
-let durationTimer: ReturnType<typeof setInterval> | null = null;
+/** Duration timer from shared package */
+const durationTimer = createDurationTimer((seconds) => {
+	if (callState.status === 'connected') {
+		callState.duration = seconds;
+		notify();
+	}
+});
 
 /** State machine instance */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -125,7 +130,7 @@ export function getCallState(): CallState {
  */
 function mapMachineStateToStatus(machineState: string): CallStatus {
 	// Handle hierarchical states (e.g., "signaling.incoming")
-	const topLevelState = machineState.split('.')[0];
+	const topLevelState = getTopLevelState(machineState);
 	const subState = machineState.split('.')[1];
 
 	switch (topLevelState) {
@@ -183,23 +188,14 @@ function syncStateFromMachine(state: string, context: CallContext): void {
  * Increments duration every second while connected.
  */
 function startDurationTimer(): void {
-	stopDurationTimer();
-	durationTimer = setInterval(() => {
-		if (callState.status === 'connected') {
-			callState.duration += 1;
-			notify();
-		}
-	}, 1000);
+	durationTimer.start(new Date());
 }
 
 /**
  * Stop duration timer.
  */
 function stopDurationTimer(): void {
-	if (durationTimer) {
-		clearInterval(durationTimer);
-		durationTimer = null;
-	}
+	durationTimer.stop();
 }
 
 /**
