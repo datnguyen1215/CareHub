@@ -359,7 +359,7 @@ The app includes a toast notification system for user feedback on actions.
 
 ```svelte
 <script lang="ts">
-	import { toast } from '$lib/stores/toast';
+	import { toast } from '$lib/stores/toast.svelte';
 
 	async function handleSave() {
 		try {

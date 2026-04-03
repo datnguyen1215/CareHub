@@ -11,7 +11,7 @@
 	import { createFocusTrap } from './focusTrap';
 	import AttachmentCard from './AttachmentCard.svelte';
 	import AttachmentUpload from './AttachmentUpload.svelte';
-	import { toast } from './stores/toast';
+	import { toast } from './stores/toast.svelte';
 
 	interface Props {
 		profileId: string;

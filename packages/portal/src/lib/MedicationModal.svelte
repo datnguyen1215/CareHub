@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	import type { Medication, CreateMedicationInput } from './api';
 	import { createFocusTrap } from './focusTrap';
-	import { toast } from './stores/toast';
+	import { toast } from './stores/toast.svelte';
 
 	interface Props {
 		medication?: Medication | null;

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { uploadAttachment, type Attachment, type AttachmentCategory } from './api';
-	import { toast } from './stores/toast';
+	import { toast } from './stores/toast.svelte';
 
 	interface Props {
 		profileId: string;

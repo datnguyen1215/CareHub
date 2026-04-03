@@ -13,7 +13,7 @@
 	} from '$lib/api';
 	import EventModal from '$lib/EventModal.svelte';
 	import DeleteConfirmModal from '$lib/DeleteConfirmModal.svelte';
-	import { toast } from '$lib/stores/toast';
+	import { toast } from '$lib/stores/toast.svelte';
 	import { getErrorMessage, isRetryable } from '$lib/error-utils';
 
 	let profiles = $state<CareProfile[]>([]);
