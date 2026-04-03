@@ -547,6 +547,9 @@ export function initializeCallHandlers(): () => void {
 		}
 	});
 
+	// Handle tab visibility changes during active calls
+	const unsubVisibility = setupVisibilityHandler();
+
 	// Return cleanup function
 	return () => {
 		unsubTrack();
@@ -555,8 +558,83 @@ export function initializeCallHandlers(): () => void {
 		unsubError();
 		unsubMessage();
 		unsubDisconnect();
+		unsubVisibility();
 		stopDurationTimer();
 	};
+}
+
+// ─── Tab Visibility ───────────────────────────────────────────────────────────
+
+/**
+ * Whether the tab was hidden while a call was active.
+ * Used to detect return from background during a call.
+ */
+let wasHiddenDuringCall = false;
+
+/**
+ * Checks if local media tracks are still live.
+ * Browsers may pause tracks when tab goes to background.
+ */
+function areLocalTracksLive(): boolean {
+	if (!storedLocalStream) return false;
+	return storedLocalStream.getTracks().some((track) => track.readyState !== 'ended');
+}
+
+/**
+ * Attempts to re-acquire the local media stream if tracks went dead
+ * while the tab was in background.
+ */
+async function recoverLocalStream(): Promise<void> {
+	if (!storedLocalStream || areLocalTracksLive()) return;
+
+	logWebRTCEvent('Media', 'Local tracks appear dead — attempting recovery');
+	try {
+		const stream = await webrtc.getLocalStream();
+		storedLocalStream = stream;
+		callState.localStream = stream;
+		notify();
+		logWebRTCEvent('Media', 'Local stream recovered successfully');
+	} catch (err) {
+		logWebRTCEvent('Error', `Failed to recover local stream: ${(err as Error).message}`);
+	}
+}
+
+/**
+ * Sets up a visibilitychange listener to handle tab focus changes during calls.
+ * When the tab becomes visible during an active call, verifies WebSocket and
+ * media stream health, triggering recovery as needed.
+ * @returns Cleanup function to remove the listener
+ */
+function setupVisibilityHandler(): () => void {
+	const handler = () => {
+		if (document.visibilityState === 'hidden') {
+			if (callState.status !== 'idle' && callState.status !== 'ended') {
+				wasHiddenDuringCall = true;
+				logWebRTCEvent('Visibility', 'Tab hidden during active call');
+			}
+			return;
+		}
+
+		// Tab became visible
+		if (!wasHiddenDuringCall) return;
+		wasHiddenDuringCall = false;
+
+		logWebRTCEvent('Visibility', 'Tab visible — checking connection health');
+
+		// If WebSocket disconnected while hidden, reconnect immediately (bypass backoff)
+		if (websocket.getConnectionState() !== 'connected') {
+			logWebRTCEvent('Visibility', 'WebSocket disconnected — forcing immediate reconnect');
+			websocket.immediateReconnect();
+		}
+
+		// If local media tracks went dead, attempt recovery
+		if (callState.status === 'connected') {
+			recoverLocalStream();
+		}
+	};
+
+	document.addEventListener('visibilitychange', handler);
+	return () => document.removeEventListener('visibilitychange', handler);
 }
 
 // Derived state getters
