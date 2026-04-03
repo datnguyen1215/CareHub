@@ -2,7 +2,7 @@
  * WebSocket test utilities for creating test servers and WS clients.
  */
 import http from 'http'
-import { WebSocket, WebSocketServer } from 'ws'
+import { WebSocket } from 'ws'
 import jwt from 'jsonwebtoken'
 import { createApp } from '../../src/app'
 import { initWebSocketServer } from '../../src/websocket'

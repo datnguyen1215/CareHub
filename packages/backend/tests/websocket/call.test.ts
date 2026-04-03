@@ -16,10 +16,15 @@ describe('WebSocket Call Signaling', () => {
   const testServer = createTestServer()
   let port: number
   const sockets: import('ws').WebSocket[] = []
+  let callCounter = 0
 
   beforeAll(async () => {
     await truncateAll()
     port = await testServer.start()
+  })
+
+  beforeEach(async () => {
+    await truncateAll()
   })
 
   afterEach(async () => {
@@ -42,14 +47,15 @@ describe('WebSocket Call Signaling', () => {
    * Returns the user, device, user WS, and device WS (already connected).
    */
   async function setupCallParticipants() {
+    callCounter++
     const user = await createUser({
-      email: 'call-test@example.com',
+      email: `call-test-${callCounter}@example.com`,
       first_name: 'John',
       last_name: 'Doe',
     })
     const profile = await createProfile({ user_id: user.id, name: 'Test Profile' })
     const device = await createDevice({
-      device_token: 'call-test-device-token',
+      device_token: `call-test-device-token-${callCounter}`,
       name: 'Call Test Kiosk',
     })
     await createDeviceAccess({ device_id: device.id, user_id: user.id })
@@ -420,10 +426,16 @@ describe('WebSocket Call Signaling', () => {
   // -------------------------------------------------------
 
   it('ring timeout — call auto-ends with missed reason', async () => {
-    // Use fake timers to control the ring timeout (default 30s)
-    vi.useFakeTimers({ shouldAdvanceTime: true })
-
     const { user, profile, device, userWs, deviceWs } = await setupCallParticipants()
+
+    // Collect the ringing and incoming messages (sent synchronously by the server)
+    // using promise-based listeners set up BEFORE enabling fake timers.
+    const ringingPromise = waitForMessage<{ type: string; callId: string }>(userWs)
+    const incomingPromise = waitForMessage(deviceWs)
+
+    // Enable fake timers BEFORE sending call:initiate so that the ring timeout
+    // setTimeout (created inside handleCallInitiate) is controlled by vitest.
+    vi.useFakeTimers()
 
     userWs.send(
       JSON.stringify({
@@ -434,21 +446,34 @@ describe('WebSocket Call Signaling', () => {
       })
     )
 
-    const ringing = await waitForMessage<{ type: string; callId: string }>(userWs)
-    await waitForMessage(deviceWs) // call:incoming
+    // These resolves are already pending from before fake timers were installed,
+    // so they complete when the server sends the messages (WS I/O is not affected).
+    const ringing = await ringingPromise
+    await incomingPromise
 
-    // Advance time past RING_TIMEOUT_MS (30s)
-    vi.advanceTimersByTime(31_000)
+    // Set up listener for the call:ended message that the timeout callback will send.
+    // We use a raw event listener instead of waitForMessage because waitForMessage's
+    // internal setTimeout would be faked and never fire.
+    const endedPromise = new Promise<{ type: string; callId: string; reason: string }>((resolve) => {
+      function onMsg(event: import('ws').MessageEvent) {
+        const msg = JSON.parse(event.data.toString())
+        if (msg.type === 'call:ended') {
+          userWs.removeEventListener('message', onMsg)
+          resolve(msg)
+        }
+      }
+      userWs.addEventListener('message', onMsg)
+    })
 
-    // Wait for async handlers to complete
-    await new Promise((r) => setTimeout(r, 100))
+    // Advance past RING_TIMEOUT_MS (30s) to trigger the ring timeout
+    await vi.advanceTimersByTimeAsync(31_000)
 
-    // User should receive call:ended with reason 'missed'
-    const missed = await waitForMessage<{
-      type: string
-      callId: string
-      reason: string
-    }>(userWs, 3000)
+    // Restore real timers
+    vi.useRealTimers()
+
+    // The timeout callback: handleRingTimeout → endCall (async DB) → onTimeout → broadcast
+    // Wait for the call:ended message to arrive
+    const missed = await endedPromise
     expect(missed.type).toBe('call:ended')
     expect(missed.callId).toBe(ringing.callId)
     expect(missed.reason).toBe('missed')
