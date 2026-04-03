@@ -105,6 +105,7 @@ Copy `.env.example` to `.env` and configure the following:
 - `npm run dev` - Start all services concurrently (frontend, backend, shared)
 - `npm run db:up` - Start PostgreSQL database container
 - `npm run db:down` - Stop PostgreSQL database container
+- `npm run test:portal` - Run portal tests (Vitest)
 
 ### Package-Specific
 
