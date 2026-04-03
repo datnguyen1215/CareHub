@@ -1,15 +1,8 @@
 <script lang="ts">
-	import { toast, type Toast } from '$lib/stores/toast'
+	import { getToasts, toast, type Toast } from '$lib/stores/toast.svelte'
 	import { fly } from 'svelte/transition'
 
-	let toasts = $state<Toast[]>([])
-
-	$effect(() => {
-		const unsubscribe = toast.subscribe((value) => {
-			toasts = value
-		})
-		return unsubscribe
-	})
+	let toasts = $derived(getToasts())
 
 	function getIcon(type: Toast['type']) {
 		switch (type) {

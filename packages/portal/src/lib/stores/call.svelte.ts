@@ -18,7 +18,7 @@ import {
 } from '@carehub/shared/webrtc/call-state-machine';
 import * as websocket from '$lib/services/websocket';
 import * as webrtc from '$lib/services/webrtc';
-import { toast } from '$lib/stores/toast';
+import { toast } from '$lib/stores/toast.svelte';
 
 /** Call status representing the call lifecycle */
 export type CallStatusType =
@@ -70,38 +70,10 @@ export const callState = $state<CallState>({ ...initialState });
 let storedLocalStream: MediaStream | null = null;
 let storedRemoteStream: MediaStream | null = null;
 
-/** Subscription listeners for cross-module reactivity */
-type CallStateListener = (state: CallState) => void;
-const listeners = new Set<CallStateListener>();
-
-/**
- * Notifies all subscribers with a shallow copy of current state.
- * Shallow copy ensures new object reference triggers Svelte reactivity.
- */
-function notify(): void {
-	const snapshot = { ...callState };
-	listeners.forEach((listener) => listener(snapshot));
-}
-
-/**
- * Subscribe to call state changes.
- * @param listener - Callback invoked when state changes
- * @returns Unsubscribe function
- */
-export function subscribe(listener: CallStateListener): () => void {
-	listeners.add(listener);
-	// Immediately call with current state
-	listener({ ...callState });
-	return () => {
-		listeners.delete(listener);
-	};
-}
-
 /** Duration timer from shared package */
 const durationTimer = createDurationTimer((seconds) => {
 	if (callState.status === 'connected') {
 		callState.duration = seconds;
-		notify();
 	}
 });
 
@@ -167,9 +139,6 @@ function syncStateFromMachine(state: string, context: CallContext): void {
 	}
 
 	previousStatus = newStatus;
-
-	// Notify subscribers for cross-module reactivity
-	notify();
 }
 
 /**
@@ -201,7 +170,6 @@ function createCallMachine() {
 		...callerAssignActions,
 
 		// Override assignRemoteStream to update reactive state directly
-		// (self-transitions don't trigger subscribe callback)
 		assignRemoteStream: ({ event }: { event: { stream: MediaStream } }) => {
 			storedRemoteStream = event.stream;
 			callState.remoteStream = event.stream;
@@ -407,7 +375,6 @@ export function toggleMute(): void {
 	callState.isMuted = !callState.isMuted;
 	webrtc.setAudioEnabled(!callState.isMuted);
 	logWebRTCEvent('Media', `Audio ${callState.isMuted ? 'muted' : 'unmuted'}`);
-	notify();
 }
 
 /**
@@ -417,7 +384,6 @@ export function toggleVideo(): void {
 	callState.isVideoOff = !callState.isVideoOff;
 	webrtc.setVideoEnabled(!callState.isVideoOff);
 	logWebRTCEvent('Media', `Video ${callState.isVideoOff ? 'off' : 'on'}`);
-	notify();
 }
 
 /**
@@ -599,7 +565,6 @@ async function recoverLocalStream(): Promise<void> {
 		const newStream = await webrtc.getLocalStream();
 		storedLocalStream = newStream;
 		callState.localStream = newStream;
-		notify();
 
 		// Capture peer connection AFTER async getLocalStream to avoid stale reference
 		const pc = webrtc.getPeerConnection();

@@ -122,8 +122,8 @@ packages/portal/
 │   │   ├── Toast.svelte     # Toast notification component
 │   │   ├── api.ts           # API client for backend
 │   │   └── stores/
-│   │       ├── toast.ts     # Toast notification store
-│   │       └── call.ts      # Video call state store (Svelte 5 runes)
+│   │       ├── toast.svelte.ts     # Toast notification store (Svelte 5 $state runes)
+│   │       └── call.svelte.ts      # Video call state store (Svelte 5 $state runes)
 │   └── app.html              # HTML template
 ├── static/                   # Static assets
 ├── svelte.config.js          # SvelteKit configuration
@@ -160,11 +160,12 @@ All routes under `(app)` require authentication and redirect to `/login` if not 
 - Remote stream attachment
 - Audio/video mute controls
 
-**Call State Store** (`src/lib/stores/call.ts`):
+**Call State Store** (`src/lib/stores/call.svelte.ts`):
 
-- Svelte 5 runes-based reactive store
+- Svelte 5 runes-based reactive store using `$state` for fine-grained reactivity
 - Tracks call status, streams, duration, and errors
 - Integrates WebSocket signaling with WebRTC events
+- Components import `callState` directly — Svelte 5 tracks dependencies automatically
 - Provides actions: `initiateCall()`, `endCall()`, `toggleMute()`, `toggleVideo()`
 - Auto-initializes handlers in `+layout.svelte`
 
@@ -294,7 +295,7 @@ npm run check
 
 ### Svelte 5 Runes
 
-This app uses Svelte 5 runes syntax for reactivity:
+This app uses Svelte 5 runes syntax for reactivity. Store files that use runes must use the `.svelte.ts` extension for the Svelte compiler to process them.
 
 ```svelte
 <script lang="ts">
@@ -310,6 +311,12 @@ This app uses Svelte 5 runes syntax for reactivity:
 	});
 </script>
 ```
+
+**Stores use `$state` runes instead of legacy `writable()`:**
+
+- State stores are in `.svelte.ts` files (e.g., `toast.svelte.ts`, `call.svelte.ts`)
+- Components import reactive state directly — no `subscribe()` needed
+- Use a getter function (e.g., `getToasts()`) when the state needs to be accessed as a `$derived` value in components
 
 Avoid deprecated Svelte features:
 
@@ -353,13 +360,13 @@ try {
 
 ### Toast Notifications
 
-The app includes a toast notification system for user feedback on actions.
+The app includes a toast notification system using Svelte 5 `$state` runes for reactivity. The toast store is in `src/lib/stores/toast.svelte.ts` (`.svelte.ts` extension required for runes).
 
 **Usage:**
 
 ```svelte
 <script lang="ts">
-	import { toast } from '$lib/stores/toast';
+	import { toast } from '$lib/stores/toast.svelte';
 
 	async function handleSave() {
 		try {

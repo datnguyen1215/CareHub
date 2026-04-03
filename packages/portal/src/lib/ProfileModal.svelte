@@ -3,7 +3,7 @@
 	import type { CareProfile, CreateProfileInput } from './api';
 	import { createFocusTrap } from './focusTrap';
 	import AvatarUpload from './AvatarUpload.svelte';
-	import { toast } from './stores/toast';
+	import { toast } from './stores/toast.svelte';
 
 	interface Props {
 		profile?: CareProfile | null;
