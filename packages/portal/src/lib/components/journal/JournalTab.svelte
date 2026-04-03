@@ -33,6 +33,9 @@
 	}
 
 
+	// Initial load only — don't use $effect here as it would auto-track searchQuery
+	// and sortOrder, causing duplicate API calls alongside the debounced search and
+	// explicit sort handlers
 	onMount(() => {
 		loadEntries();
 	});
