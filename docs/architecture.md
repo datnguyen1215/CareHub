@@ -58,8 +58,8 @@ src/
     error-utils.ts         # Error display utilities — getErrorMessage() for user-friendly messages, isRetryable() for retry eligibility
     api.ts                 # API client with auth cookie handling
     stores/
-      toast.ts             # Toast notification store — manage toast queue with auto-dismiss
-      call.svelte.ts       # Call state store with subscription-based cross-module reactivity — idle → calling → connected → ended
+      toast.svelte.ts      # Toast notification store (Svelte 5 $state runes) — manage toast queue with auto-dismiss
+      call.svelte.ts       # Call state store (Svelte 5 $state runes) — idle → calling → connected → ended
   routes/
     login/                 # Public auth pages (email entry, OTP verify, account setup)
     (app)/
@@ -389,7 +389,7 @@ The kiosk operates as the callee (receiver) in all video calls:
 
 - `packages/kiosk/src/lib/services/webrtc.ts` — WebRTC manager for peer connections, SDP handling, ICE candidate exchange, and media stream management (imports stream/cleanup utilities from shared)
 - `packages/kiosk/src/lib/services/websocket.ts` — Extended with call signaling message handlers and methods to send call responses (imports URL builder and reconnect strategy from shared)
-- `packages/kiosk/src/lib/stores/call.ts` — Call state store with subscription-based cross-module reactivity and hierarchical state machine for lifecycle management (imports error utils, duration timer, and state helpers from shared)
+- `packages/kiosk/src/lib/stores/call.ts` — Call state store with subscription-based cross-module reactivity and hierarchical state machine for lifecycle management (imports error utils, duration timer, and state helpers from shared); note: kiosk still uses manual subscription (not yet migrated to direct import)
 - `packages/shared/src/webrtc/call-state-machine.ts` — Shared state machine configuration, event definitions, and context types
 
 **Portal WebRTC Implementation:**
@@ -410,7 +410,7 @@ The portal operates as the caller (initiator) in all video calls:
 
 **Call State Store (`packages/portal/src/lib/stores/call.svelte.ts`):**
 
-- Call state store using hierarchical state machine for lifecycle management
+- Call state store using Svelte 5 `$state` runes with hierarchical state machine for lifecycle management
 - State flow: idle → initiating → signaling → connecting → connected → ending/failed → idle
 - Signaling sub-states ensure proper sequencing (waitingForAccept → creatingOffer → exchangingIce)
 - Guards prevent invalid transitions (e.g., sending ICE candidates before peer connection exists)
@@ -425,8 +425,7 @@ The portal operates as the caller (initiator) in all video calls:
 - Top-level state parsing via shared `getTopLevelState()`
 - Automatic cleanup on call end or error
 - **Tab visibility handling** — `visibilitychange` listener detects when the tab is hidden during an active call; on return to visible, checks WebSocket health (forces immediate reconnect if disconnected) and recovers dead local media streams by re-acquiring and replacing tracks on the peer connection
-- **Subscription-based cross-module reactivity** — `subscribe(callback)` registers listeners that receive a shallow copy of state on every mutation; components use `onMount` to subscribe and update local `$state` (Svelte 5 `$state` proxies don't propagate across module boundaries)
-- `notify()` called after every state mutation: `syncStateFromMachine()`, `startDurationTimer()`, `toggleMute()`, `toggleVideo()`
+- **Direct import reactivity** — components import `callState` directly; Svelte 5 tracks `$state` dependencies automatically across module boundaries, no manual subscription needed
 
 **Call UI Components:**
 

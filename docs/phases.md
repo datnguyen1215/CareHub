@@ -108,7 +108,7 @@ Enable the tablet kiosk experience, Capacitor mobile app, and real-time communic
 - [x] **Call UI components** -- Full-screen call interface on portal with CallModal and CallControls
 - [x] **Portal call initiation** -- Call from device detail page and profile overview tab, both wired to call store
 
-- [x] **Call state reactivity** -- Subscription-based cross-module reactivity for both Portal and Kiosk call stores; `subscribe(callback)` registers listeners that receive shallow copies on every mutation; replaces polling in kiosk CallOverlay
+- [x] **Call state reactivity** -- Portal call store uses Svelte 5 `$state` runes with direct import reactivity (components import `callState` directly); Kiosk still uses `subscribe()` pattern (not yet migrated)
 
 **Planned:**
 
