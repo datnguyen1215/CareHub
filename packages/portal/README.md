@@ -360,7 +360,7 @@ try {
 
 ### Toast Notifications
 
-The app includes a toast notification system using Svelte 5 `$state` runes for reactivity. The toast store is in `src/lib/stores/toast.svelte.ts` (`.svelte.ts` extension required for runes).
+The app includes a toast notification system using Svelte 5 `$state` runes for reactivity. The toast store is in `src/lib/stores/toast.svelte.ts` (`.svelte.ts` extension required for runes). Store logic delegates to the shared `createToastStore()` factory from `@carehub/shared/ui/toast`, with a `$state` wrapper for Svelte reactivity.
 
 **Usage:**
 
