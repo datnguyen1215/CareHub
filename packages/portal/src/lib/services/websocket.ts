@@ -266,6 +266,12 @@ export function disconnect(): void {
 	pendingMessages = [];
 
 	if (socket) {
+		// Null out event handlers before closing to prevent stale events
+		// from firing after a new socket is created (race condition).
+		socket.onclose = null;
+		socket.onerror = null;
+		socket.onopen = null;
+		socket.onmessage = null;
 		socket.close(CLOSE_NORMAL, 'User disconnected');
 		socket = null;
 	}
@@ -303,6 +309,12 @@ export function immediateReconnect(): void {
 	stopHeartbeat();
 
 	if (socket) {
+		// Null out event handlers before closing to prevent stale events
+		// from firing after a new socket is created (race condition).
+		socket.onclose = null;
+		socket.onerror = null;
+		socket.onopen = null;
+		socket.onmessage = null;
 		socket.close(CLOSE_NORMAL, 'Immediate reconnect');
 		socket = null;
 	}
