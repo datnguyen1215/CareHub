@@ -1,3 +1,15 @@
+/**
+ * CareHub API application factory.
+ *
+ * ## API Response Contract
+ *
+ * All routes MUST follow these response format conventions:
+ *
+ * - **Success with data**: Return entity/array directly with 200 or 201 status.
+ * - **Success without data** (e.g. DELETE, logout): Return 204 No Content.
+ * - **Error**: Return `{ error: 'description' }` with appropriate HTTP status code.
+ * - **Health check**: `{ status: 'ok' }` is the exception (standard health-check convention).
+ */
 import express from 'express'
 import path from 'path'
 import cookieParser from 'cookie-parser'
