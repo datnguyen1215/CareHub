@@ -96,7 +96,6 @@
 			toast.success('Attachment uploaded');
 			showCategorySelect = false;
 			selectedFile = null;
-				error = '';
 		} catch (err: unknown) {
 			const apiErr = err as { message?: string };
 			error = apiErr?.message ?? 'Failed to upload attachment';

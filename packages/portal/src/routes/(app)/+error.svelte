@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { page } from '$app/stores';
-	import type { HttpError } from '@sveltejs/kit';
 
 	/**
 	 * Error display convention for authenticated routes:
@@ -11,16 +10,14 @@
 	 * - Unhandled route errors      → this error boundary
 	 */
 
+	let status = $derived($page.status);
 	let error = $derived($page.error);
-	let httpError = $derived(
-		error && 'status' in error ? (error as unknown as HttpError) : null
-	);
 
-	function getMessage(status: number | undefined): string {
-		if (status === 404) return "The page you're looking for doesn't exist.";
-		if (status === 403) return "You don't have permission to view this page.";
-		if (status === 401) return 'Your session has expired. Please log in again.';
-		if (status && status >= 500) return 'Something went wrong on our end. Please try again.';
+	function getMessage(code: number | undefined): string {
+		if (code === 404) return "The page you're looking for doesn't exist.";
+		if (code === 403) return "You don't have permission to view this page.";
+		if (code === 401) return 'Your session has expired. Please log in again.';
+		if (code && code >= 500) return 'Something went wrong on our end. Please try again.';
 		return 'An unexpected error occurred.';
 	}
 </script>
@@ -48,14 +45,14 @@
 	</div>
 
 	<h1 class="text-h2 font-semibold text-text-primary mb-unit-1">
-		{httpError ? "Error #{httpError.status}" : 'Something went wrong'}
+		{status ? "Error #{status}" : 'Something went wrong'}
 	</h1>
 
 	<p class="text-text-secondary mb-unit-3">
-		{getMessage(httpError?.status)}
+		{getMessage(status)}
 	</p>
 
-	{#if error?.message && error.message !== getMessage(httpError?.status)}
+	{#if error?.message && error.message !== getMessage(status)}
 		<p class="text-sm text-text-secondary bg-gray-50 rounded-card p-unit-2 mb-unit-3 font-mono">
 			{error.message}
 		</p>
