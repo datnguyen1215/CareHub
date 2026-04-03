@@ -15,11 +15,13 @@ import { devicesRouter } from './routes/devices'
 import healthRouter from './routes/health'
 import { logger } from './services/logger'
 import { errorHandler } from './middleware/errorHandler'
+import { globalLimiter } from './middleware/rateLimit'
 
 const UPLOADS_PATH = process.env.UPLOADS_PATH ?? path.join(process.cwd(), 'uploads')
 
 export function createApp() {
   const app = express()
+  app.set('trust proxy', 1)
 
   // Request logging middleware (skip health checks to reduce noise)
   app.use(
@@ -49,6 +51,9 @@ export function createApp() {
   )
   app.use(express.json())
   app.use(cookieParser())
+
+  // Global rate limit for all API routes
+  app.use('/api', globalLimiter)
 
   // Serve uploaded files statically
   app.use('/uploads', express.static(UPLOADS_PATH))

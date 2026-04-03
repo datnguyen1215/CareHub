@@ -13,6 +13,7 @@ import {
 } from '@carehub/shared'
 import { requireAuth } from '../middleware/auth'
 import { requireDeviceAuth } from '../middleware/deviceAuth'
+import { deviceRegisterLimiter } from '../middleware/rateLimit'
 import { logger } from '../services/logger'
 import { broadcastToDevice, isDeviceConnected } from '../websocket'
 
@@ -33,7 +34,7 @@ const generatePairingToken = (): string => crypto.randomBytes(4).toString('hex')
  * Register a new device and get a device token.
  * Called by kiosk on first launch.
  */
-devicesRouter.post('/register', async (req: Request, res: Response): Promise<void> => {
+devicesRouter.post('/register', deviceRegisterLimiter, async (req: Request, res: Response): Promise<void> => {
   try {
     const deviceToken = generateToken()
     const name = `Kiosk-${Date.now().toString(36).toUpperCase()}`
