@@ -9,7 +9,7 @@ export const globalLimiter = rateLimit({
   max: 100,
   standardHeaders: true,
   legacyHeaders: false,
-  skip: (req) => req.url === '/health' || req.url === '/api/health',
+  skip: (req) => req.url === '/health',
   handler: (_req, res) => {
     res.status(429).json(TOO_MANY_REQUESTS)
   },
