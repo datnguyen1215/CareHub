@@ -100,7 +100,7 @@ authRouter.post('/request-otp', authLimiter, validate(requestOtpSchema), async (
     await sendOtpEmail(email, code)
     await db.insert(otps).values({ email, code, expires_at: expiresAt })
 
-    res.json({ message: 'OTP sent' })
+    res.json({ sent: true })
   } catch (err) {
     logger.error({ err }, 'request-otp error')
     res.status(500).json({ error: 'Failed to send OTP' })
@@ -155,7 +155,7 @@ authRouter.post('/verify-otp', authLimiter, validate(verifyOtpSchema), async (re
 
 // POST /api/auth/logout
 authRouter.post('/logout', (_req: Request, res: Response): void => {
-  res.clearCookie('token').json({ message: 'Logged out' })
+  res.clearCookie('token').status(204).end()
 })
 
 // GET /api/auth/ws-ticket - Get a short-lived ticket for WebSocket authentication
