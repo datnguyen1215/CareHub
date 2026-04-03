@@ -1,6 +1,7 @@
 /** WebSocket service for real-time communication. */
 
 import { getDeviceCredentials } from './storage'
+import { buildWsUrl, parseMessage } from '@carehub/shared'
 import type {
 	IceCandidate,
 	CallIncomingMessage,
@@ -47,9 +48,7 @@ async function getWsUrl(): Promise<string | null> {
 	const creds = await getDeviceCredentials();
 	if (!creds) return null;
 
-	const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-	const host = window.location.host;
-	return `${protocol}//${host}/ws?token=${creds.deviceToken}`;
+	return buildWsUrl({ token: creds.deviceToken });
 }
 
 /**
@@ -77,13 +76,11 @@ export async function connect(): Promise<void> {
 		};
 
 		ws.onmessage = (event) => {
-			try {
-				const message = JSON.parse(event.data) as WsMessage
+			const message = parseMessage<WsMessage>(event.data);
+			if (message) {
 				// Route call signaling messages to dedicated handlers
 				routeCallMessage(message)
 				messageHandlers.forEach((handler) => handler(message))
-			} catch (err) {
-				console.error('Failed to parse WebSocket message:', err)
 			}
 		}
 

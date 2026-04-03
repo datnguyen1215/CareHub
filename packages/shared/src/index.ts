@@ -81,5 +81,8 @@ export interface DevicePairingToken {
 // Re-export Drizzle schema
 export * from './schema.js'
 
-// Re-export WebRTC types and constants
+// Re-export WebRTC types, constants, and utilities
 export * from './webrtc/index.js'
+
+// Re-export WebSocket utilities
+export * from './websocket/connection.js'

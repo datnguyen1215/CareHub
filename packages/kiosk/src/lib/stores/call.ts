@@ -13,6 +13,7 @@ import type {
 	CallEndedMessage,
 	IceCandidate
 } from '@carehub/shared';
+import { getUserFriendlyError } from '@carehub/shared';
 import {
 	createMachine,
 	createCalleeMachineConfig,
@@ -32,45 +33,6 @@ import {
 } from '$lib/services/websocket';
 import * as webrtc from '$lib/services/webrtc';
 import { notification } from '$lib/stores/notifications';
-
-/** Maps technical errors to user-friendly messages */
-function getUserFriendlyError(error: string | null): string {
-	if (!error) return 'Call failed. Please try again.';
-
-	const errorLower = error.toLowerCase();
-
-	// WebSocket/connection issues
-	if (errorLower.includes('websocket') || errorLower.includes('unable to connect')) {
-		return 'Connection lost. Please check your internet and try again.';
-	}
-
-	// ICE/network issues
-	if (errorLower.includes('ice') || errorLower.includes('network')) {
-		return 'Could not establish video connection. Check your network.';
-	}
-
-	// Timeout
-	if (errorLower.includes('timeout') || errorLower.includes('timed out')) {
-		return 'Call timed out. Please try again.';
-	}
-
-	// Media permissions
-	if (
-		errorLower.includes('permission') ||
-		errorLower.includes('notallowed') ||
-		errorLower.includes('not allowed')
-	) {
-		return 'Camera/microphone access denied. Please allow permissions.';
-	}
-
-	// Media device issues
-	if (errorLower.includes('notfound') || errorLower.includes('not found')) {
-		return 'Camera or microphone not found. Please check your devices.';
-	}
-
-	// Return original error if already user-friendly or unrecognized
-	return error;
-}
 
 /** Call status values */
 export type CallStatus = 'idle' | 'incoming' | 'connecting' | 'connected' | 'ended';
