@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import type { Device } from '$lib/api';
-	import DeviceStatusDot from './DeviceStatusDot.svelte';
-	import BatteryIndicator from './BatteryIndicator.svelte';
+	import DeviceStatusDot from '$lib/components/devices/DeviceStatusDot.svelte';
+	import BatteryIndicator from '$lib/components/devices/BatteryIndicator.svelte';
 
 	interface Props {
 		device: Device;

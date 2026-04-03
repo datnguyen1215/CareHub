@@ -5,7 +5,7 @@
 	 */
 
 	import { onMount } from 'svelte';
-	import { createFocusTrap } from '$lib/focusTrap';
+	import { createFocusTrap } from '$lib/utils/focusTrap';
 	import CallControls from './CallControls.svelte';
 	import type { CallStatusType } from '$lib/stores/call.svelte';
 

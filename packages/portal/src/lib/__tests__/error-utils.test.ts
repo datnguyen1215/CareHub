@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getErrorMessage, isRetryable } from '$lib/error-utils';
+import { getErrorMessage, isRetryable } from '$lib/utils/error-utils';
 import type { ApiError } from '$lib/api';
 
 // ─── getErrorMessage ──────────────────────────────────────

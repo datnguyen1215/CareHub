@@ -46,17 +46,28 @@ The SvelteKit portal uses a route group `(app)` to wrap all authenticated main p
 ```
 src/
   lib/
-    TopBar.svelte          # Fixed top bar — "CareHub" branding left, user avatar right
-    BottomNav.svelte       # Fixed bottom navigation — Home, Profiles, Devices, Settings tabs
-    Toast.svelte           # Toast notification component — displays success/error/destructive messages (backed by shared store)
-    ProfileModal.svelte    # Create/edit care profile modal
-    MedicationModal.svelte # Create/edit medication modal — name, dosage, schedule chips, status toggle (edit only)
-    EventModal.svelte      # Create/edit event modal — title, date/time, type, location, notes
-    DeleteConfirmModal.svelte # Confirmation dialog for deleting events
-    CallModal.svelte       # Call modal — device name, status, mute/video toggle, end-call button
-    AttachmentUpload.svelte # File upload component with camera capture, category selection, progress bar, and error recovery with retry
-    error-utils.ts         # Error display utilities — getErrorMessage() for user-friendly messages, isRetryable() for retry eligibility
     api.ts                 # API client with auth cookie handling
+    components/
+      navigation/
+        TopBar.svelte          # Fixed top bar — "CareHub" branding left, user avatar right
+        BottomNav.svelte       # Fixed bottom navigation — Home, Profiles, Devices, Settings tabs
+      ui/
+        Toast.svelte           # Toast notification component — displays success/error/destructive messages (backed by shared store)
+      profiles/
+        ProfileModal.svelte    # Create/edit care profile modal
+      medications/
+        MedicationModal.svelte # Create/edit medication modal — name, dosage, schedule chips, status toggle (edit only)
+      events/
+        EventModal.svelte      # Create/edit event modal — title, date/time, type, location, notes
+      shared/
+        DeleteConfirmModal.svelte # Confirmation dialog for deleting events
+      call/
+        CallModal.svelte       # Call modal — device name, status, mute/video toggle, end-call button
+      documents/
+        AttachmentUpload.svelte # File upload component with camera capture, category selection, progress bar, and error recovery with retry
+    utils/
+      error-utils.ts         # Error display utilities — getErrorMessage() for user-friendly messages, isRetryable() for retry eligibility
+      focusTrap.ts           # Focus trap utility for modal dialogs
     stores/
       toast.svelte.ts      # Toast notification store (Svelte 5 $state runes) — delegates to shared createToastStore(), wraps in $state for reactivity
       call.svelte.ts       # Call state store (Svelte 5 $state runes) — idle → calling → connected → ended

@@ -115,11 +115,21 @@ packages/portal/
 │   │   └── login/           # Authentication flow
 │   │       └── +page.svelte     # OTP login
 │   ├── lib/                  # Reusable code
-│   │   ├── components/      # Svelte components
+│   │   ├── components/      # Svelte components (organized by domain)
+│   │   │   ├── call/        # Call UI components (CallModal, CallControls)
+│   │   │   ├── devices/     # Device components (DeviceCard, DeviceStatusDot, BatteryIndicator)
+│   │   │   ├── documents/   # Document components (DocumentsTab, AttachmentCard, AttachmentUpload)
+│   │   │   ├── events/      # Event components (EventModal, EventDetail)
+│   │   │   ├── journal/     # Journal components (JournalTab, JournalEntryModal, JournalEntryDetail)
+│   │   │   ├── medications/ # Medication components (MedicationModal)
+│   │   │   ├── navigation/  # Navigation components (TopBar, BottomNav)
+│   │   │   ├── profiles/    # Profile components (ProfileModal, ProfileSelector, AvatarUpload)
+│   │   │   ├── shared/      # Shared components (DeleteConfirmModal, QRScanner)
+│   │   │   └── ui/          # UI primitives (Toast)
+│   │   ├── utils/           # Utility modules (focusTrap, error-utils)
 │   │   ├── services/        # Core services
 │   │   │   ├── websocket.ts # WebSocket connection manager
 │   │   │   └── webrtc.ts    # WebRTC peer connection manager
-│   │   ├── Toast.svelte     # Toast notification component
 │   │   ├── api.ts           # API client for backend
 │   │   └── stores/
 │   │       ├── toast.svelte.ts     # Toast notification store (Svelte 5 $state runes)

@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import type { JournalEntry, CreateJournalEntryInput } from './api';
-	import { createFocusTrap } from './focusTrap';
-	import { toast } from './stores/toast.svelte';
+	import type { JournalEntry, CreateJournalEntryInput } from '$lib/api';
+	import { createFocusTrap } from '$lib/utils/focusTrap';
+	import { toast } from '$lib/stores/toast.svelte';
 
 	interface Props {
 		entry?: JournalEntry | null;

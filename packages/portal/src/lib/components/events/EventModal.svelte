@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import type { Event, CreateEventInput } from './api';
-	import { createFocusTrap } from './focusTrap';
+	import type { Event, CreateEventInput } from '$lib/api';
+	import { createFocusTrap } from '$lib/utils/focusTrap';
 
 	interface Props {
 		event?: Event | null;

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { logout } from '$lib/api';
-	import { getErrorMessage } from '$lib/error-utils';
+	import { getErrorMessage } from '$lib/utils/error-utils';
 
 	let logoutLoading = $state(false);
 	let logoutError = $state('');

@@ -6,7 +6,7 @@
 		getEvent,
 		type Attachment,
 		type AttachmentCategory
-	} from './api';
+	} from '$lib/api';
 
 	interface Props {
 		profileId: string;

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { Attachment } from './api';
+	import type { Attachment } from '$lib/api';
 
 	interface Props {
 		attachment: Attachment;

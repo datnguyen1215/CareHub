@@ -2,8 +2,8 @@
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { listDevices, type Device } from '$lib/api';
-	import { getErrorMessage, isRetryable } from '$lib/error-utils';
-	import DeviceCard from '$lib/DeviceCard.svelte';
+	import { getErrorMessage, isRetryable } from '$lib/utils/error-utils';
+	import DeviceCard from '$lib/components/devices/DeviceCard.svelte';
 	import {
 		callState,
 		initiateCall,

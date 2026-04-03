@@ -2,9 +2,9 @@
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { listProfiles, pairDevice, type CareProfile, type Device } from '$lib/api';
-	import { getErrorMessage } from '$lib/error-utils';
-	import QRScanner from '$lib/QRScanner.svelte';
-	import ProfileSelector from '$lib/ProfileSelector.svelte';
+	import { getErrorMessage } from '$lib/utils/error-utils';
+	import QRScanner from '$lib/components/shared/QRScanner.svelte';
+	import ProfileSelector from '$lib/components/profiles/ProfileSelector.svelte';
 
 	type Step = 'scan' | 'profiles' | 'confirm' | 'success';
 

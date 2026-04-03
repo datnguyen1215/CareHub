@@ -28,18 +28,18 @@
 		type CreateEventInput,
 		type CreateJournalEntryInput
 	} from '$lib/api';
-	import DeviceStatusDot from '$lib/DeviceStatusDot.svelte';
-	import BatteryIndicator from '$lib/BatteryIndicator.svelte';
-	import { getErrorMessage, isRetryable } from '$lib/error-utils';
-	import ProfileModal from '$lib/ProfileModal.svelte';
-	import MedicationModal from '$lib/MedicationModal.svelte';
-	import EventModal from '$lib/EventModal.svelte';
-	import DeleteConfirmModal from '$lib/DeleteConfirmModal.svelte';
-	import JournalTab from '$lib/JournalTab.svelte';
-	import JournalEntryModal from '$lib/JournalEntryModal.svelte';
-	import JournalEntryDetail from '$lib/JournalEntryDetail.svelte';
-	import EventDetail from '$lib/EventDetail.svelte';
-	import DocumentsTab from '$lib/DocumentsTab.svelte';
+	import DeviceStatusDot from '$lib/components/devices/DeviceStatusDot.svelte';
+	import BatteryIndicator from '$lib/components/devices/BatteryIndicator.svelte';
+	import { getErrorMessage, isRetryable } from '$lib/utils/error-utils';
+	import ProfileModal from '$lib/components/profiles/ProfileModal.svelte';
+	import MedicationModal from '$lib/components/medications/MedicationModal.svelte';
+	import EventModal from '$lib/components/events/EventModal.svelte';
+	import DeleteConfirmModal from '$lib/components/shared/DeleteConfirmModal.svelte';
+	import JournalTab from '$lib/components/journal/JournalTab.svelte';
+	import JournalEntryModal from '$lib/components/journal/JournalEntryModal.svelte';
+	import JournalEntryDetail from '$lib/components/journal/JournalEntryDetail.svelte';
+	import EventDetail from '$lib/components/events/EventDetail.svelte';
+	import DocumentsTab from '$lib/components/documents/DocumentsTab.svelte';
 	import { toast } from '$lib/stores/toast.svelte';
 	import {
 		callState,
