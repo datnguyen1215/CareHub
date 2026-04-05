@@ -57,6 +57,7 @@ export type UserMessage =
   | CallEndedMessage
   | CallOfferMessage
   | IceCandidateMessage
+  | ScreenShareStateMessage
 
 /** Authenticated WebSocket message wrapper — includes sender info */
 export interface AuthenticatedWsMessage<T extends SignalingMessage = SignalingMessage> {
