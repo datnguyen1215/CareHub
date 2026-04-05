@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { page } from '$app/stores';
+	import { page } from '$app/state';
 
 	/**
 	 * Error display convention for authenticated routes:
@@ -10,8 +10,8 @@
 	 * - Unhandled route errors      → this error boundary
 	 */
 
-	let status = $derived($page.status);
-	let error = $derived($page.error);
+	let status = $derived(page.status);
+	let error = $derived(page.error);
 
 	function getMessage(code: number | undefined): string {
 		if (code === 404) return "The page you're looking for doesn't exist.";
