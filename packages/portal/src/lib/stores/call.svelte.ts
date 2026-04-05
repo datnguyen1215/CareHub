@@ -402,6 +402,10 @@ export async function handleIncomingSignal(message: SignalingMessage): Promise<v
 	);
 	if (!machine) return;
 
+	// Only process signals if this tab has an active call.
+	// Prevents multi-tab interference — only the initiating tab is non-idle.
+	if (callState.status === 'idle') return;
+
 	// Ignore messages for other calls (except call:ringing which establishes the session)
 	if (
 		'callId' in message &&
