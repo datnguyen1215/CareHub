@@ -76,13 +76,6 @@ export interface CallErrorMessage {
   error: string
 }
 
-/** Portal notifies kiosk that screen sharing state changed */
-export interface ScreenShareStateMessage {
-  type: 'call:screen-share'
-  callId: string
-  active: boolean
-}
-
 /** Union type for all signaling messages */
 export type SignalingMessage =
   | CallInitiateMessage
@@ -96,4 +89,3 @@ export type SignalingMessage =
   | IceCandidateMessage
   | ScreenShareStateMessage
   | CallErrorMessage
-  | ScreenShareStateMessage
