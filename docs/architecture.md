@@ -362,6 +362,7 @@ Tablet push notifications, device status monitoring, and video call signaling al
 6. If accepted, WebRTC offer/answer/ICE exchange begins
 7. Either party can send `call:ended` to terminate
 8. Server updates call_sessions with duration and end reason
+9. On ring timeout (30s unanswered): server sends `call:ended` (reason: `missed`) to both the user and the device, then ends the session
 
 **Call Service:**
 
@@ -371,7 +372,7 @@ Tablet push notifications, device status monitoring, and video call signaling al
 - `updateCallStatus()` - Update call status (initiating → ringing → connecting → connected)
 - `endCall()` - End call with reason (idempotent, calculates duration)
 - `validateCallPermission()` - Check user has access to device
-- Ring timeout handling (marks calls as 'missed' after 30 seconds)
+- Ring timeout handling (marks calls as 'missed' after 30 seconds; sends `call:ended` to both user and device)
 - Terminal state protection (prevents overwriting ended calls)
 
 **Portal WebSocket Client:**

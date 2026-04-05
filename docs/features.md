@@ -283,7 +283,7 @@ Detailed feature breakdown organized by area. See [phases.md](phases.md) for imp
 - Full-screen video display on tablet
 - Audio and video with microphone/camera permissions (720p ideal, echo cancellation, noise suppression)
 - **Native incoming call UI on caretaker phone** -- full-screen notification over lock screen with ringtone, vibration, caller photo, and Accept/Decline buttons (same behavior as WhatsApp or a phone call)
-- Missed call handling with "no answer" state on tablet
+- Missed call handling with "no answer" state on tablet; backend sends `call:ended` (reason: `missed`) to both parties on 30s ring timeout, kiosk returns to idle and can receive new calls
 - Call duration timer displayed during active calls
 - Graceful handling of camera permission delays and call cancellations
 
