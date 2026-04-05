@@ -498,7 +498,7 @@ Both Portal and Kiosk use hierarchical state machines (via `@datnguyen1215/hsmjs
 **Signaling Sub-States:**
 
 - Caller (Portal): `waitingForAccept → creatingOffer → exchangingIce`
-- Callee (Kiosk): `incoming → waitingForOffer → creatingAnswer → exchangingIce`
+- Callee (Kiosk): `incoming → acquiringMedia → waitingForOffer → creatingAnswer → exchangingIce`
 
 **Key Guards:**
 
