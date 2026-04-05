@@ -104,6 +104,7 @@ Enable the tablet kiosk experience, Capacitor mobile app, and real-time communic
 - [x] **Tab visibility handling** -- Detects hidden tab during call; on return, forces immediate reconnect if WebSocket disconnected, recovers dead local media streams via track replacement
 - [x] **Backend ping/pong** -- User WebSocket handler supports `ping` messages and responds with `pong`
 - [x] **Race condition prevention** -- Old socket event handlers nulled before close to prevent stale events from corrupting new connections
+- [x] **Multi-tab signal isolation** -- `handleIncomingSignal()` skips signals when tab call state is idle; prevents duplicate SDP offers and conflicting ICE negotiations when a user has multiple portal tabs open
 
 - [x] **Call UI components** -- Full-screen call interface on portal with CallModal and CallControls
 - [x] **Portal call initiation** -- Call from device detail page and profile overview tab, both wired to call store
