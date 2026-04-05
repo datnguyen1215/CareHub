@@ -329,8 +329,12 @@ function createCallMachine() {
 
 		flushPendingIceCandidates: async ({ context }: { context: CallContext }) => {
 			for (const candidate of context.pendingIceCandidates) {
-				logWebRTCEvent('ICE', 'Flushing pending ICE candidate');
-				await webrtc.addIceCandidate(candidate);
+				try {
+					logWebRTCEvent('ICE', 'Flushing pending ICE candidate');
+					await webrtc.addIceCandidate(candidate);
+				} catch (err) {
+					logWebRTCEvent('ICE', `Failed to flush pending candidate: ${(err as Error).message}`);
+				}
 			}
 		},
 
