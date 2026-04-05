@@ -164,7 +164,9 @@ From the profile detail page (`/profiles/:id`):
 5. Tablet app displays incoming call screen with caretaker's name and photo (`designs/12-tablet-incoming-call.svg`)
 6. Grandparent taps the large Accept button
 7. Video call connects; both sides see and hear each other
-8. Either party can end the call
+8. During the call, the caretaker can share their screen; the kiosk automatically switches to screen share display mode (`object-fit: contain`, light gray background) and shows a "Screen shared by [name]" indicator
+9. When screen sharing stops, the kiosk returns to normal video layout
+10. Either party can end the call
 
 **If the call is not answered (ring timeout):**
 
@@ -356,3 +358,4 @@ From the profile detail page (`/profiles/:id`):
 21. If device is offline, Call button is disabled (grayed out)
 22. If a call is already in progress, Call button is disabled
 23. Alternative from profile detail: tap "📞 Call" on device card in Profile Overview tab to initiate call
+24. During the call, the caretaker can share their screen; the kiosk switches to screen share display mode (full document visible, light gray background) with a "Screen shared by [name]" indicator; stopping screen share returns to normal video layout

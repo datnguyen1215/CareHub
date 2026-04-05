@@ -11,7 +11,8 @@ import type {
 	CallOfferMessage,
 	IceCandidateMessage,
 	CallEndedMessage,
-	IceCandidate
+	IceCandidate,
+	ScreenShareStateMessage
 } from '@carehub/shared';
 import { getUserFriendlyError, getTopLevelState, createDurationTimer } from '@carehub/shared';
 import {
@@ -50,6 +51,7 @@ export interface CallState {
 	duration: number;
 	error: string | null;
 	endReason: CallEndReason | null;
+	isRemoteScreenSharing: boolean;
 }
 
 /** Initial call state */
@@ -63,7 +65,8 @@ const initialState: CallState = {
 	connectedAt: null,
 	duration: 0,
 	error: null,
-	endReason: null
+	endReason: null,
+	isRemoteScreenSharing: false
 };
 
 /** Reactive call state - only initialized on client */
@@ -477,6 +480,19 @@ function handleCallEnded(message: CallEndedMessage): void {
 }
 
 /**
+ * Handle screen share state change from caller.
+ */
+function handleScreenShare(message: ScreenShareStateMessage): void {
+	if (callState.callId !== message.callId) {
+		return;
+	}
+
+	callState.isRemoteScreenSharing = message.active;
+	logWebRTCEvent('Signaling', `Screen share ${message.active ? 'started' : 'stopped'}`);
+	notify();
+}
+
+/**
  * Accept incoming call.
  * Notifies server and starts media acquisition.
  */
@@ -553,6 +569,7 @@ export function initCallStore(): void {
 		onCallOffer: handleCallOffer,
 		onIceCandidate: handleIceCandidate,
 		onCallEnded: handleCallEnded,
+		onScreenShare: handleScreenShare,
 		onCallError: (message) => {
 			logWebRTCEvent('Error', message.error);
 			if (machine) {

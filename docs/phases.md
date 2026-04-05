@@ -112,6 +112,8 @@ Enable the tablet kiosk experience, Capacitor mobile app, and real-time communic
 
 - [x] **Call state reactivity** -- Portal call store uses Svelte 5 `$state` runes with direct import reactivity (components import `callState` directly); Kiosk still uses `subscribe()` pattern (not yet migrated)
 
+- [x] **Kiosk screen share display** -- CallScreen layout adapts when caretaker shares screen: `object-fit: contain` with light gray background, "Screen shared by [name]" indicator; state driven by `call:screen-share` signaling message via `isRemoteScreenSharing` in CallState
+
 **Planned:**
 
 - **Incoming call screen (tablet)** -- Full-screen display with large Accept/Decline buttons
