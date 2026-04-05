@@ -227,6 +227,7 @@ function createCallMachine() {
 		},
 		logEnterIdle: () => logWebRTCEvent('State', 'idle'),
 		logEnterIncoming: () => logWebRTCEvent('State', 'signaling.incoming'),
+		logEnterAcquiringMedia: () => logWebRTCEvent('State', 'signaling.acquiringMedia'),
 		logEnterWaitingForOffer: () => logWebRTCEvent('State', 'signaling.waitingForOffer'),
 		logEnterCreatingAnswer: () => logWebRTCEvent('State', 'signaling.creatingAnswer'),
 		logEnterConnecting: () => logWebRTCEvent('State', 'connecting'),
