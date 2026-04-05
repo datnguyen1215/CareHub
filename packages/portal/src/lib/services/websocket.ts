@@ -27,6 +27,28 @@ const HEARTBEAT_TIMEOUT_MS = 5000; // 5 seconds to receive pong
 const MAX_QUEUE_SIZE = 50;
 const MESSAGE_TTL_MS = 30000; // 30 seconds — discard stale messages on flush
 
+/**
+ * Priority levels for signaling messages.
+ * Higher values = higher priority — dropped last under queue pressure.
+ *
+ * Critical (2): SDP offers/answers and ICE candidates cannot be recovered.
+ * Normal (1): Call lifecycle messages are important but less time-sensitive.
+ * Low (0): Screen share state changes and errors are recoverable or less urgent.
+ */
+const MESSAGE_PRIORITY: Record<SignalingMessage['type'], number> = {
+	'call:offer': 2,
+	'call:answer': 2,
+	'call:ice-candidate': 2,
+	'call:initiate': 1,
+	'call:incoming': 1,
+	'call:ringing': 1,
+	'call:accepted': 1,
+	'call:declined': 1,
+	'call:ended': 1,
+	'call:screen-share': 0,
+	'call:error': 0
+};
+
 /** WebSocket close codes */
 const CLOSE_NORMAL = 1000;
 const CLOSE_AUTH_FAILED = 4001;
@@ -104,15 +126,40 @@ function stopHeartbeat(): void {
 
 /**
  * Adds a message to the pending queue.
- * Drops oldest message if queue is at max capacity.
+ * When queue is at max capacity, drops the lowest-priority message.
+ * Critical signaling (SDP/ICE) is preserved over less urgent messages.
  */
 function enqueueMessage(message: SignalingMessage): void {
 	if (pendingMessages.length >= MAX_QUEUE_SIZE) {
+		const priority = MESSAGE_PRIORITY[message.type];
+
+		// Find the index of the lowest-priority message.
+		// Ties broken by oldest first (FIFO).
+		let dropIndex = 0;
+		let dropPriority = MESSAGE_PRIORITY[pendingMessages[0].message.type];
+		for (let i = 1; i < pendingMessages.length; i++) {
+			const p = MESSAGE_PRIORITY[pendingMessages[i].message.type];
+			if (p < dropPriority) {
+				dropPriority = p;
+				dropIndex = i;
+			}
+		}
+
+		// If incoming message is lower or equal priority to the drop candidate,
+		// drop the incoming message instead — it's not worth evicting something equal.
+		if (priority <= dropPriority) {
+			console.warn(
+				'[WebSocket] Message queue full — dropping incoming message',
+				message.type
+			);
+			return;
+		}
+
+		const dropped = pendingMessages.splice(dropIndex, 1)[0];
 		console.warn(
-			'[WebSocket] Message queue full — dropping oldest message',
-			pendingMessages[0].message.type
+			'[WebSocket] Message queue full — dropping lowest-priority message',
+			dropped.message.type
 		);
-		pendingMessages.shift();
 	}
 
 	pendingMessages.push({ message, queuedAt: Date.now() });
