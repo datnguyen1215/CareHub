@@ -259,7 +259,7 @@ Detailed feature breakdown organized by area. See [phases.md](phases.md) for imp
 - Hierarchical state machines (@datnguyen1215/hsmjs) for call lifecycle management
 - Shared WebRTC/WebSocket utilities in `packages/shared` (stream management, error handling, duration timers, reconnection strategies)
 - Shared UI toast store logic in `packages/shared` (framework-agnostic toast/notification management with configurable auto-dismiss, used by both portal and kiosk)
-- Signaling via WebSocket server (call:incoming, call:offer, call:ice-candidate, call:ended, call:error messages)
+- Signaling via WebSocket server (call:incoming, call:offer, call:ice-candidate, call:screen-share, call:ended, call:error messages)
 - ICE/STUN/TURN for NAT traversal
 - Firebase Cloud Messaging (FCM) for call notifications to caretaker devices
 - Capacitor native shell on both caretaker phones and elderly tablets
