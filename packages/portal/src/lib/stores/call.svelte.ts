@@ -16,7 +16,7 @@ import {
 	logWebRTCEvent,
 	type CallContext
 } from '@carehub/shared/webrtc/call-state-machine';
-import { CALL_SETUP_TIMEOUT_MS } from '@carehub/shared';
+import { CALL_SETUP_TIMEOUT_MS, RECONNECT_TIMEOUT_MS } from '@carehub/shared';
 import * as websocket from '$lib/services/websocket';
 import * as webrtc from '$lib/services/webrtc';
 import { toast } from '$lib/stores/toast.svelte';
@@ -73,6 +73,9 @@ let storedRemoteStream: MediaStream | null = null;
 
 /** Setup timeout timer for ICE connection establishment */
 let setupTimerId: ReturnType<typeof setTimeout> | null = null;
+
+/** Reconnect timer for ICE disconnection grace period */
+let reconnectTimerId: ReturnType<typeof setTimeout> | null = null;
 
 /** Duration timer from shared package */
 const durationTimer = createDurationTimer((seconds) => {
@@ -191,6 +194,7 @@ function createCallMachine() {
 		logEnterExchangingIce: () => logWebRTCEvent('State', 'signaling.exchangingIce'),
 		logEnterConnecting: () => logWebRTCEvent('State', 'connecting'),
 		logEnterConnected: () => logWebRTCEvent('State', 'connected'),
+		logEnterUnstable: () => logWebRTCEvent('State', 'connected.unstable'),
 		logEnterEnding: () => logWebRTCEvent('State', 'ending'),
 		logEnterFailed: () => logWebRTCEvent('State', 'failed'),
 
@@ -312,6 +316,22 @@ function createCallMachine() {
 			}
 		},
 
+		startReconnectTimer: () => {
+			if (reconnectTimerId) clearTimeout(reconnectTimerId);
+			reconnectTimerId = setTimeout(() => {
+				machine?.send(CALL_EVENTS.RECONNECT_TIMEOUT);
+			}, RECONNECT_TIMEOUT_MS);
+			logWebRTCEvent('ICE', `Reconnect timer started (${RECONNECT_TIMEOUT_MS}ms)`);
+		},
+
+		clearReconnectTimer: () => {
+			if (reconnectTimerId) {
+				clearTimeout(reconnectTimerId);
+				reconnectTimerId = null;
+				logWebRTCEvent('ICE', 'Reconnect timer cleared');
+			}
+		},
+
 		// Call end actions
 		sendCallEnded: ({ context }: { context: CallContext }) => {
 			if (context.callId) {
@@ -336,6 +356,11 @@ function createCallMachine() {
 			if (setupTimerId) {
 				clearTimeout(setupTimerId);
 				setupTimerId = null;
+			}
+			// Clear reconnect timer
+			if (reconnectTimerId) {
+				clearTimeout(reconnectTimerId);
+				reconnectTimerId = null;
 			}
 			queueMicrotask(() => {
 				machine?.send(CALL_EVENTS.CLEANUP_COMPLETE);

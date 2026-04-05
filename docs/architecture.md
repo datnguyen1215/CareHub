@@ -442,6 +442,7 @@ The portal operates as the caller (initiator) in all video calls:
 - Call state store using Svelte 5 `$state` runes with hierarchical state machine for lifecycle management
 - State flow: idle → initiating → signaling → connecting → connected → ending/failed → idle
 - Signaling sub-states ensure proper sequencing (waitingForAccept → creatingOffer → exchangingIce)
+- **Connected sub-states** — `connected` is a hierarchical state with `stable` and `unstable` sub-states; `ICE_DISCONNECTED` transitions from `stable` to `unstable` and starts a 10-second reconnect timer (`RECONNECT_TIMEOUT_MS`); `ICE_CONNECTED` transitions back to `stable`; timer expiry transitions to `failed`
 - Guards prevent invalid transitions (e.g., sending ICE candidates before peer connection exists)
 - All state transitions logged with timestamps for debugging
 - Call only marked "connected" when ICE connection actually established
@@ -452,8 +453,9 @@ The portal operates as the caller (initiator) in all video calls:
 - WebSocket signaling integration (ICE candidates, SDP exchange)
 - **Multi-tab signal isolation** — `handleIncomingSignal()` returns early when `callState.status === 'idle'`; only the tab that called `initiateCall()` (which transitions to `'initiating'` synchronously) is non-idle when signaling messages arrive via WebSocket, so other open tabs silently ignore them
 - Error messages via shared `getUserFriendlyError()`
-- Top-level state parsing via shared `getTopLevelState()`
-- Automatic cleanup on call end or error
+- Top-level state parsing via shared `getTopLevelState()` — `getTopLevelState('connected.unstable')` returns `'connected'`, so existing UI status mapping works without changes
+- Reconnect timer actions: `startReconnectTimer`, `clearReconnectTimer`, `logEnterUnstable`
+- Automatic cleanup on call end or error (clears both setup and reconnect timers)
 - **Tab visibility handling** — `visibilitychange` listener detects when the tab is hidden during an active call; on return to visible, checks WebSocket health (forces immediate reconnect if disconnected) and recovers dead local media streams by re-acquiring and replacing tracks on the peer connection
 - **Direct import reactivity** — components import `callState` directly; Svelte 5 tracks `$state` dependencies automatically across module boundaries, no manual subscription needed
 
@@ -491,6 +493,7 @@ Both Portal and Kiosk use hierarchical state machines (via `@datnguyen1215/hsmjs
 - Top-level states: `idle → initiating → signaling → connecting → connected → ending → idle`
 - Failed states branch from `connecting` or `connected` to `failed → idle`
 - `connecting` state has a setup timeout (`CALL_SETUP_TIMEOUT_MS`, 15s) that transitions to `failed` if ICE negotiation stalls
+- `connected` state is hierarchical with `stable` and `unstable` sub-states; `ICE_DISCONNECTED` transitions `stable` → `unstable` (starts 10s reconnect timer), `ICE_CONNECTED` transitions `unstable` → `stable`, `RECONNECT_TIMEOUT` transitions `unstable` → `failed`
 
 **Signaling Sub-States:**
 
@@ -518,7 +521,7 @@ Both Portal and Kiosk use hierarchical state machines (via `@datnguyen1215/hsmjs
 - SDP: `OFFER_CREATED`, `OFFER_RECEIVED`, `ANSWER_CREATED`, `ANSWER_RECEIVED`
 - ICE: `ICE_CANDIDATE`, `ICE_CONNECTED`, `ICE_DISCONNECTED`, `ICE_FAILED`
 - Media: `LOCAL_STREAM_READY`, `REMOTE_STREAM_READY`, `MEDIA_ERROR`
-- Internal: `CLEANUP_COMPLETE`, `SETUP_TIMEOUT`
+- Internal: `CLEANUP_COMPLETE`, `SETUP_TIMEOUT`, `RECONNECT_TIMEOUT`
 
 **Context:**
 

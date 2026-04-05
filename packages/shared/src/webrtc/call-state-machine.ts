@@ -71,6 +71,7 @@ export const CALL_EVENTS = {
   // Internal
   CLEANUP_COMPLETE: 'CLEANUP_COMPLETE',
   SETUP_TIMEOUT: 'SETUP_TIMEOUT',
+  RECONNECT_TIMEOUT: 'RECONNECT_TIMEOUT',
 } as const
 
 /** Context shared by both caller and callee state machines */
@@ -279,7 +280,36 @@ export function createCallerMachineConfig(): MachineConfigAny {
         },
       },
       connected: {
+        initial: 'stable',
         entry: ['logEnterConnected', 'startDurationTimer'],
+        states: {
+          stable: {
+            on: {
+              ICE_DISCONNECTED: {
+                target: 'unstable',
+                actions: ['logTransition'],
+              },
+            },
+          },
+          unstable: {
+            entry: ['logEnterUnstable', 'startReconnectTimer'],
+            exit: ['clearReconnectTimer'],
+            on: {
+              ICE_CONNECTED: {
+                target: 'stable',
+                actions: ['logTransition'],
+              },
+              RECONNECT_TIMEOUT: {
+                target: '#callerCall.failed',
+                actions: ['assignDisconnectedError', 'logTransition'],
+              },
+              ICE_FAILED: {
+                target: '#callerCall.failed',
+                actions: ['assignIceFailedError', 'logTransition'],
+              },
+            },
+          },
+        },
         on: {
           END: {
             target: 'ending',
@@ -289,20 +319,14 @@ export function createCallerMachineConfig(): MachineConfigAny {
             target: 'ending',
             actions: ['assignEndReason', 'logTransition'],
           },
-          ICE_DISCONNECTED: {
-            target: 'failed',
-            actions: ['assignDisconnectedError', 'logTransition'],
-          },
           ICE_FAILED: {
             target: 'failed',
             actions: ['assignIceFailedError', 'logTransition'],
           },
           REMOTE_STREAM_READY: {
-            target: 'connected',
             actions: ['assignRemoteStream'],
           },
           ICE_CANDIDATE: {
-            target: 'connected',
             actions: ['addRemoteIceCandidate'],
           },
         },
@@ -452,7 +476,36 @@ export function createCalleeMachineConfig(): MachineConfigAny {
         },
       },
       connected: {
+        initial: 'stable',
         entry: ['logEnterConnected', 'startDurationTimer'],
+        states: {
+          stable: {
+            on: {
+              ICE_DISCONNECTED: {
+                target: 'unstable',
+                actions: ['logTransition'],
+              },
+            },
+          },
+          unstable: {
+            entry: ['logEnterUnstable', 'startReconnectTimer'],
+            exit: ['clearReconnectTimer'],
+            on: {
+              ICE_CONNECTED: {
+                target: 'stable',
+                actions: ['logTransition'],
+              },
+              RECONNECT_TIMEOUT: {
+                target: '#calleeCall.failed',
+                actions: ['assignDisconnectedError', 'logTransition'],
+              },
+              ICE_FAILED: {
+                target: '#calleeCall.failed',
+                actions: ['assignIceFailedError', 'logTransition'],
+              },
+            },
+          },
+        },
         on: {
           END: {
             target: 'ending',
@@ -462,20 +515,14 @@ export function createCalleeMachineConfig(): MachineConfigAny {
             target: 'ending',
             actions: ['assignEndReason', 'logTransition'],
           },
-          ICE_DISCONNECTED: {
-            target: 'failed',
-            actions: ['assignDisconnectedError', 'logTransition'],
-          },
           ICE_FAILED: {
             target: 'failed',
             actions: ['assignIceFailedError', 'logTransition'],
           },
           REMOTE_STREAM_READY: {
-            target: 'connected',
             actions: ['assignRemoteStream'],
           },
           ICE_CANDIDATE: {
-            target: 'connected',
             actions: ['addRemoteIceCandidate'],
           },
         },
