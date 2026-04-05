@@ -297,20 +297,20 @@ function createCallMachine() {
 			stopDurationTimer();
 		},
 
-			startSetupTimer: () => {
-				if (setupTimerId) clearTimeout(setupTimerId);
-				setupTimerId = setTimeout(() => {
-					machine?.send(CALL_EVENTS.SETUP_TIMEOUT);
-				}, CALL_SETUP_TIMEOUT_MS);
-				logWebRTCEvent('Timer', `Setup timeout started (${CALL_SETUP_TIMEOUT_MS}ms)`);
-			},
+		startSetupTimer: () => {
+			if (setupTimerId) clearTimeout(setupTimerId);
+			setupTimerId = setTimeout(() => {
+				machine?.send(CALL_EVENTS.SETUP_TIMEOUT);
+			}, CALL_SETUP_TIMEOUT_MS);
+			logWebRTCEvent('Timer', `Setup timeout started (${CALL_SETUP_TIMEOUT_MS}ms)`);
+		},
 
-			clearSetupTimer: () => {
-				if (setupTimerId) {
-					clearTimeout(setupTimerId);
-					setupTimerId = null;
-				}
-			},
+		clearSetupTimer: () => {
+			if (setupTimerId) {
+				clearTimeout(setupTimerId);
+				setupTimerId = null;
+			}
+		},
 
 		// Call end actions
 		sendCallEnded: ({ context }: { context: CallContext }) => {
