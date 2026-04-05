@@ -158,6 +158,7 @@ Styles are implemented with Tailwind CSS within the SvelteKit portal package. Mo
 - Incoming call screen with near-full-screen Accept (green) and Decline (red) buttons
 - Active call UI with end call button
 - Missed call notifications
+- Screen share display mode on CallScreen: layout switches from `object-fit: cover` (dark background, face video) to `object-fit: contain` (light gray background, full document visibility) when caretaker shares their screen; "Screen shared by [name]" indicator displayed in call header
 
 ---
 

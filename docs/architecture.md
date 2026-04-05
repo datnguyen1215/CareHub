@@ -418,7 +418,7 @@ The kiosk operates as the callee (receiver) in all video calls:
 
 - `packages/kiosk/src/lib/services/webrtc.ts` — WebRTC manager for peer connections, SDP handling, ICE candidate exchange, and media stream management (imports stream/cleanup utilities from shared)
 - `packages/kiosk/src/lib/services/websocket.ts` — Extended with call signaling message handlers and methods to send call responses (imports URL builder and reconnect strategy from shared)
-- `packages/kiosk/src/lib/stores/call.ts` — Call state store with subscription-based cross-module reactivity and hierarchical state machine for lifecycle management (imports error utils, duration timer, and state helpers from shared); note: kiosk still uses manual subscription (not yet migrated to direct import)
+- `packages/kiosk/src/lib/stores/call.ts` — Call state store with subscription-based cross-module reactivity and hierarchical state machine for lifecycle management (imports error utils, duration timer, and state helpers from shared); note: kiosk still uses manual subscription (not yet migrated to direct import); handles `call:screen-share` signaling messages to toggle `isRemoteScreenSharing` state for display layout adaptation
 - `packages/shared/src/webrtc/call-state-machine.ts` — Shared state machine configuration, event definitions, and context types
 
 **Portal WebRTC Implementation:**
@@ -475,6 +475,12 @@ The portal operates as the caller (initiator) in all video calls:
 - `packages/kiosk/src/lib/components/call/CallOverlay.svelte` - Kiosk call overlay that dispatches to IncomingCall, CallScreen, or PermissionError based on state
   - Uses `subscribe()` for real-time state updates (no polling)
   - Unsubscribes on component destroy
+  - Passes `isRemoteScreenSharing` prop to CallScreen for screen share layout adaptation
+- `packages/kiosk/src/lib/components/call/CallScreen.svelte` - Full-screen call display on the kiosk tablet
+  - Remote video fills screen with `object-fit: cover` (normal) or `object-fit: contain` (screen share mode)
+  - Screen share mode switches background to light gray (`#f5f5f5`) for document visibility
+  - Shows "Screen shared by [caller name]" indicator when screen sharing is active
+  - Local video in picture-in-picture corner, call status and duration in header
 
 **Call State Machine (`packages/shared/src/webrtc/call-state-machine.ts`):**
 
@@ -516,7 +522,7 @@ Both Portal and Kiosk use hierarchical state machines (via `@datnguyen1215/hsmjs
 
 **Context:**
 
-- Shared context between Portal and Kiosk includes: `callId`, `targetDeviceId`, `caller`, `profileId`, `localStream`, `remoteStream`, `startedAt`, `duration`, `error`, `endReason`, `isMuted`, `isVideoOff`, `pendingIceCandidates`
+- Shared context between Portal and Kiosk includes: `callId`, `targetDeviceId`, `caller`, `profileId`, `localStream`, `remoteStream`, `startedAt`, `duration`, `error`, `endReason`, `isMuted`, `isVideoOff`, `pendingIceCandidates`, `isRemoteScreenSharing`
 - Context is reset to initial state when returning to `idle` after cleanup
 
 ### Capacitor Native Apps

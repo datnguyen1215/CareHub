@@ -281,6 +281,10 @@ Detailed feature breakdown organized by area. See [phases.md](phases.md) for imp
   - Error messages with retry option for retryable errors
 - Elderly family member initiates call from tablet by tapping caretaker photo
 - Full-screen video display on tablet
+  - Normal mode: remote video uses `object-fit: cover` with dark background for face video
+  - Screen share mode: remote video uses `object-fit: contain` with light gray background for document visibility
+  - "Screen shared by [caller name]" indicator shown when caretaker shares their screen
+  - Layout adapts automatically via `call:screen-share` signaling — no WebRTC changes needed on the kiosk side (track replacement handled by peer connection)
 - Audio and video with microphone/camera permissions (720p ideal, echo cancellation, noise suppression)
 - **Native incoming call UI on caretaker phone** -- full-screen notification over lock screen with ringtone, vibration, caller photo, and Accept/Decline buttons (same behavior as WhatsApp or a phone call)
 - Missed call handling with "no answer" state on tablet; backend sends `call:ended` (reason: `missed`) to both parties on 30s ring timeout, kiosk returns to idle and can receive new calls
