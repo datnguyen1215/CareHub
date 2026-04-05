@@ -144,6 +144,12 @@ const handleCallInitiate = async (
       callId: session.id,
       reason: 'missed',
     })
+    // Notify kiosk device so it returns to idle
+    broadcastToDevice(deviceId, {
+      type: 'call:ended',
+      callId: session.id,
+      reason: 'missed',
+    })
   })
 
   // Confirm to caller that call is ringing
