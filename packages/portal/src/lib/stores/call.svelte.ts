@@ -734,6 +734,9 @@ async function recoverLocalStream(): Promise<void> {
 			for (const sender of senders) {
 				const oldTrack = sender.track;
 				if (!oldTrack) continue;
+				// Skip video sender if screen sharing — replacing the screen track
+				// with a camera track would silently break the active screen share.
+				if (oldTrack.kind === 'video' && callState.isScreenSharing) continue;
 				const replacement = newTracks.find(
 					(t) => t.kind === oldTrack.kind
 				);

@@ -86,7 +86,7 @@
 	const isConnected = $derived(status === 'connected');
 	const isFailed = $derived(status === 'failed');
 	const isEnded = $derived(status === 'ended');
-	const controlsDisabled = $derived(status === 'initiating' || status === 'connecting');
+	const controlsDisabled = $derived(status === 'initiating' || status === 'ringing' || status === 'connecting');
 
 	// Status display text
 	const statusText = $derived.by(() => {
