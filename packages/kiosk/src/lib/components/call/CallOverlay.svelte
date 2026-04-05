@@ -54,7 +54,7 @@
 		localStream={callState.localStream}
 		remoteStream={callState.remoteStream}
 		duration={callState.duration}
-			isRemoteScreenSharing={callState.isRemoteScreenSharing}
+		isRemoteScreenSharing={callState.isRemoteScreenSharing}
 	/>
 {:else if callState.status === 'ended' && callState.error}
 	<PermissionError error={callState.error} />
