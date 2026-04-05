@@ -62,7 +62,7 @@ Styles are implemented with Tailwind CSS within the SvelteKit portal package. Mo
 ### Toast Notifications
 
 - Store logic shared between portal and kiosk via `createToastStore()` in `@carehub/shared/ui/toast`
-- **Portal:** Positioned at bottom of screen, above bottom navigation (z-index 40), compact sizing
+- **Portal:** Positioned at bottom of screen, above modals (z-index 60), compact sizing
 - **Kiosk:** Positioned at top of screen, large sizing for tablet touch targets
 - Five types: success (green), error (red), warning (amber), info (blue), destructive (red)
 - Auto-dismiss timers: success 3s, info 5s, warning 5s, destructive 3s, error 10s

@@ -97,7 +97,7 @@ All main pages (home, profiles, devices, settings) are wrapped by `src/routes/(a
 
 1. `TopBar` — Fixed top bar with "CareHub" title and user avatar. Avatar fetches `GET /api/users/me` and displays the user's initial. Tapping navigates to `/settings`.
 2. `<main>` — Page content with top and bottom padding to clear the fixed bars.
-3. `Toast` — Toast notification component positioned above bottom navigation (z-index 40) to display success, error, and destructive messages. Backed by shared `createToastStore()` from `@carehub/shared/ui/toast` with portal-specific styling (bottom position, compact sizing). Success/destructive toasts auto-dismiss after 3 seconds; error toasts auto-dismiss after 10 seconds.
+3. `Toast` — Toast notification component positioned above bottom navigation (z-index 60) to display success, error, and destructive messages. Backed by shared `createToastStore()` from `@carehub/shared/ui/toast` with portal-specific styling (bottom position, compact sizing). Success/destructive toasts auto-dismiss after 3 seconds; error toasts auto-dismiss after 10 seconds.
 4. `BottomNav` — Fixed bottom navigation with four tabs. Active tab is highlighted with primary blue using the `$page` store. Tabs: Home (`/`), Profiles (`/profiles`), Devices (`/devices`), Settings (`/settings`).
 
 Unhandled route errors are caught by `+error.svelte`, which displays a user-friendly error page with "Go back" and "Go home" recovery actions. Error messages are contextualized by HTTP status code (404, 403, 401, 5xx). The raw error message is shown in a styled code block when it differs from the generic message.
