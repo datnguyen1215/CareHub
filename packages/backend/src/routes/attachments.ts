@@ -86,12 +86,7 @@ attachmentsRouter.post(
 
       try {
         const profileId = req.params['profileId'] as string
-        const { event_id, journal_id, category, description } = req.body as {
-          event_id?: string | null
-          journal_id?: string | null
-          category: string
-          description?: string | null
-        }
+        const { event_id, journal_id, category, description } = bodyResult.data
 
         // Check profile access
         const profile = await canAccessProfile(req.user!.userId, profileId)
@@ -147,7 +142,7 @@ attachmentsRouter.post(
             journal_id: journal_id || null,
             file_url: fileUrl,
             description: description?.trim() || null,
-            category: category as AttachmentCategory,
+            category,
           })
           .returning()
 
