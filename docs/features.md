@@ -129,10 +129,11 @@ Detailed feature breakdown organized by area. See [phases.md](phases.md) for imp
 
 ### AI Processing
 
-- OCR text extraction at upload time (Google Vision API)
-- Auto-generated descriptions based on OCR content
+- OCR text extraction at upload time (Google Vision API), with 60-second timeout — on timeout, attachment is saved without OCR text
+- Auto-generated descriptions based on OCR content, with 30-second timeout — on timeout, attachment is saved without description
 - Auto-categorization: lab results, prescriptions, insurance, billing, imaging, other
 - Extracted text stored for full-text search
+- Timeouts prevent indefinite blocking; timed-out steps are skipped with a warning log, attachment still saved with partial results
 
 ### Documents Tab
 
