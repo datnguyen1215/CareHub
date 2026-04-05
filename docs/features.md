@@ -297,6 +297,7 @@ Detailed feature breakdown organized by area. See [phases.md](phases.md) for imp
 - Multi-tab signal isolation: only the tab that initiated a call processes signaling messages; other idle tabs silently ignore `call:ringing`, `call:accepted`, `call:answer`, and `call:ice-candidate` messages broadcast to all user connections
 - Fallback through TURN relay if direct peer connection fails
 - Connection quality indicator
+- Setup timeout: if ICE negotiation stalls in the `connecting` state, the call automatically fails after 15 seconds (`CALL_SETUP_TIMEOUT_MS`) with a user-friendly error message and retry option
 - High-priority FCM ensures notifications delivered even when app is closed or device is in Doze mode
 - Foreground service keeps active calls alive on both caretaker phone and tablet
 - Tablet Lock Task Mode prevents accidental exit during or between calls

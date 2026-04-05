@@ -484,6 +484,7 @@ Both Portal and Kiosk use hierarchical state machines (via `@datnguyen1215/hsmjs
 
 - Top-level states: `idle → initiating → signaling → connecting → connected → ending → idle`
 - Failed states branch from `connecting` or `connected` to `failed → idle`
+- `connecting` state has a setup timeout (`CALL_SETUP_TIMEOUT_MS`, 15s) that transitions to `failed` if ICE negotiation stalls
 
 **Signaling Sub-States:**
 
@@ -511,7 +512,7 @@ Both Portal and Kiosk use hierarchical state machines (via `@datnguyen1215/hsmjs
 - SDP: `OFFER_CREATED`, `OFFER_RECEIVED`, `ANSWER_CREATED`, `ANSWER_RECEIVED`
 - ICE: `ICE_CANDIDATE`, `ICE_CONNECTED`, `ICE_DISCONNECTED`, `ICE_FAILED`
 - Media: `LOCAL_STREAM_READY`, `REMOTE_STREAM_READY`, `MEDIA_ERROR`
-- Internal: `CLEANUP_COMPLETE`
+- Internal: `CLEANUP_COMPLETE`, `SETUP_TIMEOUT`
 
 **Context:**
 
