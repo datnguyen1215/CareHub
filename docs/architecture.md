@@ -319,7 +319,7 @@ Tablet push notifications, device status monitoring, and video call signaling al
 
 - `packages/backend/src/websocket/handlers/device.ts` - Device heartbeat, status updates
 - `packages/backend/src/websocket/handlers/user.ts` - User connection with JWT authentication, heartbeat ping/pong support
-- `packages/backend/src/websocket/handlers/call.ts` - Call signaling (offer/answer/ICE)
+- `packages/backend/src/websocket/handlers/call.ts` - Call signaling (offer/answer/ICE/screen-share)
 
 **Events (Server → Kiosk):**
 
@@ -333,6 +333,7 @@ Tablet push notifications, device status monitoring, and video call signaling al
 - `call:offer` - SDP offer from user (WebRTC)
 - `call:answer` - SDP answer from device (WebRTC)
 - `call:ice-candidate` - ICE candidate for WebRTC connection
+- `call:screen-share` - Screen share state change from portal (active/inactive)
 
 **Events (Kiosk → Server):**
 
@@ -351,6 +352,7 @@ Tablet push notifications, device status monitoring, and video call signaling al
 - `call:offer` - SDP offer to device (WebRTC)
 - `call:ice-candidate` - ICE candidate for WebRTC connection
 - `call:ended` - User ends call
+- `call:screen-share` - Screen share state change (portal-only, forwarded to device)
 
 **Call Flow:**
 

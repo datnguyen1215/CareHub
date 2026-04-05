@@ -9,6 +9,7 @@ import type {
   CallOfferMessage,
   CallAnswerMessage,
   IceCandidateMessage,
+  ScreenShareStateMessage,
 } from '@carehub/shared'
 import type { ClientType } from './clients'
 
@@ -56,6 +57,7 @@ export type UserMessage =
   | CallEndedMessage
   | CallOfferMessage
   | IceCandidateMessage
+  | ScreenShareStateMessage
 
 /** Authenticated WebSocket message wrapper — includes sender info */
 export interface AuthenticatedWsMessage<T extends SignalingMessage = SignalingMessage> {
@@ -89,4 +91,5 @@ export type {
   CallOfferMessage,
   CallAnswerMessage,
   IceCandidateMessage,
+  ScreenShareStateMessage,
 }

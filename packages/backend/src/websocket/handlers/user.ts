@@ -50,6 +50,7 @@ export const handleUserConnection = (ws: WebSocket, userId: string): void => {
         case 'call:ended':
         case 'call:offer':
         case 'call:ice-candidate':
+        case 'call:screen-share':
           await handleCallMessage(ws, userId, 'user', message)
           break
 
