@@ -5,6 +5,7 @@
 import OpenAI from 'openai'
 import type { AIService, DescriptionResult, DocumentCategory } from './types'
 import { logger } from '../logger'
+import { env } from '../../config/env'
 
 const VALID_CATEGORIES: DocumentCategory[] = [
   'lab_result',
@@ -37,7 +38,7 @@ export class OpenAIService implements AIService {
       const truncatedText = ocrText.slice(0, 4000)
 
       const response = await this.client.chat.completions.create({
-        model: 'gpt-4o-mini',
+        model: env.OPENAI_MODEL,
         messages: [
           { role: 'system', content: SYSTEM_PROMPT },
           { role: 'user', content: `OCR Text:\n${truncatedText}` },

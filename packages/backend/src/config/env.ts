@@ -55,6 +55,8 @@ export const env = {
   AI_PROVIDER: optionalEnv('AI_PROVIDER', 'fallback'), // 'openai', 'anthropic', or 'fallback'
   OPENAI_API_KEY: optionalEnv('OPENAI_API_KEY', ''),
   ANTHROPIC_API_KEY: optionalEnv('ANTHROPIC_API_KEY', ''),
+  OPENAI_MODEL: optionalEnv('OPENAI_MODEL', 'gpt-4o-mini'),
+  ANTHROPIC_MODEL: optionalEnv('ANTHROPIC_MODEL', 'claude-3-haiku-20240307'),
 } as const
 
 export type Env = typeof env
