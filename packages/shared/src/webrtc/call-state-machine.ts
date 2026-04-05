@@ -12,6 +12,7 @@
  */
 
 import { createMachine, assign } from '@datnguyen1215/hsmjs'
+import { logger } from '../logger.js'
 import type { CallParticipant, CallEndReason, IceCandidate } from './types.js'
 
 /** Call state names - top level */
@@ -117,7 +118,7 @@ export const initialCallContext: CallContext = {
  */
 export function logTransition(oldState: string, newState: string, event: string): void {
   const timestamp = new Date().toISOString()
-  console.log(`[Call:${timestamp}] ${oldState} -> ${newState} (trigger: ${event})`)
+  logger.debug(`[Call:${timestamp}] ${oldState} -> ${newState} (trigger: ${event})`)
 }
 
 /**
@@ -126,7 +127,7 @@ export function logTransition(oldState: string, newState: string, event: string)
 export function logWebRTCEvent(eventType: string, details?: string): void {
   const timestamp = new Date().toISOString()
   const message = details ? `${eventType}: ${details}` : eventType
-  console.log(`[Call:WebRTC:${timestamp}] ${message}`)
+  logger.debug(`[Call:WebRTC:${timestamp}] ${message}`)
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

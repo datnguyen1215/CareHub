@@ -1,7 +1,7 @@
 /** WebSocket service for real-time communication. */
 
 import { getDeviceCredentials } from './storage'
-import { buildWsUrl, parseMessage, createFixedReconnectStrategy } from '@carehub/shared'
+import { buildWsUrl, parseMessage, createFixedReconnectStrategy, logger } from '@carehub/shared'
 import type {
 	IceCandidate,
 	CallIncomingMessage,
@@ -60,7 +60,7 @@ async function getWsUrl(): Promise<string | null> {
 export async function connect(): Promise<void> {
 	const url = await getWsUrl();
 	if (!url) {
-		console.warn('Cannot connect WebSocket: no device credentials');
+		logger.warn('Cannot connect WebSocket: no device credentials');
 		return;
 	}
 
@@ -73,7 +73,7 @@ export async function connect(): Promise<void> {
 		ws = new WebSocket(url);
 
 		ws.onopen = () => {
-			console.log('WebSocket connected');
+			logger.debug('WebSocket connected');
 			isConnected = true;
 			startHeartbeat();
 		};
@@ -88,7 +88,7 @@ export async function connect(): Promise<void> {
 		}
 
 		ws.onclose = (event) => {
-			console.log('WebSocket closed:', event.code, event.reason);
+			logger.debug('WebSocket closed:', event.code, event.reason);
 			isConnected = false;
 			stopHeartbeat();
 			scheduleReconnect();
@@ -98,7 +98,7 @@ export async function connect(): Promise<void> {
 			console.error('WebSocket error:', err);
 		};
 	} catch (err) {
-		console.error('Failed to create WebSocket:', err);
+		logger.error('Failed to create WebSocket:', err);
 		scheduleReconnect();
 	}
 }
