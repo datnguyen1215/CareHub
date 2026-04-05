@@ -22,7 +22,14 @@
 	});
 
 	onDestroy(() => {
-		stopScanner();
+		if (scanner && isScanning) {
+			// Fire-and-forget: scanner.stop() is async but onDestroy doesn't support await.
+			// Null out references synchronously to prevent double-stop.
+			const scannerRef = scanner;
+			scanner = null;
+			isScanning = false;
+			scannerRef.stop().catch(() => {});
+		}
 	});
 
 	async function startScanner() {
