@@ -312,7 +312,7 @@ Tablet push notifications, device status monitoring, and video call signaling al
 
 - `packages/backend/src/websocket/clients.ts` - Central registry with key format `device:{id}` or `user:{id}`
 - Devices: single connection per device
-- Users: multiple connections supported (multi-tab browser sessions)
+- Users: multiple connections supported (multi-tab browser sessions); `broadcastToUser()` sends to all user connections, so each tab must filter signals based on its own call state
 - Functions: `broadcastToDevice()`, `broadcastToUser()`, `isDeviceConnected()`, `isUserConnected()`
 
 **Message Handlers:**
@@ -448,6 +448,7 @@ The portal operates as the caller (initiator) in all video calls:
 - Call duration counter via shared `createDurationTimer()` (updates every second when connected)
 - Mute and video toggle controls
 - WebSocket signaling integration (ICE candidates, SDP exchange)
+- **Multi-tab signal isolation** — `handleIncomingSignal()` returns early when `callState.status === 'idle'`; only the tab that called `initiateCall()` (which transitions to `'initiating'` synchronously) is non-idle when signaling messages arrive via WebSocket, so other open tabs silently ignore them
 - Error messages via shared `getUserFriendlyError()`
 - Top-level state parsing via shared `getTopLevelState()`
 - Automatic cleanup on call end or error

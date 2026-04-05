@@ -294,6 +294,7 @@ Detailed feature breakdown organized by area. See [phases.md](phases.md) for imp
 - Heartbeat keep-alive: ping every 25 seconds, dead connection detected within 30 seconds (5s pong timeout)
 - Message queue: signaling messages buffered during disconnection (max 50 messages, 30s TTL), flushed on reconnect
 - Tab visibility handling: detects when browser tab is hidden during a call; on return, verifies WebSocket health and recovers dead media streams by re-acquiring and replacing tracks
+- Multi-tab signal isolation: only the tab that initiated a call processes signaling messages; other idle tabs silently ignore `call:ringing`, `call:accepted`, `call:answer`, and `call:ice-candidate` messages broadcast to all user connections
 - Fallback through TURN relay if direct peer connection fails
 - Connection quality indicator
 - High-priority FCM ensures notifications delivered even when app is closed or device is in Doze mode
