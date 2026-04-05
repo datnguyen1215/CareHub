@@ -23,6 +23,7 @@ import type {
   CallOfferMessage,
   CallAnswerMessage,
   IceCandidateMessage,
+  ScreenShareStateMessage,
 } from '../types'
 
 /**
@@ -61,6 +62,10 @@ export const handleCallMessage = async (
 
     case 'call:ice-candidate':
       await handleIceCandidate(ws, senderId, senderType, message)
+      break
+
+    case 'call:screen-share':
+      await handleScreenShare(ws, senderId, senderType, message)
       break
 
     default:
@@ -417,6 +422,56 @@ const handleIceCandidate = async (
       candidate,
     })
   }
+}
+
+/**
+ * Handle screen share state change from portal (caller) to kiosk.
+ * Only the user (portal) can send this message; devices are ignored.
+ */
+const handleScreenShare = async (
+  ws: WebSocket,
+  senderId: string,
+  senderType: ClientType,
+  message: ScreenShareStateMessage
+): Promise<void> => {
+  const { callId, active } = message
+
+  logger.debug({ callId, senderId, senderType, active }, 'Received screen share state')
+
+  // Only portal can initiate screen share
+  if (senderType !== 'user') {
+    logger.warn({ callId, senderId, senderType }, 'Screen share ignored — only portal can share screen')
+    return
+  }
+
+  // Get call session
+  const session = await getCallSession(callId)
+  if (!session) {
+    sendError(ws, callId, 'Invalid call session')
+    return
+  }
+
+  // Validate sender is the caller
+  if (session.callerUserId !== senderId) {
+    logger.warn({ callId, senderId }, 'Unauthorized screen share attempt')
+    return
+  }
+
+  // Validate call is in connected state
+  if (session.status !== 'connected') {
+    logger.warn(
+      { callId, senderId, status: session.status },
+      'Screen share ignored — call not connected'
+    )
+    return
+  }
+
+  // Forward to device
+  broadcastToDevice(session.calleeDeviceId, {
+    type: 'call:screen-share',
+    callId,
+    active,
+  })
 }
 
 /**

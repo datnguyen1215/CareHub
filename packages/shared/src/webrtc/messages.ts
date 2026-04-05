@@ -62,6 +62,13 @@ export interface IceCandidateMessage {
   candidate: IceCandidate
 }
 
+/** Screen share state change from portal (caller) to kiosk */
+export interface ScreenShareStateMessage {
+  type: 'call:screen-share'
+  callId: string
+  active: boolean
+}
+
 /** Error during call setup */
 export interface CallErrorMessage {
   type: 'call:error'
@@ -80,4 +87,5 @@ export type SignalingMessage =
   | CallOfferMessage
   | CallAnswerMessage
   | IceCandidateMessage
+  | ScreenShareStateMessage
   | CallErrorMessage

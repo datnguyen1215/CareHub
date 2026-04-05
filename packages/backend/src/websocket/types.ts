@@ -9,6 +9,7 @@ import type {
   CallOfferMessage,
   CallAnswerMessage,
   IceCandidateMessage,
+  ScreenShareStateMessage,
 } from '@carehub/shared'
 import type { ClientType } from './clients'
 
@@ -89,4 +90,5 @@ export type {
   CallOfferMessage,
   CallAnswerMessage,
   IceCandidateMessage,
+  ScreenShareStateMessage,
 }
