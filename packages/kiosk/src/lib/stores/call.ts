@@ -23,6 +23,7 @@ import {
 	logWebRTCEvent,
 	type CallContext
 } from '@carehub/shared/webrtc/call-state-machine';
+import { CALL_SETUP_TIMEOUT_MS } from '@carehub/shared';
 import {
 	setCallHandlers,
 	sendCallAccepted,
@@ -74,6 +75,9 @@ let callState: CallState = { ...initialState };
  */
 let storedLocalStream: MediaStream | null = null;
 let storedRemoteStream: MediaStream | null = null;
+
+/** Setup timeout timer for ICE connection establishment */
+let setupTimerId: ReturnType<typeof setTimeout> | null = null;
 
 /** Duration timer from shared package */
 const durationTimer = createDurationTimer((seconds) => {
@@ -349,6 +353,21 @@ function createCallMachine() {
 			stopDurationTimer();
 		},
 
+		startSetupTimer: () => {
+			if (setupTimerId) clearTimeout(setupTimerId);
+			setupTimerId = setTimeout(() => {
+				machine?.send(CALL_EVENTS.SETUP_TIMEOUT);
+			}, CALL_SETUP_TIMEOUT_MS);
+			logWebRTCEvent('Timer', `Setup timeout started (${CALL_SETUP_TIMEOUT_MS}ms)`);
+		},
+
+		clearSetupTimer: () => {
+			if (setupTimerId) {
+				clearTimeout(setupTimerId);
+				setupTimerId = null;
+			}
+		},
+
 		// Call end actions
 		sendCallEnded: ({ context }: { context: CallContext }) => {
 			if (context.callId) {
@@ -361,6 +380,11 @@ function createCallMachine() {
 		cleanup: () => {
 			logWebRTCEvent('Action', 'Cleaning up WebRTC resources');
 			webrtc.cleanup();
+			// Clear setup timeout timer
+			if (setupTimerId) {
+				clearTimeout(setupTimerId);
+				setupTimerId = null;
+			}
 			queueMicrotask(() => {
 				machine?.send(CALL_EVENTS.CLEANUP_COMPLETE);
 			});

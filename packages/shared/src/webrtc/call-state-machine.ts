@@ -70,6 +70,7 @@ export const CALL_EVENTS = {
 
   // Internal
   CLEANUP_COMPLETE: 'CLEANUP_COMPLETE',
+  SETUP_TIMEOUT: 'SETUP_TIMEOUT',
 } as const
 
 /** Context shared by both caller and callee state machines */
@@ -244,7 +245,8 @@ export function createCallerMachineConfig(): MachineConfigAny {
         },
       },
       connecting: {
-        entry: ['logEnterConnecting', 'flushPendingIceCandidates'],
+        entry: ['logEnterConnecting', 'flushPendingIceCandidates', 'startSetupTimer'],
+        exit: ['clearSetupTimer'],
         on: {
           ICE_CONNECTED: {
             target: 'connected',
@@ -253,6 +255,10 @@ export function createCallerMachineConfig(): MachineConfigAny {
           ICE_FAILED: {
             target: 'failed',
             actions: ['assignIceFailedError', 'logTransition'],
+          },
+          SETUP_TIMEOUT: {
+            target: 'failed',
+            actions: ['assignSetupTimeoutError', 'logTransition'],
           },
           ICE_CANDIDATE: {
             target: 'connecting',
@@ -412,7 +418,8 @@ export function createCalleeMachineConfig(): MachineConfigAny {
         },
       },
       connecting: {
-        entry: ['logEnterConnecting', 'flushPendingIceCandidates'],
+        entry: ['logEnterConnecting', 'flushPendingIceCandidates', 'startSetupTimer'],
+        exit: ['clearSetupTimer'],
         on: {
           ICE_CONNECTED: {
             target: 'connected',
@@ -421,6 +428,10 @@ export function createCalleeMachineConfig(): MachineConfigAny {
           ICE_FAILED: {
             target: 'failed',
             actions: ['assignIceFailedError', 'logTransition'],
+          },
+          SETUP_TIMEOUT: {
+            target: 'failed',
+            actions: ['assignSetupTimeoutError', 'logTransition'],
           },
           ICE_CANDIDATE: {
             target: 'connecting',
@@ -512,6 +523,9 @@ export const sharedAssignActions = {
   }),
   assignIceFailedError: assign({
     error: () => 'Connection failed. Please check your network and try again.',
+  }),
+  assignSetupTimeoutError: assign({
+    error: () => 'Could not connect. Please check your network and try again.',
   }),
   assignDisconnectedError: assign({
     error: () => 'Connection lost',

@@ -346,12 +346,13 @@ From the profile detail page (`/profiles/:id`):
 11. Device accepts call → Portal state machine transitions to signaling.creatingOffer and creates SDP offer
 12. After offer sent, state transitions to signaling.exchangingIce then connecting
 13. CallModal shows "Connecting..." during connecting state while ICE negotiation occurs
-14. ICE connection established → State machine transitions to connected
-15. CallModal displays remote video stream from device (full screen) and local video preview (picture-in-picture corner)
-16. Controls available: mute/unmute audio (M key), toggle video (V key), end call (Escape key)
-17. Call duration counter displays in MM:SS format in status bar
-18. Tap "End Call" button or press Escape → State machine transitions to ending, WebSocket sends `call:ended`, connection closes, modal closes
-19. If call fails or is declined, state transitions to failed, error message displays with "Try Again" (if retryable) or "Close" button
-20. If device is offline, Call button is disabled (grayed out)
-21. If a call is already in progress, Call button is disabled
-22. Alternative from profile detail: tap "📞 Call" on device card in Profile Overview tab to initiate call
+14. If ICE connection is not established within 15 seconds, state machine transitions to failed with error "Could not connect. Please check your network and try again." and a retry option
+15. ICE connection established → State machine transitions to connected
+16. CallModal displays remote video stream from device (full screen) and local video preview (picture-in-picture corner)
+17. Controls available: mute/unmute audio (M key), toggle video (V key), end call (Escape key)
+18. Call duration counter displays in MM:SS format in status bar
+19. Tap "End Call" button or press Escape → State machine transitions to ending, WebSocket sends `call:ended`, connection closes, modal closes
+20. If call fails or is declined, state transitions to failed, error message displays with "Try Again" (if retryable) or "Close" button
+21. If device is offline, Call button is disabled (grayed out)
+22. If a call is already in progress, Call button is disabled
+23. Alternative from profile detail: tap "📞 Call" on device card in Profile Overview tab to initiate call
