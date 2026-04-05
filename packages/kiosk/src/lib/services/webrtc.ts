@@ -55,10 +55,10 @@ export function createPeerConnection(): RTCPeerConnection {
 		}
 	};
 
-	// Handle connection state changes
-	peerConnection.onconnectionstatechange = () => {
+	// Handle ICE connection state changes
+	peerConnection.oniceconnectionstatechange = () => {
 		if (peerConnection && connectionStateHandler) {
-			connectionStateHandler(peerConnection.connectionState);
+			connectionStateHandler(peerConnection.iceConnectionState);
 		}
 	};
 
@@ -72,7 +72,7 @@ export function closePeerConnection(): void {
 	if (peerConnection) {
 		peerConnection.onicecandidate = null;
 		peerConnection.ontrack = null;
-		peerConnection.onconnectionstatechange = null;
+		peerConnection.oniceconnectionstatechange = null;
 		cleanupPeerConnection(peerConnection);
 		peerConnection = null;
 	}
@@ -80,10 +80,10 @@ export function closePeerConnection(): void {
 
 /**
  * Get current peer connection state.
- * @returns {RTCPeerConnectionState | null} Current state or null if no connection
+ * @returns {RTCIceConnectionState | null} Current state or null if no connection
  */
-export function getPeerConnectionState(): RTCPeerConnectionState | null {
-	return peerConnection?.connectionState ?? null;
+export function getPeerConnectionState(): RTCIceConnectionState | null {
+	return peerConnection?.iceConnectionState ?? null;
 }
 
 /**
