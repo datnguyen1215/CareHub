@@ -30,6 +30,7 @@ export type CallerSignalingState = 'waitingForAccept' | 'creatingOffer' | 'excha
 /** Signaling sub-states for callee */
 export type CalleeSignalingState =
   | 'incoming'
+  | 'acquiringMedia'
   | 'waitingForOffer'
   | 'creatingAnswer'
   | 'exchangingIce'
@@ -378,13 +379,8 @@ export function createCalleeMachineConfig(): MachineConfigAny {
             entry: ['logEnterIncoming'],
             on: {
               ACCEPT: {
-                target: 'waitingForOffer',
-                actions: [
-                  'acquireLocalMedia',
-                  'createPeerConnection',
-                  'sendCallAccepted',
-                  'logTransition',
-                ],
+                target: 'acquiringMedia',
+                actions: ['logTransition'],
               },
               DECLINE: {
                 target: '#calleeCall.ending',
@@ -392,17 +388,27 @@ export function createCalleeMachineConfig(): MachineConfigAny {
               },
             },
           },
-          waitingForOffer: {
-            entry: ['logEnterWaitingForOffer'],
+          acquiringMedia: {
+            entry: ['logEnterAcquiringMedia', 'acquireLocalMedia'],
             on: {
               LOCAL_STREAM_READY: {
                 target: 'waitingForOffer',
-                actions: ['assignLocalStream'],
+                actions: [
+                  'assignLocalStream',
+                  'createPeerConnection',
+                  'sendCallAccepted',
+                  'logTransition',
+                ],
               },
               MEDIA_ERROR: {
                 target: '#calleeCall.failed',
                 actions: ['assignError', 'sendCallEnded', 'logTransition'],
               },
+            },
+          },
+          waitingForOffer: {
+            entry: ['logEnterWaitingForOffer'],
+            on: {
               OFFER_RECEIVED: {
                 target: 'creatingAnswer',
                 actions: ['handleOffer', 'logTransition'],
