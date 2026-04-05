@@ -411,6 +411,7 @@ Common UI, WebRTC, and WebSocket logic is extracted into the shared package to a
 - `packages/shared/src/webrtc/error-utils.ts` — `getUserFriendlyError()` maps technical errors to user-friendly messages
 - `packages/shared/src/webrtc/call-utils.ts` — `createDurationTimer()` for call length tracking, `getTopLevelState()` for state machine state parsing
 - `packages/shared/src/websocket/connection.ts` — `buildWsUrl()` for protocol-aware WebSocket URL construction, `parseMessage()` for JSON message parsing, `createReconnectStrategy()` (exponential backoff) and `createFixedReconnectStrategy()` for reconnection
+- `packages/shared/src/logger.ts` — Lightweight structured logger with `debug`, `info`, `warn`, and `error` methods; `debug`/`info` silenced in production builds (checks `import.meta.env.DEV`), `warn`/`error` always log; used by all WebRTC, WebSocket, and call store code in both portal and kiosk
 
 **Kiosk WebRTC Implementation:**
 
@@ -444,7 +445,7 @@ The portal operates as the caller (initiator) in all video calls:
 - Signaling sub-states ensure proper sequencing (waitingForAccept → creatingOffer → exchangingIce)
 - **Connected sub-states** — `connected` is a hierarchical state with `stable` and `unstable` sub-states; `ICE_DISCONNECTED` transitions from `stable` to `unstable` and starts a 10-second reconnect timer (`RECONNECT_TIMEOUT_MS`); `ICE_CONNECTED` transitions back to `stable`; timer expiry transitions to `failed`
 - Guards prevent invalid transitions (e.g., sending ICE candidates before peer connection exists)
-- All state transitions logged with timestamps for debugging
+- All state transitions logged with timestamps for debugging (via shared `logger.debug()`, silenced in production)
 - Call only marked "connected" when ICE connection actually established
 - Pending ICE candidates queued and flushed when appropriate
 - Local and remote stream management (stream cleanup via shared utilities)
@@ -512,6 +513,7 @@ Both Portal and Kiosk use hierarchical state machines (via `@datnguyen1215/hsmjs
 
 **Logging:**
 
+- All logging uses the shared `logger` from `packages/shared/src/logger.ts` (`debug`/`info` silenced in production, `warn`/`error` always visible)
 - All state transitions logged with format: `[Call:TIMESTAMP] oldState → newState (trigger: eventName)`
 - WebRTC events logged: ICE state changes, connection state changes, SDP offer/answer
 - Signaling messages logged: sent/received with direction and type

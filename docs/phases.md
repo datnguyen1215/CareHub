@@ -98,7 +98,7 @@ Enable the tablet kiosk experience, Capacitor mobile app, and real-time communic
 - [x] **Error handling** -- getUserMedia errors, ICE failure detection, WebSocket disconnect
 - [x] **Layout integration** -- WebSocket connects on app mount, handlers auto-initialized
 - [x] **State machine guards** -- Prevent invalid transitions, queue ICE candidates before peer connection ready
-- [x] **Debug logging** -- All state transitions and WebRTC events logged with timestamps
+- [x] **Debug logging** -- All state transitions and WebRTC events logged with timestamps via shared `logger` (debug/info silenced in production, warn/error always visible)
 - [x] **Setup timeout** -- ICE negotiation in `connecting` state automatically fails after 15s (`CALL_SETUP_TIMEOUT_MS`) if connection stalls, with user-friendly error and retry option
 - [x] **ICE disconnected grace period** -- `connected` state uses hierarchical sub-states (`stable`/`unstable`); on `ICE_DISCONNECTED`, call enters `unstable` with a 10s reconnect timer (`RECONNECT_TIMEOUT_MS`); recovers to `stable` on `ICE_CONNECTED`, fails on timeout; prevents dropped calls on brief network blips
 - [x] **WebSocket heartbeat** -- Ping every 25 seconds with 5-second pong timeout; dead connections detected within 30 seconds

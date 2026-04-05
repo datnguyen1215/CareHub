@@ -14,7 +14,12 @@ import type {
 	IceCandidate,
 	ScreenShareStateMessage
 } from '@carehub/shared';
-import { getUserFriendlyError, getTopLevelState, createDurationTimer } from '@carehub/shared';
+import {
+	getUserFriendlyError,
+	getTopLevelState,
+	createDurationTimer,
+	logger
+} from '@carehub/shared';
 import {
 	createMachine,
 	createCalleeMachineConfig,
@@ -246,7 +251,7 @@ function createCallMachine() {
 				machine.send(CALL_EVENTS.LOCAL_STREAM_READY, { stream });
 			} catch (err) {
 				const error = err as Error;
-				console.error('Failed to get local media:', error);
+				logger.error('Failed to get local media:', error);
 				machine.send(CALL_EVENTS.MEDIA_ERROR, { error: error.message });
 			}
 		},
@@ -306,7 +311,7 @@ function createCallMachine() {
 				await webrtc.handleOffer(event.sdp);
 			} catch (err) {
 				const error = err as Error;
-				console.error('Failed to handle offer:', error);
+				logger.error('Failed to handle offer:', error);
 				machine.send(CALL_EVENTS.CALL_ERROR, { error: error.message });
 			}
 		},
@@ -320,7 +325,7 @@ function createCallMachine() {
 				machine.send(CALL_EVENTS.ANSWER_CREATED);
 			} catch (err) {
 				const error = err as Error;
-				console.error('Failed to create answer:', error);
+				logger.error('Failed to create answer:', error);
 				machine.send(CALL_EVENTS.CALL_ERROR, { error: error.message });
 			}
 		},
@@ -444,7 +449,7 @@ function handleIncomingCall(message: CallIncomingMessage): void {
 
 	// Guard: can only receive incoming call if idle
 	if (!machine.matches('idle')) {
-		console.warn('[Call] Ignoring incoming call: not in idle state');
+		logger.warn('[Call] Ignoring incoming call: not in idle state');
 		return;
 	}
 
@@ -465,7 +470,7 @@ async function handleCallOffer(message: CallOfferMessage): Promise<void> {
 
 	// Ignore messages for other calls
 	if (callState.callId !== message.callId) {
-		console.warn('[Call] Ignoring offer for different call');
+		logger.warn('[Call] Ignoring offer for different call');
 		return;
 	}
 
@@ -527,7 +532,7 @@ export async function acceptCall(): Promise<void> {
 
 	// Guard: can only accept in incoming state
 	if (!machine.matches('signaling.incoming')) {
-		console.warn('[Call] Cannot accept: not in incoming state');
+		logger.warn('[Call] Cannot accept: not in incoming state');
 		return;
 	}
 
@@ -544,7 +549,7 @@ export function declineCall(): void {
 
 	// Guard: can only decline in incoming state
 	if (!machine.matches('signaling.incoming')) {
-		console.warn('[Call] Cannot decline: not in incoming state');
+		logger.warn('[Call] Cannot decline: not in incoming state');
 		return;
 	}
 
@@ -561,7 +566,7 @@ export function endCall(): void {
 
 	// Guard: can only end if not already idle or ending
 	if (machine.matches('idle') || machine.matches('ending')) {
-		console.warn('[Call] Cannot end: already idle or ending');
+		logger.warn('[Call] Cannot end: already idle or ending');
 		return;
 	}
 

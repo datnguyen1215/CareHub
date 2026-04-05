@@ -6,7 +6,7 @@
  */
 
 import type { SignalingMessage } from '@carehub/shared';
-import { buildWsUrl, createReconnectStrategy, parseMessage } from '@carehub/shared';
+import { buildWsUrl, createReconnectStrategy, parseMessage, logger } from '@carehub/shared';
 import { getWsTicket } from '$lib/api';
 
 export type ConnectionState = 'connecting' | 'connected' | 'disconnected';
@@ -100,7 +100,7 @@ function startHeartbeat(): void {
 			}
 			// Start timeout — if no pong within window, force reconnect
 			heartbeatTimeoutId = setTimeout(() => {
-				console.warn('[WebSocket] Heartbeat timeout — no pong received');
+				logger.warn('[WebSocket] Heartbeat timeout — no pong received');
 				// Close will trigger onclose → scheduleReconnect
 				socket?.close(4000, 'Heartbeat timeout');
 			}, HEARTBEAT_TIMEOUT_MS);
@@ -148,7 +148,7 @@ function enqueueMessage(message: SignalingMessage): void {
 		// If incoming message is lower or equal priority to the drop candidate,
 		// drop the incoming message instead — it's not worth evicting something equal.
 		if (priority <= dropPriority) {
-			console.warn(
+			logger.warn(
 				'[WebSocket] Message queue full — dropping incoming message',
 				message.type
 			);
@@ -156,14 +156,18 @@ function enqueueMessage(message: SignalingMessage): void {
 		}
 
 		const dropped = pendingMessages.splice(dropIndex, 1)[0];
-		console.warn(
+		logger.warn(
 			'[WebSocket] Message queue full — dropping lowest-priority message',
 			dropped.message.type
 		);
 	}
 
 	pendingMessages.push({ message, queuedAt: Date.now() });
-	console.warn('[WebSocket] Message queued:', message.type, `(${pendingMessages.length}/${MAX_QUEUE_SIZE})`);
+	logger.debug(
+		'[WebSocket] Message queued:',
+		message.type,
+		`(${pendingMessages.length}/${MAX_QUEUE_SIZE})`
+	);
 }
 
 /**
@@ -177,7 +181,7 @@ function flushMessageQueue(): void {
 	const stale = pendingMessages.length - fresh.length;
 
 	if (stale > 0) {
-		console.warn(`[WebSocket] Discarding ${stale} stale message(s) from queue`);
+		logger.warn(`[WebSocket] Discarding ${stale} stale message(s) from queue`);
 	}
 
 	for (const entry of fresh) {
@@ -185,11 +189,11 @@ function flushMessageQueue(): void {
 		try {
 			socket.send(JSON.stringify(entry.message));
 		} catch (err) {
-			console.error('[WebSocket] Failed to send queued message:', err);
+			logger.error('[WebSocket] Failed to send queued message:', err);
 		}
 	}
 
-	console.log(`[WebSocket] Flushed ${fresh.length} queued message(s)`);
+	logger.debug(`[WebSocket] Flushed ${fresh.length} queued message(s)`);
 	pendingMessages = [];
 }
 
@@ -229,7 +233,7 @@ export async function connect(): Promise<void> {
 		const response = await getWsTicket();
 		ticket = response.ticket;
 	} catch (err) {
-		console.warn('[WebSocket] Failed to get auth ticket, user may not be logged in');
+		logger.warn('[WebSocket] Failed to get auth ticket, user may not be logged in');
 		connectionState = 'disconnected';
 		return;
 	}
@@ -239,14 +243,14 @@ export async function connect(): Promise<void> {
 	try {
 		socket = new WebSocket(url);
 	} catch (err) {
-		console.error('[WebSocket] Failed to create WebSocket:', err);
+		logger.error('[WebSocket] Failed to create WebSocket:', err);
 		connectionState = 'disconnected';
 		scheduleReconnect();
 		return;
 	}
 
 	socket.onopen = () => {
-		console.log('[WebSocket] Connected');
+		logger.debug('[WebSocket] Connected');
 		connectionState = 'connected';
 		reconnectAttempts = 0;
 		startHeartbeat();
@@ -262,7 +266,7 @@ export async function connect(): Promise<void> {
 
 		// Handle auth failure - redirect to login
 		if (event.code === CLOSE_AUTH_FAILED || event.code === CLOSE_INVALID_TICKET) {
-			console.warn('[WebSocket] Authentication failed, redirecting to login');
+			logger.warn('[WebSocket] Authentication failed, redirecting to login');
 			window.location.href = '/login';
 			return;
 		}
@@ -290,7 +294,7 @@ export async function connect(): Promise<void> {
 			return;
 		}
 
-		console.log('[WebSocket] Received:', message.type, message);
+		logger.debug('[WebSocket] Received:', message.type, message);
 		messageHandlers.forEach((handler) => handler(message));
 	};
 }
@@ -395,7 +399,7 @@ export function send(message: SignalingMessage): boolean {
 			socket.send(JSON.stringify(message));
 			return true;
 		} catch (err) {
-			console.error('[WebSocket] Failed to send message:', err);
+			logger.error('[WebSocket] Failed to send message:', err);
 			enqueueMessage(message);
 			return false;
 		}

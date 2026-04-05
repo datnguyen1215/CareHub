@@ -5,7 +5,12 @@
  */
 
 import type { SignalingMessage, CallEndReason, IceCandidate } from '@carehub/shared';
-import { getUserFriendlyError, getTopLevelState, createDurationTimer } from '@carehub/shared';
+import {
+  getUserFriendlyError,
+  getTopLevelState,
+  createDurationTimer,
+  logger
+} from '@carehub/shared';
 import {
 	createMachine,
 	createCallerMachineConfig,
@@ -397,7 +402,7 @@ export async function initiateCall(deviceId: string, deviceName: string): Promis
 
 	// Guard: can only initiate from idle state
 	if (!machine.matches('idle')) {
-		console.warn('[Call] Cannot initiate: not in idle state');
+		logger.warn('[Call] Cannot initiate: not in idle state');
 		return;
 	}
 
@@ -413,7 +418,7 @@ export function endCall(_reason: CallEndReason = 'completed'): void {
 
 	// Guard: can only end if not already idle or ending
 	if (machine.matches('idle') || machine.matches('ending')) {
-		console.warn('[Call] Cannot end: already idle or ending');
+		logger.warn('[Call] Cannot end: already idle or ending');
 		return;
 	}
 
@@ -553,7 +558,7 @@ export async function toggleScreenShare(): Promise<void> {
  * @param message - Signaling message from WebSocket
  */
 export async function handleIncomingSignal(message: SignalingMessage): Promise<void> {
-	console.log(
+	logger.debug(
 		'[Call] handleIncomingSignal:',
 		message.type,
 		'machine:',
@@ -573,7 +578,7 @@ export async function handleIncomingSignal(message: SignalingMessage): Promise<v
 		message.type !== 'call:ringing' &&
 		message.callId !== callState.sessionId
 	) {
-		console.log(
+		logger.debug(
 			'[Call] Ignoring message - callId mismatch:',
 			(message as { callId: string }).callId,
 			'!==',
