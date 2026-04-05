@@ -93,7 +93,7 @@ Enable the tablet kiosk experience, Capacitor mobile app, and real-time communic
 - [x] **WebRTC peer manager** -- Local media (720p, echo cancel), SDP negotiation, ICE gathering
 - [x] **Call state machine** -- Hierarchical state machine (@datnguyen1215/hsmjs) with guards, logging, and ICE candidate queueing
 - [x] **Call state store** -- State machine-based store with reactive UI state mapping
-- [x] **Call actions** -- `initiateCall()`, `endCall()`, `toggleMute()`, `toggleVideo()`
+- [x] **Call actions** -- `initiateCall()`, `endCall()`, `toggleMute()`, `toggleVideo()`, `toggleScreenShare()`
 - [x] **Signaling integration** -- WebSocket message routing, ICE candidate exchange
 - [x] **Error handling** -- getUserMedia errors, ICE failure detection, WebSocket disconnect
 - [x] **Layout integration** -- WebSocket connects on app mount, handlers auto-initialized

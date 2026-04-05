@@ -277,7 +277,8 @@ Detailed feature breakdown organized by area. See [phases.md](phases.md) for imp
   - Call status indicators: Calling → Ringing → Connecting → Connected
   - Remote video fills screen, local video in picture-in-picture corner
   - Duration timer in MM:SS format
-  - Mute (M key), video toggle (V key), end call (Escape key) controls
+  - Mute (M key), video toggle (V key), screen share (S key), end call (Escape key) controls
+  - Screen sharing via `getDisplayMedia()` — swaps camera track for screen capture using `replaceTrack()` (no renegotiation); green indicator when active; local PIP hidden during share; stopped automatically when call ends
   - Error messages with retry option for retryable errors
 - Elderly family member initiates call from tablet by tapping caretaker photo
 - Full-screen video display on tablet
