@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { send, disconnect, getPendingMessageCount } from '$lib/services/websocket';
+import { send, disconnect, getPendingMessageCount, getPendingMessageTypes } from '$lib/services/websocket';
 
 // Mock @carehub/shared to avoid pulling in state machine code that requires xstate
 vi.mock('@carehub/shared', () => ({
@@ -29,6 +29,8 @@ describe('WebSocket message queue priority', () => {
 		send(makeMessage('call:ringing'));
 
 		expect(getPendingMessageCount()).toBe(2);
+		const types = getPendingMessageTypes();
+		expect(types).toEqual(['call:initiate', 'call:ringing']);
 	});
 
 	it('preserves critical SDP offer over low-priority screen-share message', () => {
@@ -47,6 +49,11 @@ describe('WebSocket message queue priority', () => {
 
 		// Queue stays at MAX_QUEUE_SIZE (50) — one evicted, one added
 		expect(getPendingMessageCount()).toBe(50);
+
+		// Verify the offer is actually in the queue
+		const types = getPendingMessageTypes();
+		expect(types).toContain('call:offer');
+		expect(types.filter((t) => t === 'call:screen-share').length).toBe(49);
 	});
 
 	it('preserves critical ICE candidate over low-priority error message', () => {
@@ -59,6 +66,11 @@ describe('WebSocket message queue priority', () => {
 		// Send critical ICE candidate — should evict an error message
 		send(makeMessage('call:ice-candidate'));
 		expect(getPendingMessageCount()).toBe(50);
+
+		// Verify the ICE candidate is actually in the queue
+		const types = getPendingMessageTypes();
+		expect(types).toContain('call:ice-candidate');
+		expect(types.filter((t) => t === 'call:error').length).toBe(49);
 	});
 
 	it('drops incoming low-priority message when queue is full of same priority', () => {
@@ -74,6 +86,7 @@ describe('WebSocket message queue priority', () => {
 
 		// Queue should remain at 50 — incoming was dropped
 		expect(getPendingMessageCount()).toBe(50);
+		expect(getPendingMessageTypes().every((t) => t === 'call:screen-share')).toBe(true);
 	});
 
 	it('drops incoming normal-priority message when queue is full of normal+critical', () => {
@@ -90,6 +103,12 @@ describe('WebSocket message queue priority', () => {
 		// but incoming is priority 0 which is <= 1, so incoming is dropped
 		send(makeMessage('call:screen-share'));
 		expect(getPendingMessageCount()).toBe(50);
+
+		// Verify no screen-share was added
+		const types = getPendingMessageTypes();
+		expect(types).not.toContain('call:screen-share');
+		expect(types.filter((t) => t === 'call:offer').length).toBe(25);
+		expect(types.filter((t) => t === 'call:initiate').length).toBe(25);
 	});
 
 	it('evicts low-priority message when normal-priority message arrives at capacity', () => {
@@ -102,6 +121,11 @@ describe('WebSocket message queue priority', () => {
 		// Send normal-priority initiate — should evict an error (priority 0)
 		send(makeMessage('call:initiate'));
 		expect(getPendingMessageCount()).toBe(50);
+
+		// Verify the initiate is in the queue and one error was evicted
+		const types = getPendingMessageTypes();
+		expect(types).toContain('call:initiate');
+		expect(types.filter((t) => t === 'call:error').length).toBe(49);
 	});
 
 	it('handles rapid SDP offer/answer/ICE under queue pressure', () => {
@@ -125,6 +149,12 @@ describe('WebSocket message queue priority', () => {
 
 		// All critical messages should have been queued (evicting lower-priority ones)
 		expect(getPendingMessageCount()).toBe(50);
+
+		// Verify all critical messages are present in the queue
+		const types = getPendingMessageTypes();
+		expect(types).toContain('call:offer');
+		expect(types).toContain('call:answer');
+		expect(types).toContain('call:ice-candidate');
 	});
 
 	it('clears queue on disconnect', () => {
@@ -134,5 +164,6 @@ describe('WebSocket message queue priority', () => {
 
 		disconnect();
 		expect(getPendingMessageCount()).toBe(0);
+		expect(getPendingMessageTypes()).toEqual([]);
 	});
 });

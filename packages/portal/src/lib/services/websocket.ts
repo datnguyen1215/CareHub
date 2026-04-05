@@ -414,6 +414,14 @@ export function getPendingMessageCount(): number {
 }
 
 /**
+ * Returns a snapshot of pending message types in queue order.
+ * Intended for testing queue priority behavior.
+ */
+export function getPendingMessageTypes(): string[] {
+	return pendingMessages.map((entry) => entry.message.type);
+}
+
+/**
  * Subscribes to incoming messages.
  * @param handler - Function to call when message received
  * @returns Unsubscribe function
