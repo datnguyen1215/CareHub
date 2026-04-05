@@ -450,29 +450,31 @@ The portal operates as the caller (initiator) in all video calls:
 - Local and remote stream management (stream cleanup via shared utilities)
 - Call duration counter via shared `createDurationTimer()` (updates every second when connected)
 - Mute and video toggle controls
+- Screen share toggle via `getDisplayMedia()` with `replaceTrack()` (no renegotiation); original camera track saved for restoration; screen stream `ended` event handled for browser/OS stop; cleanup on call end
 - WebSocket signaling integration (ICE candidates, SDP exchange)
 - **Multi-tab signal isolation** — `handleIncomingSignal()` returns early when `callState.status === 'idle'`; only the tab that called `initiateCall()` (which transitions to `'initiating'` synchronously) is non-idle when signaling messages arrive via WebSocket, so other open tabs silently ignore them
 - Error messages via shared `getUserFriendlyError()`
 - Top-level state parsing via shared `getTopLevelState()` — `getTopLevelState('connected.unstable')` returns `'connected'`, so existing UI status mapping works without changes
 - Reconnect timer actions: `startReconnectTimer`, `clearReconnectTimer`, `logEnterUnstable`
 - Automatic cleanup on call end or error (clears both setup and reconnect timers)
-- **Tab visibility handling** — `visibilitychange` listener detects when the tab is hidden during an active call; on return to visible, checks WebSocket health (forces immediate reconnect if disconnected) and recovers dead local media streams by re-acquiring and replacing tracks on the peer connection
+- **Tab visibility handling** — `visibilitychange` listener detects when the tab is hidden during an active call; on return to visible, checks WebSocket health (forces immediate reconnect if disconnected) and recovers dead local media streams by re-acquiring and replacing tracks on the peer connection; video sender is skipped during recovery when screen sharing is active to prevent overwriting the screen track
 - **Direct import reactivity** — components import `callState` directly; Svelte 5 tracks `$state` dependencies automatically across module boundaries, no manual subscription needed
 
 **Call UI Components:**
 
 - `packages/portal/src/lib/components/call/CallModal.svelte` - Full-screen modal for active calls
   - Displays call status with appropriate UI for each state (initiating/ringing/connecting/connected/ended/failed)
-  - Remote video fills screen, local video in picture-in-picture corner
-  - Status bar shows device name, connection status, and duration timer (MM:SS format)
+  - Remote video fills screen, local video in picture-in-picture corner (hidden during screen share)
+  - Status bar shows device name, connection status, "Sharing screen" indicator, and duration timer (MM:SS format)
   - Error handling with retry option for retryable errors
   - Focus trap and Escape key to end call
   - Accessibility: keyboard navigation, screen reader announcements
 - `packages/portal/src/lib/components/call/CallControls.svelte` - Control buttons for active calls
   - Mute/unmute microphone (M key, shows red when muted)
   - Toggle video on/off (V key, shows red when off, hides local preview)
+  - Toggle screen share on/off (S key, shows green when sharing, Heroicons `computer-desktop` icon)
   - End call button (red background, Escape key)
-  - Controls disabled during initiating/connecting states
+  - Controls disabled during initiating/ringing/connecting states
   - Integrated into device detail page (`/devices/[id]`) via CallModal
 - `packages/kiosk/src/lib/components/call/CallOverlay.svelte` - Kiosk call overlay that dispatches to IncomingCall, CallScreen, or PermissionError based on state
   - Uses `subscribe()` for real-time state updates (no polling)
@@ -525,7 +527,7 @@ Both Portal and Kiosk use hierarchical state machines (via `@datnguyen1215/hsmjs
 
 **Context:**
 
-- Shared context between Portal and Kiosk includes: `callId`, `targetDeviceId`, `caller`, `profileId`, `localStream`, `remoteStream`, `startedAt`, `duration`, `error`, `endReason`, `isMuted`, `isVideoOff`, `pendingIceCandidates`, `isRemoteScreenSharing`
+- Shared context between Portal and Kiosk includes: `callId`, `targetDeviceId`, `caller`, `profileId`, `localStream`, `remoteStream`, `startedAt`, `duration`, `error`, `endReason`, `isMuted`, `isVideoOff`, `pendingIceCandidates`, `isScreenSharing`, `isRemoteScreenSharing`
 - Context is reset to initial state when returning to `idle` after cleanup
 
 ### Capacitor Native Apps

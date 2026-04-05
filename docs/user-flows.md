@@ -152,8 +152,9 @@ From the profile detail page (`/profiles/:id`):
 2. Device cards show status (online/offline), name, and type
 3. Tap the "Call" button on an online device card
 4. CallModal opens showing device name and "Calling…" status with animated dots
-5. After connection, mute and video toggle buttons become available
-6. Either party can end the call via the red end-call button
+5. After connection, mute, video toggle, and screen share buttons become available
+6. Tap the screen share button (or press S) to share your screen with the tablet; tap again to stop
+7. Either party can end the call via the red end-call button
 
 **From the profile detail page (`/profiles/:id`):**
 
@@ -351,13 +352,14 @@ From the profile detail page (`/profiles/:id`):
 14. If ICE connection is not established within 15 seconds, state machine transitions to failed with error "Could not connect. Please check your network and try again." and a retry option
 15. ICE connection established → State machine transitions to connected
 16. CallModal displays remote video stream from device (full screen) and local video preview (picture-in-picture corner)
-17. Controls available: mute/unmute audio (M key), toggle video (V key), end call (Escape key)
-18. Call duration counter displays in MM:SS format in status bar
-19. If network blips occur (WiFi handoff, momentary packet loss), ICE enters disconnected state but call does not immediately fail; a 10-second reconnect timer starts and the call recovers if ICE reconnects
-20. If the network interruption exceeds 10 seconds, the call transitions to failed with a "disconnected" error
-21. Tap "End Call" button or press Escape → State machine transitions to ending, WebSocket sends `call:ended`, connection closes, modal closes
-20. If call fails or is declined, state transitions to failed, error message displays with "Try Again" (if retryable) or "Close" button
-21. If device is offline, Call button is disabled (grayed out)
-22. If a call is already in progress, Call button is disabled
-23. Alternative from profile detail: tap "📞 Call" on device card in Profile Overview tab to initiate call
-24. During the call, the caretaker can share their screen; the kiosk switches to screen share display mode (full document visible, light gray background) with a "Screen shared by [name]" indicator; stopping screen share returns to normal video layout
+17. Controls available: mute/unmute audio (M key), toggle video (V key), screen share (S key), end call (Escape key)
+18. Screen share button (or S key) swaps camera for screen capture; local PIP hides during share; green indicator shows when active; screen share stops automatically if call ends
+19. Call duration counter displays in MM:SS format in status bar
+20. If network blips occur (WiFi handoff, momentary packet loss), ICE enters disconnected state but call does not immediately fail; a 10-second reconnect timer starts and the call recovers if ICE reconnects
+21. If the network interruption exceeds 10 seconds, the call transitions to failed with a "disconnected" error
+22. Tap "End Call" button or press Escape → State machine transitions to ending, WebSocket sends `call:ended`, connection closes, modal closes
+23. If call fails or is declined, state transitions to failed, error message displays with "Try Again" (if retryable) or "Close" button
+24. If device is offline, Call button is disabled (grayed out)
+25. If a call is already in progress, Call button is disabled
+26. Alternative from profile detail: tap "📞 Call" on device card in Profile Overview tab to initiate call
+27. During the call, the caretaker can share their screen; the kiosk switches to screen share display mode (full document visible, light gray background) with a "Screen shared by [name]" indicator; stopping screen share returns to normal video layout

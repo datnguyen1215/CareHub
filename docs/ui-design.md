@@ -174,7 +174,7 @@ Styles are implemented with Tailwind CSS within the SvelteKit portal package. Mo
 | `QRScanner.svelte`        | `src/lib/components/shared/` | Camera-based QR scanner using html5-qrcode with corner bracket overlay and manual code entry fallback                    |
 | `ProfileSelector.svelte`  | `src/lib/components/profiles/` | Checkbox list for selecting profiles with avatars                                                                        |
 | `CallModal.svelte`        | `src/lib/components/call/` | Full-screen modal for active video calls with local/remote video, call status, and controls                              |
-| `CallControls.svelte`     | `src/lib/components/call/` | Control buttons for mute, video toggle, and end call with keyboard shortcuts (M, V, Escape)                              |
+| `CallControls.svelte`     | `src/lib/components/call/` | Control buttons for mute, video toggle, screen share, and end call with keyboard shortcuts (M, V, S, Escape)            |
 
 ### Devices Page (`/devices`)
 
@@ -217,7 +217,8 @@ Styles are implemented with Tailwind CSS within the SvelteKit portal package. Mo
 - Call button shows "Calling..." text during initiating/ringing states
 - Clicking Call button initiates video call and opens full-screen CallModal
 - CallModal displays during active calls with call status, local/remote video streams, duration timer, and controls
-- CallControls provides mute (M key), video toggle (V key), and end call (Escape key) buttons
+- CallControls provides mute (M key), video toggle (V key), screen share (S key), and end call (Escape key) buttons
+- Screen share button uses green background when active, shows Heroicons `computer-desktop` icon, and is disabled during initiating/ringing/connecting states
 - Assigned Profiles section: grid of profile cards with remove (×) button, "+ Add" link
 - Danger Zone: "Unpair Device" button with confirmation modal
 
