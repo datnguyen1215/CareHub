@@ -601,6 +601,8 @@ Elderly users are energy-conscious and may expect the screen to be "off" when no
 
 Documents are processed through OCR immediately on upload. The extracted text is stored in the `ocr_text` column and indexed with PostgreSQL full-text search. This avoids runtime processing delays during search and keeps the search infrastructure simple.
 
+Both OCR extraction and AI description generation are wrapped with timeout guards (60s for OCR, 30s for AI) using a `withTimeout` helper that races the operation against a deadline. If a step times out, it is skipped with a warning log and the attachment is saved with partial results (e.g., no OCR text or no AI description). This prevents background processing tasks from blocking indefinitely on large/corrupt images or stalled API calls.
+
 ### QR Pairing with Expiring Tokens
 
 Tablet pairing uses a one-time token with a 5-minute expiry. The tablet displays the token as a QR code. The caretaker scans it with their phone camera from the portal. This avoids manual code entry and prevents stale pairing sessions.
