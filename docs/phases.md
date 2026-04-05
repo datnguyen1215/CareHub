@@ -102,7 +102,7 @@ Enable the tablet kiosk experience, Capacitor mobile app, and real-time communic
 - [x] **Setup timeout** -- ICE negotiation in `connecting` state automatically fails after 15s (`CALL_SETUP_TIMEOUT_MS`) if connection stalls, with user-friendly error and retry option
 - [x] **ICE disconnected grace period** -- `connected` state uses hierarchical sub-states (`stable`/`unstable`); on `ICE_DISCONNECTED`, call enters `unstable` with a 10s reconnect timer (`RECONNECT_TIMEOUT_MS`); recovers to `stable` on `ICE_CONNECTED`, fails on timeout; prevents dropped calls on brief network blips
 - [x] **WebSocket heartbeat** -- Ping every 25 seconds with 5-second pong timeout; dead connections detected within 30 seconds
-- [x] **Message queue** -- Signaling messages buffered during disconnection (max 50, 30s TTL), flushed on reconnect
+- [x] **Message queue** -- Signaling messages buffered during disconnection (max 50, 30s TTL), flushed on reconnect; priority-based eviction drops lowest-priority messages first (critical SDP/ICE preserved)
 - [x] **Tab visibility handling** -- Detects hidden tab during call; on return, forces immediate reconnect if WebSocket disconnected, recovers dead local media streams via track replacement
 - [x] **Backend ping/pong** -- User WebSocket handler supports `ping` messages and responds with `pong`
 - [x] **Race condition prevention** -- Old socket event handlers nulled before close to prevent stale events from corrupting new connections
