@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onDestroy, onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { listProfiles, pairDevice, type CareProfile, type Device } from '$lib/api';
 	import { getErrorMessage } from '$lib/utils/error-utils';
@@ -16,6 +16,7 @@
 	let loading = $state(false);
 	let error = $state('');
 	let pairedDevice = $state<Device | null>(null);
+	let redirectTimeout: ReturnType<typeof setTimeout>;
 
 	onMount(async () => {
 		try {
@@ -28,6 +29,10 @@
 			}
 			error = getErrorMessage(err, 'load profiles');
 		}
+	});
+
+	onDestroy(() => {
+		clearTimeout(redirectTimeout);
 	});
 
 	function handleScan(data: string) {
@@ -88,7 +93,7 @@
 			currentStep = 'success';
 
 			// Auto-redirect after 2 seconds
-			setTimeout(() => {
+			redirectTimeout = setTimeout(() => {
 				goto('/devices');
 			}, 2000);
 		} catch (err: unknown) {
