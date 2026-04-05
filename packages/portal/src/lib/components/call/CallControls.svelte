@@ -1,31 +1,44 @@
 <script lang="ts">
 	/**
 	 * Call control buttons for video call UI.
-	 * Provides mute, video toggle, and end call controls.
+	 * Provides mute, video toggle, screen share, and end call controls.
 	 */
 
 	interface Props {
 		isMuted: boolean
 		isVideoOff: boolean
+		isScreenSharing: boolean
 		disabled?: boolean
 		onToggleMute: () => void
 		onToggleVideo: () => void
+		onToggleScreenShare: () => void
 		onEndCall: () => void
 	}
 
-	let { isMuted, isVideoOff, disabled = false, onToggleMute, onToggleVideo, onEndCall }: Props =
-		$props()
+	let {
+		isMuted,
+		isVideoOff,
+		isScreenSharing,
+		disabled = false,
+		onToggleMute,
+		onToggleVideo,
+		onToggleScreenShare,
+		onEndCall
+	}: Props = $props()
 
 	function handleKeydown(e: KeyboardEvent) {
 		if (disabled) return
 
-		// Keyboard shortcuts: M for mute, V for video
+		// Keyboard shortcuts: M for mute, V for video, S for screen share
 		if (e.key === 'm' || e.key === 'M') {
 			e.preventDefault()
 			onToggleMute()
 		} else if (e.key === 'v' || e.key === 'V') {
 			e.preventDefault()
 			onToggleVideo()
+		} else if (e.key === 's' || e.key === 'S') {
+			e.preventDefault()
+			onToggleScreenShare()
 		}
 	}
 </script>
@@ -126,6 +139,36 @@
 				/>
 			</svg>
 		{/if}
+	</button>
+
+	<!-- Screen share button -->
+	<button
+		type="button"
+		onclick={onToggleScreenShare}
+		{disabled}
+		class="w-12 h-12 rounded-full flex items-center justify-center transition-all
+			{isScreenSharing
+			? 'bg-green-500 text-white hover:bg-green-600'
+			: 'bg-white/20 text-white hover:bg-white/30'}
+			disabled:opacity-50 disabled:cursor-not-allowed"
+		aria-label={isScreenSharing ? 'Stop sharing screen' : 'Share screen'}
+		aria-pressed={isScreenSharing}
+	>
+		<svg
+			xmlns="http://www.w3.org/2000/svg"
+			viewBox="0 0 24 24"
+			fill="currentColor"
+			class="w-6 h-6"
+		>
+			<path
+				fill-rule="evenodd"
+				d="M2.25 5.25a3 3 0 0 1 3-3h13.5a3 3 0 0 1 3 3v9a3 3 0 0 1-3 3h-3.75l-3 3-3-3H5.25a3 3 0 0 1-3-3v-9Zm3-.75a.75.75 0 0 0-.75.75v9c0 .414.336.75.75.75h3.964l.464.464 2.072 2.072 2.072-2.072.464-.464H18.75a.75.75 0 0 0 .75-.75v-9a.75.75 0 0 0-.75-.75H5.25Z"
+				clip-rule="evenodd"
+			/>
+			<path
+				d="M9.75 12a.75.75 0 1 1 0-1.5h4.5a.75.75 0 0 1 0 1.5h-4.5Z"
+			/>
+		</svg>
 	</button>
 
 	<!-- End call button -->

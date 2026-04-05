@@ -44,6 +44,7 @@ export interface CallState {
 	error: string | null;
 	isMuted: boolean;
 	isVideoOff: boolean;
+	isScreenSharing: boolean;
 }
 
 /** Initial call state */
@@ -58,7 +59,8 @@ const initialState: CallState = {
 	duration: 0,
 	error: null,
 	isMuted: false,
-	isVideoOff: false
+	isVideoOff: false,
+	isScreenSharing: false
 };
 
 /** Reactive call state using Svelte 5 runes */
@@ -347,6 +349,9 @@ function createCallMachine() {
 		// Cleanup actions
 		cleanup: () => {
 			logWebRTCEvent('Action', 'Cleaning up WebRTC resources');
+			if (callState.isScreenSharing) {
+				stopScreenShare();
+			}
 			webrtc.stopLocalStream();
 			webrtc.closePeerConnection();
 			// Clear stored streams
@@ -436,6 +441,102 @@ export function toggleVideo(): void {
 	callState.isVideoOff = !callState.isVideoOff;
 	webrtc.setVideoEnabled(!callState.isVideoOff);
 	logWebRTCEvent('Media', `Video ${callState.isVideoOff ? 'off' : 'on'}`);
+}
+
+// ─── Screen Share ──────────────────────────────────────────────────────────
+
+/** Stores the original camera track so it can be restored after screen sharing. */
+let originalCameraTrack: MediaStreamTrack | null = null;
+
+/** The active screen stream, if any. */
+let screenStream: MediaStream | null = null;
+
+/**
+ * Stops screen sharing: restores the camera track, stops screen stream tracks,
+ * resets state, and notifies the remote peer.
+ */
+function stopScreenShare(): void {
+	const pc = webrtc.getPeerConnection();
+	if (pc && originalCameraTrack) {
+		const sender = pc.getSenders().find((s) => s.track?.kind === 'video');
+		if (sender) {
+			sender.replaceTrack(originalCameraTrack).catch((err) => {
+				logWebRTCEvent('Error', `Failed to restore camera track: ${(err as Error).message}`);
+			});
+		}
+	}
+	originalCameraTrack = null;
+
+	if (screenStream) {
+		screenStream.getTracks().forEach((t) => t.stop());
+		screenStream = null;
+	}
+
+	callState.isScreenSharing = false;
+	logWebRTCEvent('Media', 'Screen sharing stopped');
+
+	if (callState.sessionId) {
+		websocket.send({
+			type: 'call:screen-share',
+			callId: callState.sessionId,
+			active: false
+		});
+	}
+}
+
+/**
+ * Toggles screen sharing on/off during an active call.
+ * Uses replaceTrack to swap the camera track for a screen capture track,
+ * which does not require WebRTC renegotiation.
+ */
+export async function toggleScreenShare(): Promise<void> {
+	if (callState.isScreenSharing) {
+		stopScreenShare();
+		return;
+	}
+
+	try {
+		screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+		const screenTrack = screenStream.getVideoTracks()[0];
+
+		const pc = webrtc.getPeerConnection();
+		if (!pc) {
+			screenStream.getTracks().forEach((t) => t.stop());
+			screenStream = null;
+			return;
+		}
+
+		const sender = pc.getSenders().find((s) => s.track?.kind === 'video');
+		if (!sender) {
+			screenStream.getTracks().forEach((t) => t.stop());
+			screenStream = null;
+			return;
+		}
+
+		// Save the original camera track for restoration
+		originalCameraTrack = sender.track ?? null;
+
+		await sender.replaceTrack(screenTrack);
+
+		// Listen for the user stopping share via browser/OS UI
+		screenTrack.addEventListener('ended', () => {
+			stopScreenShare();
+		});
+
+		callState.isScreenSharing = true;
+		logWebRTCEvent('Media', 'Screen sharing started');
+
+		if (callState.sessionId) {
+			websocket.send({
+				type: 'call:screen-share',
+				callId: callState.sessionId,
+				active: true
+			});
+		}
+	} catch (err) {
+		logWebRTCEvent('Error', `getDisplayMedia failed: ${(err as Error).message}`);
+		toast.error('Unable to share screen. Permission denied or not supported.');
+	}
 }
 
 /**

@@ -8,6 +8,7 @@
 	import { createFocusTrap } from '$lib/utils/focusTrap';
 	import CallControls from './CallControls.svelte';
 	import type { CallStatusType } from '$lib/stores/call.svelte';
+	import { callState, toggleScreenShare } from '$lib/stores/call.svelte';
 
 	interface Props {
 		status: CallStatusType;
@@ -130,6 +131,9 @@
 			{#if isConnected}
 				<span class="text-green-400 text-sm">● Connected</span>
 			{/if}
+			{#if callState.isScreenSharing}
+				<span class="text-green-400 text-sm">● Sharing screen</span>
+			{/if}
 		</div>
 		<div class="text-white/70 text-sm">
 			{statusText}
@@ -246,8 +250,8 @@
 				</div>
 			{/if}
 
-			<!-- Local video (picture-in-picture) -->
-			{#if localStream && !isVideoOff}
+			<!-- Local video (picture-in-picture) — hidden during screen share -->
+			{#if localStream && !isVideoOff && !callState.isScreenSharing}
 				<div
 					class="absolute bottom-24 right-4 w-32 h-44 rounded-lg overflow-hidden shadow-lg border-2 border-white/20 bg-black"
 				>
@@ -273,9 +277,11 @@
 			<CallControls
 				{isMuted}
 				{isVideoOff}
+				isScreenSharing={callState.isScreenSharing}
 				disabled={controlsDisabled}
 				{onToggleMute}
 				{onToggleVideo}
+				onToggleScreenShare={toggleScreenShare}
 				{onEndCall}
 			/>
 		</div>
