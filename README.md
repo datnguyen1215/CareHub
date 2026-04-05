@@ -90,6 +90,14 @@ Copy `.env.example` to `.env` and configure the following:
 - `FRONTEND_URL` - Frontend URL for CORS (default: http://localhost:9390)
 - `NODE_ENV` - Environment mode (development/production)
 
+### AI Configuration
+
+- `AI_PROVIDER` - AI provider to use for document descriptions and categorization: `openai`, `anthropic`, or `fallback` (default: `fallback`)
+- `OPENAI_API_KEY` - OpenAI API key (required when using OpenAI provider)
+- `ANTHROPIC_API_KEY` - Anthropic API key (required when using Anthropic provider)
+- `OPENAI_MODEL` - OpenAI model name (default: `gpt-4o-mini`)
+- `ANTHROPIC_MODEL` - Anthropic model name (default: `claude-3-haiku-20240307`)
+
 ## Port Configuration
 
 | Service  | Port | URL                   |
