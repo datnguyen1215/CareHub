@@ -509,6 +509,7 @@ export function resetCallState(): void {
 	storedLocalStream = null;
 	storedRemoteStream = null;
 	callState = { ...initialState };
+	machine = createCallMachine();
 	notify();
 }
 
