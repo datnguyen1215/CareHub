@@ -309,10 +309,9 @@ function createCallMachine() {
 			// Clear stored streams
 			storedLocalStream = null;
 			storedRemoteStream = null;
-			// Trigger cleanup complete after cleanup
-			setTimeout(() => {
+			queueMicrotask(() => {
 				machine?.send(CALL_EVENTS.CLEANUP_COMPLETE);
-			}, 0);
+			});
 		},
 
 		resetContext: sharedAssignActions.resetContext

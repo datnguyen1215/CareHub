@@ -357,10 +357,9 @@ function createCallMachine() {
 		cleanup: () => {
 			logWebRTCEvent('Action', 'Cleaning up WebRTC resources');
 			webrtc.cleanup();
-			// Trigger cleanup complete after cleanup
-			setTimeout(() => {
+			queueMicrotask(() => {
 				machine?.send(CALL_EVENTS.CLEANUP_COMPLETE);
-			}, 0);
+			});
 		},
 
 		resetContext: sharedAssignActions.resetContext
