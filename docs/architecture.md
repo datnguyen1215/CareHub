@@ -95,10 +95,10 @@ src/
 
 All main pages (home, profiles, devices, settings) are wrapped by `src/routes/(app)/+layout.svelte`, which renders:
 
-1. `TopBar` — Fixed top bar with "CareHub" title and user avatar. Avatar fetches `GET /api/users/me` and displays the user's initial. Tapping navigates to `/settings`.
+1. `TopBar` — Fixed top bar with "CareHub" title and user avatar (`z-40`). Avatar fetches `GET /api/users/me` and displays the user's initial. Tapping navigates to `/settings`.
 2. `<main>` — Page content with top and bottom padding to clear the fixed bars.
-3. `Toast` — Toast notification component positioned above bottom navigation (z-index 40) to display success, error, and destructive messages. Backed by shared `createToastStore()` from `@carehub/shared/ui/toast` with portal-specific styling (bottom position, compact sizing). Success/destructive toasts auto-dismiss after 3 seconds; error toasts auto-dismiss after 10 seconds.
-4. `BottomNav` — Fixed bottom navigation with four tabs. Active tab is highlighted with primary blue using the `$page` store. Tabs: Home (`/`), Profiles (`/profiles`), Devices (`/devices`), Settings (`/settings`).
+3. `Toast` — Toast notification component positioned above bottom navigation (`z-[60]`) to display success, error, and destructive messages. Backed by shared `createToastStore()` from `@carehub/shared/ui/toast` with portal-specific styling (bottom position, compact sizing). Success/destructive toasts auto-dismiss after 3 seconds; error toasts auto-dismiss after 10 seconds.
+4. `BottomNav` — Fixed bottom navigation with four tabs (`z-40`). Active tab is highlighted with primary blue using the `$page` store. Tabs: Home (`/`), Profiles (`/profiles`), Devices (`/devices`), Settings (`/settings`).
 
 Unhandled route errors are caught by `+error.svelte`, which displays a user-friendly error page with "Go back" and "Go home" recovery actions. Error messages are contextualized by HTTP status code (404, 403, 401, 5xx). The raw error message is shown in a styled code block when it differs from the generic message.
 
@@ -115,8 +115,8 @@ Error handling follows a consistent pattern across the portal:
 
 The profile detail page lives inside the `(app)` route group, so the global `TopBar` and `BottomNav` are always rendered by the shared layout. The page additionally renders its own fixed top bar inside `<main>`, which visually replaces the global top bar but stacks a second `h-14` spacer — a known layout issue to be fixed in a future pass (move the route out of `(app)` or suppress the global TopBar on this page). It contains:
 
-1. **Custom top bar** — Back arrow (→ `/profiles`), profile name centered, pencil-icon edit button that opens `ProfileModal`.
-2. **Tab bar** — Sticky below the top bar. Five tabs: **Overview** (default), **Meds**, **Calendar**, **Journal**, **Docs**. Active tab is underlined with primary blue. All panels are mounted at once using the `hidden` attribute (eager loading), so tab switching is instant without re-fetches.
+1. **Custom top bar** — Back arrow (→ `/profiles`), profile name centered, pencil-icon edit button that opens `ProfileModal` (`z-40`, same as global TopBar).
+2. **Tab bar** — Sticky below the top bar (`z-30`, below navigation). Five tabs: **Overview** (default), **Meds**, **Calendar**, **Journal**, **Docs**. Active tab is underlined with primary blue. All panels are mounted at once using the `hidden` attribute (eager loading), so tab switching is instant without re-fetches.
 3. **Panel components** — Each tab's logic, state, and API calls are encapsulated in a dedicated panel component that owns its own data fetching on mount:
    - `OverviewPanel` (`profiles/OverviewPanel.svelte`) — Receives `profile` prop. Shows device card(s) for linked devices (name, online/offline status, battery level, Send Photo/Call/Settings buttons; disabled when offline; empty state when no device linked), profile info card (name, relationship, date of birth, conditions as badges), recent medications card, and upcoming events. Fetches supplementary data (devices, medications, events) independently via `$effect`. Dispatches `profileUpdate` on delete.
    - `MedicationsPanel` (`medications/MedicationsPanel.svelte`) — Receives `profileId` prop. Full medication management: add/edit/discontinue medications via `MedicationModal`, with a "Show discontinued" toggle. Owns all medication state and API calls.

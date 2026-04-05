@@ -15,7 +15,7 @@
 	});
 </script>
 
-<header class="fixed top-0 left-0 right-0 bg-surface border-b border-gray-200 z-50">
+<header class="fixed top-0 left-0 right-0 bg-surface border-b border-gray-200 z-40">
 	<div class="max-w-2xl mx-auto flex items-center justify-between px-unit-3 h-14">
 		<span class="text-h3 font-bold text-primary tracking-tight">CareHub</span>
 

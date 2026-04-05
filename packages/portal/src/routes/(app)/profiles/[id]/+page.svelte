@@ -76,7 +76,7 @@
 </script>
 
 <!-- Page-specific top bar (overrides the global TopBar for this page) -->
-<div class="fixed top-0 left-0 right-0 bg-surface border-b border-gray-200 z-50">
+<div class="fixed top-0 left-0 right-0 bg-surface border-b border-gray-200 z-40">
 	<div class="max-w-2xl mx-auto flex items-center justify-between px-unit-2 h-14">
 		<!-- Back arrow -->
 		<button
@@ -176,7 +176,7 @@
 	</div>
 {:else}
 <!-- Tab bar -->
-<div class="sticky top-14 z-40 bg-surface border-b border-gray-200">
+<div class="sticky top-14 z-30 bg-surface border-b border-gray-200">
 	<div class="max-w-2xl mx-auto flex">
 		<button
 			onclick={() => (activeTab = 'overview')}
