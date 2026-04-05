@@ -70,6 +70,15 @@ Styles are implemented with Tailwind CSS within the SvelteKit portal package. Mo
 - Rounded card style with colored background and border
 - Svelte components remain in each app (portal: `Toast.svelte`, kiosk: `Toast.svelte`) with app-specific positioning and sizing
 
+### Z-Index Stacking Order
+
+| Layer | z-index | Components |
+| ----- | ------- | ---------- |
+| Sticky headers | `z-30` | Profile detail tab bar |
+| Navigation | `z-40` | TopBar, BottomNav, profile detail fixed header |
+| Modals and overlays | `z-50` | All modal dialogs, confirmation dialogs, call modal |
+| Toast notifications | `z-[60]` | Toast messages (above modals) |
+
 ### Navigation -- Portal
 
 - **Bottom navigation bar** with four items: Home, Profiles, Devices, Settings
