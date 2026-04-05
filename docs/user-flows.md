@@ -351,7 +351,9 @@ From the profile detail page (`/profiles/:id`):
 16. CallModal displays remote video stream from device (full screen) and local video preview (picture-in-picture corner)
 17. Controls available: mute/unmute audio (M key), toggle video (V key), end call (Escape key)
 18. Call duration counter displays in MM:SS format in status bar
-19. Tap "End Call" button or press Escape → State machine transitions to ending, WebSocket sends `call:ended`, connection closes, modal closes
+19. If network blips occur (WiFi handoff, momentary packet loss), ICE enters disconnected state but call does not immediately fail; a 10-second reconnect timer starts and the call recovers if ICE reconnects
+20. If the network interruption exceeds 10 seconds, the call transitions to failed with a "disconnected" error
+21. Tap "End Call" button or press Escape → State machine transitions to ending, WebSocket sends `call:ended`, connection closes, modal closes
 20. If call fails or is declined, state transitions to failed, error message displays with "Try Again" (if retryable) or "Close" button
 21. If device is offline, Call button is disabled (grayed out)
 22. If a call is already in progress, Call button is disabled

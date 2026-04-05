@@ -298,6 +298,7 @@ Detailed feature breakdown organized by area. See [phases.md](phases.md) for imp
 - Fallback through TURN relay if direct peer connection fails
 - Connection quality indicator
 - Setup timeout: if ICE negotiation stalls in the `connecting` state, the call automatically fails after 15 seconds (`CALL_SETUP_TIMEOUT_MS`) with a user-friendly error message and retry option
+- ICE disconnected grace period: `connected` state uses hierarchical sub-states (`stable` and `unstable`); on `ICE_DISCONNECTED`, the call enters `unstable` and starts a 10-second reconnect timer (`RECONNECT_TIMEOUT_MS`); if ICE recovers (`ICE_CONNECTED`), the call returns to `stable`; if the timer expires (`RECONNECT_TIMEOUT`), the call transitions to `failed` — this prevents dropping calls on brief network blips (WiFi handoff, mobile network switch, momentary packet loss)
 - High-priority FCM ensures notifications delivered even when app is closed or device is in Doze mode
 - Foreground service keeps active calls alive on both caretaker phone and tablet
 - Tablet Lock Task Mode prevents accidental exit during or between calls
