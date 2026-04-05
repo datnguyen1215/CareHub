@@ -98,7 +98,7 @@ async function handleDeviceAuth(ws: import('ws').WebSocket, deviceToken: string)
     return
   }
 
-  handleDeviceConnection(ws, device.id)
+  await handleDeviceConnection(ws, device.id)
 }
 
 /**

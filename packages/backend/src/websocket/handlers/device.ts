@@ -13,17 +13,23 @@ import { TIMEOUTS } from '../../config/constants'
 /**
  * Handle new device WebSocket connection.
  */
-export const handleDeviceConnection = (ws: WebSocket, deviceId: string): void => {
+export const handleDeviceConnection = async (ws: WebSocket, deviceId: string): Promise<void> => {
   logger.info({ deviceId }, 'Device connected via WebSocket')
 
   // Add to client registry
   addClient('device', deviceId, ws)
 
   // Update device status to online
-  db.update(devices)
-    .set({ status: 'online', last_seen_at: new Date() })
-    .where(eq(devices.id, deviceId))
-    .catch((err) => logger.error({ err, deviceId }, 'Error updating device status'))
+  try {
+    await db.update(devices)
+      .set({ status: 'online', last_seen_at: new Date() })
+      .where(eq(devices.id, deviceId))
+  } catch (err) {
+    logger.warn(
+      { err, deviceId },
+      'Device connected but failed to update status to online — DB status may be stale'
+    )
+  }
 
   // Setup ping interval
   const pingInterval = setInterval(() => {
@@ -67,11 +73,14 @@ export const handleDeviceConnection = (ws: WebSocket, deviceId: string): void =>
   })
 
   // Handle pong (confirms connection is alive)
-  ws.on('pong', () => {
-    db.update(devices)
-      .set({ last_seen_at: new Date() })
-      .where(eq(devices.id, deviceId))
-      .catch((err) => logger.error({ err, deviceId }, 'Error updating last_seen_at'))
+  ws.on('pong', async () => {
+    try {
+      await db.update(devices)
+        .set({ last_seen_at: new Date() })
+        .where(eq(devices.id, deviceId))
+    } catch (err) {
+      logger.error({ err, deviceId }, 'Error updating last_seen_at')
+    }
   })
 
   // Handle disconnect
