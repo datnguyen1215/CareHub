@@ -181,7 +181,7 @@ All routes under `(app)` require authentication and redirect to `/login` if not 
 - Tracks call status, streams, duration, and errors
 - Integrates WebSocket signaling with WebRTC events
 - Components import `callState` directly — Svelte 5 tracks dependencies automatically
-- Provides actions: `initiateCall()`, `endCall()`, `toggleMute()`, `toggleVideo()`
+- Provides actions: `initiateCall()`, `endCall()`, `toggleMute()`, `toggleVideo()`, `toggleScreenShare()`
 - Auto-initializes handlers in `+layout.svelte`
 
 ## API Integration
