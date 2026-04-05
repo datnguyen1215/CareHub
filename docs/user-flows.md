@@ -166,6 +166,14 @@ From the profile detail page (`/profiles/:id`):
 7. Video call connects; both sides see and hear each other
 8. Either party can end the call
 
+**If the call is not answered (ring timeout):**
+
+1. After 30 seconds of ringing with no answer, the server ends the session
+2. Both the portal and the tablet receive a `call:ended` message with reason `missed`
+3. Portal shows a "No answer" indication and closes the call UI
+4. Tablet returns to idle state, clearing the incoming call screen
+5. The tablet is immediately available to receive new calls
+
 ---
 
 ## 7. Kiosk Navigation Flow

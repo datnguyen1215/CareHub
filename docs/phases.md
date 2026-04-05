@@ -114,7 +114,7 @@ Enable the tablet kiosk experience, Capacitor mobile app, and real-time communic
 
 - **Incoming call screen (tablet)** -- Full-screen display with large Accept/Decline buttons
 - **Kiosk call initiation** -- Tap caretaker card to start call
-- **Missed call handling** -- "No answer" timeout state
+- **Missed call handling** -- "No answer" timeout state; backend sends `call:ended` (reason: `missed`) to both portal and kiosk on 30s ring timeout, kiosk returns to idle
 
 ### Phase 3.6: Capacitor Native (In Progress)
 
