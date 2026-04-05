@@ -264,7 +264,7 @@ Detailed feature breakdown organized by area. See [phases.md](phases.md) for imp
 - Firebase Cloud Messaging (FCM) for call notifications to caretaker devices
 - Capacitor native shell on both caretaker phones and elderly tablets
 - State machine guards prevent invalid transitions and race conditions
-- All state transitions logged with timestamps for debugging
+- All state transitions logged with timestamps for debugging via shared structured logger (debug/info silenced in production builds)
 
 ### Capabilities
 
