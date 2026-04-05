@@ -389,7 +389,7 @@ Portal connects to WebSocket on app mount via JWT authentication (`/ws?jwt={toke
 - Real-time signaling message routing for video call coordination
 - Connection state management (connecting/connected/disconnected)
 - Heartbeat keep-alive: sends `ping` every 25 seconds; detects dead connections within 30 seconds (5s pong timeout)
-- Message queue: messages sent during disconnection are buffered (max 50, 30s TTL) and flushed on reconnect
+- Message queue: messages sent during disconnection are buffered (max 50, 30s TTL) and flushed on reconnect; priority-based eviction drops lowest-priority messages first — critical WebRTC signaling (SDP offers/answers, ICE candidates) is preserved over less urgent messages (screen-share state, errors)
 - Race condition prevention: old socket event handlers are nulled before closing to prevent stale async events from corrupting new connections
 - Initialized in `(app)/+layout.svelte` on mount for all authenticated pages
 
