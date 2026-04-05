@@ -1,11 +1,11 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import { page } from '$app/stores';
+	import { page } from '$app/state';
 	import { verifyOtp, requestOtp, getMe } from '$lib/api';
 
 	const RESEND_COOLDOWN = 60;
 
-	const email = $derived($page.url.searchParams.get('email') ?? '');
+	const email = $derived(page.url.searchParams.get('email') ?? '');
 
 	let code = $state('');
 	let error = $state('');

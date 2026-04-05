@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import { page } from '$app/stores';
+	import { page } from '$app/state';
 	import { getProfile, updateProfile, type CareProfile, type CreateProfileInput } from '$lib/api';
 	import { getErrorMessage, isRetryable } from '$lib/utils/error-utils';
 	import OverviewPanel from '$lib/components/profiles/OverviewPanel.svelte';
@@ -10,7 +10,7 @@
 	import DocumentsTab from '$lib/components/documents/DocumentsTab.svelte';
 	import ProfileModal from '$lib/components/profiles/ProfileModal.svelte';
 
-	const profileId = $derived($page.params.id ?? '');
+	const profileId = $derived(page.params.id ?? '');
 
 	let profile = $state<CareProfile | null>(null);
 	let loading = $state(true);

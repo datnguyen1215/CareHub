@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { page } from '$app/stores';
+	import { page } from '$app/state';
 
 	const tabs = [
 		{ href: '/', label: 'Home', icon: 'home' },
@@ -9,8 +9,8 @@
 	] as const;
 
 	function isActive(href: string) {
-		if (href === '/') return $page.url.pathname === '/';
-		return $page.url.pathname.startsWith(href);
+		if (href === '/') return page.url.pathname === '/';
+		return page.url.pathname.startsWith(href);
 	}
 </script>
 
