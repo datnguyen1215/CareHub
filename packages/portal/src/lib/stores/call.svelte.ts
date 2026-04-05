@@ -451,6 +451,9 @@ let originalCameraTrack: MediaStreamTrack | null = null;
 /** The active screen stream, if any. */
 let screenStream: MediaStream | null = null;
 
+/** Guards against concurrent toggleScreenShare calls (e.g. rapid button taps). */
+let screenShareInProgress = false;
+
 /**
  * Stops screen sharing: restores the camera track, stops screen stream tracks,
  * resets state, and notifies the remote peer.
@@ -495,6 +498,9 @@ export async function toggleScreenShare(): Promise<void> {
 		return;
 	}
 
+	if (screenShareInProgress) return;
+	screenShareInProgress = true;
+
 	try {
 		screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
 		const screenTrack = screenStream.getVideoTracks()[0];
@@ -536,6 +542,8 @@ export async function toggleScreenShare(): Promise<void> {
 	} catch (err) {
 		logWebRTCEvent('Error', `getDisplayMedia failed: ${(err as Error).message}`);
 		toast.error('Unable to share screen. Permission denied or not supported.');
+	} finally {
+		screenShareInProgress = false;
 	}
 }
 
