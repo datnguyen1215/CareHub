@@ -8,7 +8,8 @@ import type {
 	CallOfferMessage,
 	IceCandidateMessage,
 	CallEndedMessage,
-	CallErrorMessage
+	CallErrorMessage,
+	ScreenShareStateMessage
 } from '@carehub/shared'
 
 type MessageHandler = (data: WsMessage) => void
@@ -24,6 +25,7 @@ export interface CallMessageHandlers {
 	onCallOffer?: (message: CallOfferMessage) => void
 	onIceCandidate?: (message: IceCandidateMessage) => void
 	onCallEnded?: (message: CallEndedMessage) => void
+	onScreenShare?: (message: ScreenShareStateMessage) => void
 	onCallError?: (message: CallErrorMessage) => void
 }
 
@@ -202,6 +204,9 @@ function routeCallMessage(message: WsMessage): void {
 			break
 		case 'call:ended':
 			callHandlers.onCallEnded?.(message as unknown as CallEndedMessage)
+			break
+		case 'call:screen-share':
+			callHandlers.onScreenShare?.(message as unknown as ScreenShareStateMessage)
 			break
 		case 'call:error':
 			callHandlers.onCallError?.(message as unknown as CallErrorMessage)
