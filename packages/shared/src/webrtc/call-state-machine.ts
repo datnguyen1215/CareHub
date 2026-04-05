@@ -8,7 +8,7 @@
  *
  * Signaling sub-states:
  * - Caller: waitingForAccept -> creatingOffer -> exchangingIce
- * - Callee: incoming -> waitingForOffer -> creatingAnswer -> exchangingIce
+ * - Callee: incoming -> acquiringMedia -> waitingForOffer -> creatingAnswer -> exchangingIce
  */
 
 import { createMachine, assign } from '@datnguyen1215/hsmjs'
