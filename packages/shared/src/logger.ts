@@ -31,7 +31,7 @@ export const logger = {
   },
 
   warn(...args: unknown[]): void {
-    if (isDev()) console.warn(...args)
+    console.warn(...args)
   },
 
   /** Always logs — for truly unexpected errors. */
