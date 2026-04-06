@@ -59,13 +59,6 @@
       "breakpoints": true
     },
     {
-      "idx": 8,
-      "version": "7",
-      "when": 1775200000000,
-      "tag": "0008_call_sessions",
-      "breakpoints": true
-    },
-    {
       "idx": 9,
       "version": "7",
       "when": 1775300000000,
