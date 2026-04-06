@@ -1,11 +1,12 @@
 /** Device management endpoints — use user JWT auth. */
 import { Router, Request, Response } from 'express'
-import { eq, and } from 'drizzle-orm'
+import { eq, and, notInArray } from 'drizzle-orm'
 import { db } from '../../db'
-import { devices, deviceAccess, deviceCareProfiles, careProfiles } from '@carehub/shared'
+import { devices, deviceAccess, deviceCareProfiles, careProfiles, callSessions } from '@carehub/shared'
+import type { CallStatus, CallEndReason } from '@carehub/shared'
 import { requireAuth } from '../../middleware/auth'
 import { logger } from '../../services/logger'
-import { broadcastToDevice } from '../../websocket'
+import { broadcastToDevice, broadcastToUser } from '../../websocket'
 import { validate } from '../../middleware/validate'
 import { updateDeviceSchema } from '../../schemas/devices'
 
@@ -123,14 +124,81 @@ managementRouter.delete('/:id', requireAuth, async (req: Request, res: Response)
       return
     }
 
-    // Notify device before deletion
+    const TERMINAL_STATUSES: CallStatus[] = ['ended', 'failed']
+
+    // Atomically: end any active call + delete device in a single transaction.
+    // WebSocket broadcasts are side effects and run after commit.
+    const endedCall = await db.transaction(async (tx) => {
+      // Find and end any active call for this device (inline — endCall() uses its own tx)
+      const [activeCallRow] = await tx
+        .select({
+          id: callSessions.id,
+          callerUserId: callSessions.caller_user_id,
+          answeredAt: callSessions.answered_at,
+        })
+        .from(callSessions)
+        .where(
+          and(
+            eq(callSessions.callee_device_id, deviceId),
+            notInArray(callSessions.status, TERMINAL_STATUSES)
+          )
+        )
+        .limit(1)
+
+      let endedCallInfo: { id: string; callerUserId: string } | null = null
+
+      if (activeCallRow) {
+        const endedAt = new Date()
+        let duration: number | null = null
+        if (activeCallRow.answeredAt) {
+          duration = Math.round((endedAt.getTime() - activeCallRow.answeredAt.getTime()) / 1000)
+        }
+
+        await tx
+          .update(callSessions)
+          .set({
+            status: 'ended' as CallStatus,
+            ended_at: endedAt,
+            end_reason: 'cancelled' as CallEndReason,
+            duration_seconds: duration,
+          })
+          .where(
+            and(
+              eq(callSessions.id, activeCallRow.id),
+              notInArray(callSessions.status, TERMINAL_STATUSES)
+            )
+          )
+
+        endedCallInfo = { id: activeCallRow.id, callerUserId: activeCallRow.callerUserId }
+        logger.info({ callId: activeCallRow.id, deviceId }, 'Active call cancelled before device deletion')
+      }
+
+      // Delete device (cascades to device_care_profiles, device_access, device_pairing_tokens)
+      // call_sessions.callee_device_id is set to NULL by FK ON DELETE SET NULL
+      await tx.delete(devices).where(eq(devices.id, deviceId))
+
+      return endedCallInfo
+    })
+
+    // Broadcast side effects after transaction commits
+    if (endedCall) {
+      broadcastToUser(endedCall.callerUserId, {
+        type: 'call:ended',
+        callId: endedCall.id,
+        reason: 'cancelled',
+      })
+      broadcastToDevice(deviceId, {
+        type: 'call:ended',
+        callId: endedCall.id,
+        reason: 'cancelled',
+      })
+    }
+
+    // Notify device it has been unpaired
     broadcastToDevice(deviceId, {
       type: 'device_revoked',
       payload: { deviceId },
     })
-
-    // Delete device (cascades to device_care_profiles, device_access, device_pairing_tokens)
-    await db.delete(devices).where(eq(devices.id, deviceId))
 
     res.status(204).send()
   } catch (err) {

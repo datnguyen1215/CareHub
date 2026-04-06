@@ -280,6 +280,19 @@ All entities are defined as Drizzle ORM schemas in `packages/shared`.
 - `expires_at` (timestamp) - 5 minute expiry
 - `created_at` (timestamp)
 
+**CallSession**
+
+- `id` (UUID, primary key)
+- `caller_user_id` (FK -> User, NOT NULL)
+- `callee_device_id` (FK -> Device, **nullable** — set to NULL via `ON DELETE SET NULL` when the device is deleted; historical call records are preserved)
+- `callee_profile_id` (FK -> CareProfile, nullable)
+- `status` (enum: initiating, ringing, connecting, connected, ended, failed)
+- `initiated_at` (timestamp)
+- `answered_at` (timestamp, nullable)
+- `ended_at` (timestamp, nullable)
+- `end_reason` (enum: completed, declined, missed, failed, cancelled, nullable)
+- `duration_seconds` (integer, nullable)
+
 ---
 
 ## Key Architecture Decisions
@@ -365,6 +378,7 @@ Tablet push notifications, device status monitoring, and video call signaling al
 7. Either party can send `call:ended` to terminate
 8. Server updates call_sessions with duration and end reason
 9. On ring timeout (30s unanswered): server sends `call:ended` (reason: `missed`) to both the user and the device, then ends the session
+10. On device deletion (`DELETE /api/devices/:id`): any active call on that device is atomically ended with reason `cancelled` inside the same database transaction that deletes the device; both the caller user and the device receive `call:ended` (reason: `cancelled`) via WebSocket after the transaction commits
 
 **Call Service:**
 
@@ -376,6 +390,7 @@ Tablet push notifications, device status monitoring, and video call signaling al
 - `validateCallPermission()` - Check user has access to device
 - Ring timeout handling (marks calls as 'missed' after 30 seconds; sends `call:ended` to both user and device)
 - Terminal state protection (prevents overwriting ended calls)
+- `CallSessionRecord.calleeDeviceId` is typed `string | null` — NULL when the device has been deleted; all signal routing handlers guard against null before forwarding messages to the device
 
 **Portal WebSocket Client:**
 

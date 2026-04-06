@@ -254,9 +254,12 @@ From the profile detail page (`/profiles/:id`):
 15. Tap "Unpair Device" button
 16. Confirmation dialog: "Are you sure?"
 17. Tap "Unpair" to confirm
-18. Server sends `device_revoked` event to kiosk
-19. Device removed from portal list
-20. Kiosk clears data and returns to pairing screen
+18. Server atomically ends any active call on the device (reason: `cancelled`) and deletes the device in a single transaction
+19. If a call was active, both the caller and the device receive `call:ended` (reason: `cancelled`) via WebSocket
+20. Server sends `device_revoked` event to kiosk
+21. Device removed from portal list
+22. Kiosk clears data and returns to pairing screen
+23. Historical call session records for the device are preserved with `callee_device_id` set to NULL
 
 ---
 
