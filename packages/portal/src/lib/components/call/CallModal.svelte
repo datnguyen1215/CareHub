@@ -119,6 +119,7 @@
 	bind:this={modalElement}
 	class="fixed inset-0 z-50 flex flex-col bg-[#1a1a1a]"
 	role="dialog"
+	tabindex="-1"
 	aria-modal="true"
 	aria-label="Video call"
 >
