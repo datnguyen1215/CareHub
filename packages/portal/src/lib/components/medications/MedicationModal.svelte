@@ -15,15 +15,20 @@
 	const SCHEDULE_OPTIONS = ['morning', 'afternoon', 'evening', 'bedtime'] as const;
 	type ScheduleOption = (typeof SCHEDULE_OPTIONS)[number];
 
-	let name = $state(medication?.name ?? '');
-	let dosage = $state(medication?.dosage ?? '');
-	let selectedSchedule = $state<Set<ScheduleOption>>(
-		new Set((medication?.schedule ?? []) as ScheduleOption[])
-	);
-	let status = $state<'active' | 'discontinued'>(medication?.status ?? 'active');
+	let name = $state('');
+	let dosage = $state('');
+	let selectedSchedule = $state<Set<ScheduleOption>>(new Set());
+	let status = $state<'active' | 'discontinued'>('active');
 	let error = $state('');
 	let loading = $state(false);
 	let modalElement: HTMLElement;
+
+	$effect(() => {
+		name = medication?.name ?? '';
+		dosage = medication?.dosage ?? '';
+		selectedSchedule = new Set((medication?.schedule ?? []) as ScheduleOption[]);
+		status = medication?.status ?? 'active';
+	});
 
 	const isEdit = $derived(!!medication);
 
