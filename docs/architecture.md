@@ -263,14 +263,6 @@ All entities are defined as Drizzle ORM schemas in `packages/shared`.
 - `created_at`
 - `app_version` (varchar, nullable) — semver string of the app version currently installed on the device, as last reported by the kiosk on check-in; null until the device reports its version
 
-**Release**
-
-- `id` (UUID, primary key)
-- `app` (string) — app identifier (e.g. `"kiosk"`)
-- `version` (string) — semver string (e.g. `"1.2.0"`)
-- `notes` (text, nullable) — release notes / changelog
-- `created_at`
-
 **DeviceCareProfile** (join table)
 
 - `device_id` (FK -> Device, cascade delete)
@@ -304,6 +296,8 @@ All entities are defined as Drizzle ORM schemas in `packages/shared`.
 - `notes` (text, nullable) — optional human-readable release notes
 - `created_at` (timestamp)
 - **Unique index** on `(app, version_code)` — enforces that each versionCode is unique per app and enables efficient latest-version queries
+
+> **API response shape** — `GET /api/releases/latest` returns a subset: `{ id, app, version, notes, created_at }`. Fields `version_code`, `file_path`, `file_size`, and `checksum` are omitted from the portal-facing response. The portal `Release` TypeScript interface reflects this subset.
 
 **CallSession**
 
