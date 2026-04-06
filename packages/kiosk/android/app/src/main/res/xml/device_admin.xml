@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Device admin policy declarations for the CareHub Kiosk app.
+
+    This file is referenced by the DeviceAdminReceiver component in AndroidManifest.xml.
+    It declares the device administration policies the app requires. At minimum,
+    install-packages is needed so the Device Owner can silently install APK updates.
+-->
+<device-admin>
+    <uses-policies>
+        <install-packages />
+    </uses-policies>
+</device-admin>
