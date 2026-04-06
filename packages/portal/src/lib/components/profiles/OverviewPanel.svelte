@@ -162,6 +162,10 @@
 	}
 
 	function handleCall(device: Device) {
+		if (getDeviceStatus(device.id, device.status) !== 'online') {
+			toast.warning('Device is offline. Cannot place call.');
+			return;
+		}
 		initiateCall(device.id, device.name);
 	}
 
