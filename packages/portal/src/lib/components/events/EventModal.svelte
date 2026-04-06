@@ -21,16 +21,22 @@
 
 	type EventType = (typeof EVENT_TYPE_OPTIONS)[number]['value'];
 
-	let title = $state(event?.title ?? '');
-	let eventType = $state<EventType>(event?.event_type ?? 'general');
-	let eventDate = $state(
-		event?.event_date ? new Date(event.event_date).toISOString().slice(0, 16) : ''
-	);
-	let location = $state(event?.location ?? '');
-	let notes = $state(event?.notes ?? '');
+	let title = $state('');
+	let eventType = $state<EventType>('general');
+	let eventDate = $state('');
+	let location = $state('');
+	let notes = $state('');
 	let error = $state('');
 	let loading = $state(false);
 	let modalElement: HTMLElement;
+
+	$effect(() => {
+		title = event?.title ?? '';
+		eventType = event?.event_type ?? 'general';
+		eventDate = event?.event_date ? new Date(event.event_date).toISOString().slice(0, 16) : '';
+		location = event?.location ?? '';
+		notes = event?.notes ?? '';
+	});
 
 	const isEdit = $derived(!!event);
 

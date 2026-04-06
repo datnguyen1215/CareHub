@@ -12,12 +12,18 @@
 
 	let { entry = null, onSave, onClose }: Props = $props();
 
-	let title = $state(entry?.title ?? '');
-	let content = $state(entry?.content ?? '');
-	let entryDate = $state(entry?.entry_date ?? new Date().toISOString().split('T')[0]);
+	let title = $state('');
+	let content = $state('');
+	let entryDate = $state('');
 	let error = $state('');
 	let loading = $state(false);
 	let modalElement: HTMLElement;
+
+	$effect(() => {
+		title = entry?.title ?? '';
+		content = entry?.content ?? '';
+		entryDate = entry?.entry_date ?? new Date().toISOString().split('T')[0];
+	});
 
 	const isEdit = $derived(!!entry);
 
