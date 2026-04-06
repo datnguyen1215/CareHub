@@ -584,11 +584,13 @@ Both the caretaker phone app and the elderly tablet kiosk are Capacitor APKs bui
   - Power button interception (dims screen instead of locking device)
   - Keyguard disabled (no lock screen)
   - Auto-restart on crash
+  - Silent APK installation via `PackageInstaller` (no user prompt required)
 - **Auto-launch on boot** -- App starts automatically when the tablet powers on (e.g., after a power outage or reboot).
 - **Foreground service** -- Keeps the WebSocket connection alive so the tablet is always reachable for incoming calls and content pushes.
 - **Power management** -- Screen dims to near-black (1-5% brightness) when idle, instant wake on touch or incoming call. Device never truly sleeps, avoiding the need for FCM push notifications.
+- **Silent APK updates** -- `SilentUpdate` custom Capacitor plugin downloads a new APK from the backend, verifies its SHA-256 checksum and APK signing certificate, and installs it via `PackageInstaller` without any user prompt. See [Silent APK Update Plugin](#silent-apk-update-plugin) below.
 
-**No separate codebase** -- The entire UI remains Svelte 5 running in a web view. Capacitor only provides the native bridge for push notifications, call UI, kiosk lock-down, and background services.
+**No separate codebase** -- The entire UI remains Svelte 5 running in a web view. Capacitor only provides the native bridge for push notifications, call UI, kiosk lock-down, background services, and silent APK updates.
 
 ### Over-the-Air Updates (Capgo)
 
@@ -599,6 +601,51 @@ All Capacitor apps (caretaker phones and elderly tablets) receive UI and logic u
 - Updates apply on next app restart -- no user interaction required.
 - APK rebuild is only needed when native plugins or Capacitor configuration change (rare after initial setup).
 - Elderly tablets update automatically with zero intervention.
+
+### Silent APK Update Plugin
+
+The kiosk uses a custom Capacitor plugin (`SilentUpdate`) to download and install APK updates without user interaction, using Device Owner privileges.
+
+**Java implementation (`packages/kiosk/android/app/src/main/java/us/dnguyen/carehub/kiosk/`):**
+
+- **`SilentUpdatePlugin.java`** — `@CapacitorPlugin(name = "SilentUpdate")` registered in `MainActivity.onCreate()`. Exposes two `@PluginMethod`s:
+  - `downloadAndInstall({ url, checksum })` — Downloads APK from `url` (HTTPS enforced; HTTP rejected) to internal app storage as `pending_update_<callbackId>.apk` (unique filename per call to prevent concurrent-download race conditions). Verifies SHA-256 checksum, verifies APK signing certificate matches the currently-running app's certificate (prevents a compromised server from pushing a malicious APK), then commits a `PackageInstaller` session. Fires `downloadProgress` plugin events during download. Deletes the downloaded APK on checksum/signature failure or after a successful install (handled by `InstallStatusReceiver`). Resolves/rejects the JS promise asynchronously via `InstallStatusReceiver`.
+  - `getCurrentVersion()` — Returns `{ version: BuildConfig.VERSION_NAME, versionCode: BuildConfig.VERSION_CODE }`.
+- **`InstallStatusReceiver.java`** — `BroadcastReceiver` (registered in `AndroidManifest.xml` with `android:exported="false"`) that receives `PackageInstaller` session commit results. Resolves or rejects the pending `PluginCall` based on `PackageInstaller.EXTRA_STATUS`. Pending calls are stored in a static `ConcurrentHashMap<String, PluginCall>` keyed by Capacitor callback ID (necessary because the receiver is a separate class and cannot access the plugin's bridge-saved calls). Deletes the APK file on both success and failure.
+
+**Security — APK signature verification:**
+
+Before committing the install session, the plugin compares the signing certificate of the downloaded APK against the certificate of the currently-installed app:
+
+1. Get current app signing certificates via `PackageManager.getPackageInfo(packageName, GET_SIGNING_CERTIFICATES)`.
+2. Extract the signing certificate from the downloaded APK using `PackageParser` / `ApkSignatureVerifier`.
+3. Compute SHA-256 fingerprints of both certificates and compare them.
+4. Reject the install and delete the APK if fingerprints do not match.
+
+This ensures only APKs signed with the same keystore as the production build can be installed — a compromised server cannot push an APK signed with a different key.
+
+**JS bridge (`packages/kiosk/src/lib/plugins/silent-update.ts`):**
+
+- Registers the native plugin via `registerPlugin('SilentUpdate')`.
+- Exports a `SilentUpdatePlugin` TypeScript interface with `downloadAndInstall()`, `getCurrentVersion()`, and `addListener()` for `downloadProgress` events.
+- Includes a browser fallback that logs warnings instead of crashing in dev/web mode.
+
+**Usage from Svelte/TypeScript:**
+
+```ts
+import { SilentUpdate } from '$lib/plugins/silent-update';
+
+// Listen for progress
+await SilentUpdate.addListener('downloadProgress', ({ percent }) => {
+  console.log(`Download: ${percent}%`);
+});
+
+// Download, verify, and install
+await SilentUpdate.downloadAndInstall({ url, checksum });
+
+// Get current version
+const { version, versionCode } = await SilentUpdate.getCurrentVersion();
+```
 
 ### Push Notification Strategy (FCM for Portal Only)
 

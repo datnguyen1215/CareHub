@@ -55,6 +55,10 @@ the device to be in a clean state.
 | File | Purpose |
 |------|---------|
 | `android/app/src/main/java/us/dnguyen/carehub/kiosk/DeviceAdminReceiver.java` | Device admin entry point |
+| `android/app/src/main/java/us/dnguyen/carehub/kiosk/SilentUpdatePlugin.java` | Capacitor plugin — downloads, verifies, and silently installs APK updates |
+| `android/app/src/main/java/us/dnguyen/carehub/kiosk/InstallStatusReceiver.java` | BroadcastReceiver for PackageInstaller session results |
+| `android/app/src/main/java/us/dnguyen/carehub/kiosk/MainActivity.java` | Registers SilentUpdatePlugin on startup |
 | `android/app/src/main/res/xml/device_admin.xml` | Declares required admin policies |
-| `android/app/src/main/AndroidManifest.xml` | Registers the receiver |
+| `android/app/src/main/AndroidManifest.xml` | Registers receivers (DeviceAdmin, InstallStatus) |
+| `src/lib/plugins/silent-update.ts` | TypeScript/JS bridge for the SilentUpdate plugin |
 | `scripts/provision-device-owner.sh` | One-time ADB provisioning script |
