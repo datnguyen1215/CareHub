@@ -11,6 +11,24 @@ import { getActiveCallForDevice, markCallFailed } from '../../services/call.js'
 import { TIMEOUTS } from '../../config/constants.js'
 
 /**
+ * Returns connected portal user IDs who have access to the given device.
+ * Returns an empty array if no portal users are currently connected.
+ */
+const getUsersWithDeviceAccess = async (deviceId: string): Promise<string[]> => {
+  const connectedUserIds = getConnectedUserIds()
+  if (connectedUserIds.length === 0) return []
+
+  const accessRows = await db
+    .select({ user_id: deviceAccess.user_id })
+    .from(deviceAccess)
+    .where(eq(deviceAccess.device_id, deviceId))
+
+  return accessRows
+    .map((row) => row.user_id)
+    .filter((userId) => connectedUserIds.includes(userId))
+}
+
+/**
  * Broadcast device status change to all connected portal users who have access to the device.
  * Skips DB query if no portal users are currently connected.
  */
@@ -18,18 +36,7 @@ const broadcastDeviceStatus = async (
   deviceId: string,
   status: 'online' | 'offline'
 ): Promise<void> => {
-  const connectedUserIds = getConnectedUserIds()
-  if (connectedUserIds.length === 0) return
-
-  const accessRows = await db
-    .select({ user_id: deviceAccess.user_id })
-    .from(deviceAccess)
-    .where(eq(deviceAccess.device_id, deviceId))
-
-  const usersWithAccess = accessRows
-    .map((row) => row.user_id)
-    .filter((userId) => connectedUserIds.includes(userId))
-
+  const usersWithAccess = await getUsersWithDeviceAccess(deviceId)
   if (usersWithAccess.length === 0) return
 
   const message: DeviceStatusChangedMessage = { type: 'device_status_changed', deviceId, status }
@@ -224,32 +231,18 @@ const handleAppUpdateStatus = async (
     logger.info({ deviceId, version }, 'Device app version updated after successful OTA install')
   }
 
-  // Notify portal users who have access to this device
-  await broadcastDeviceStatus(deviceId, 'online')
-
-  // Send the update status event to all portal users with access
-  const connectedUserIds = getConnectedUserIds()
-  if (connectedUserIds.length > 0) {
-    const accessRows = await db
-      .select({ user_id: deviceAccess.user_id })
-      .from(deviceAccess)
-      .where(eq(deviceAccess.device_id, deviceId))
-
-    const usersWithAccess = accessRows
-      .map((row) => row.user_id)
-      .filter((userId) => connectedUserIds.includes(userId))
-
+  // Send the update status event to all connected portal users with access
+  const usersWithAccess = await getUsersWithDeviceAccess(deviceId)
+  if (usersWithAccess.length > 0) {
     const statusMessage = { type: 'app:update-status', deviceId, releaseId, status, version, error }
     for (const userId of usersWithAccess) {
       broadcastToUser(userId, statusMessage)
     }
 
-    if (usersWithAccess.length > 0) {
-      logger.info(
-        { deviceId, releaseId, status, usersNotified: usersWithAccess.length },
-        'Broadcast app:update-status to portal users'
-      )
-    }
+    logger.info(
+      { deviceId, releaseId, status, usersNotified: usersWithAccess.length },
+      'Broadcast app:update-status to portal users'
+    )
   }
 }
 

@@ -13,7 +13,7 @@ import {
 import type { CallStatus, CallEndReason } from '@carehub/shared'
 import { requireAuth } from '../../middleware/auth.js'
 import { logger } from '../../services/logger.js'
-import { broadcastToDevice, broadcastToUser, isDeviceConnected } from '../../websocket/index.js'
+import { broadcastToDevice, broadcastToUser } from '../../websocket/index.js'
 import { validate } from '../../middleware/validate.js'
 import { updateDeviceSchema } from '../../schemas/devices.js'
 
@@ -167,24 +167,25 @@ managementRouter.post(
         return
       }
 
-      // Reject if device is offline
-      if (!isDeviceConnected(deviceId)) {
-        res.status(409).json({ error: 'Device is offline' })
-        return
-      }
-
       // Build download URL — device fetches APK via the authenticated download endpoint
       const baseUrl = `${req.protocol}://${req.get('host')}`
       const downloadUrl = `${baseUrl}/api/releases/${release.id}/download`
 
-      // Forward the update command to the device
-      broadcastToDevice(deviceId, {
+      // Forward the update command to the device.
+      // broadcastToDevice returns false if the device is not connected (checks readyState),
+      // which also handles the TOCTOU race between a connectivity check and actual send.
+      const sent = broadcastToDevice(deviceId, {
         type: 'app:update',
         releaseId: release.id,
         version: release.version,
         downloadUrl,
         checksum: release.checksum,
       })
+
+      if (!sent) {
+        res.status(409).json({ error: 'Device is offline' })
+        return
+      }
 
       logger.info(
         { deviceId, releaseId: release.id, version: release.version },
