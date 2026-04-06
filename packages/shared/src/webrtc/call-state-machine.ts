@@ -122,12 +122,24 @@ export function logTransition(oldState: string, newState: string, event: string)
 }
 
 /**
- * Logs WebRTC events.
+ * Logs WebRTC events at debug level (suppressed in production).
+ * Use for verbose events: ICE candidates, SDP details, timer events, connection state changes.
  */
 export function logWebRTCEvent(eventType: string, details?: string): void {
   const timestamp = new Date().toISOString()
   const message = details ? `${eventType}: ${details}` : eventType
   logger.debug(`[Call:WebRTC:${timestamp}] ${message}`)
+}
+
+/**
+ * Logs key call lifecycle events at warn level (always visible in production).
+ * Use for: call initiated, incoming, accepted/declined, connected, ended, failed,
+ * and top-level state machine transitions.
+ */
+export function logCallLifecycle(eventType: string, details?: string): void {
+  const timestamp = new Date().toISOString()
+  const message = details ? `${eventType}: ${details}` : eventType
+  logger.warn(`[Call:${timestamp}] ${message}`)
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
