@@ -256,7 +256,9 @@
 
 	<!-- Delete confirmation -->
 	{#if showDeleteConfirm}
+		<!-- svelte-ignore a11y_no_static_element_interactions -->
 		<div
+			role="presentation"
 			class="fixed inset-0 z-60 flex items-center justify-center bg-black/50 p-unit-2"
 			onmousedown={(e) => {
 				if (e.target === e.currentTarget) showDeleteConfirm = false;
