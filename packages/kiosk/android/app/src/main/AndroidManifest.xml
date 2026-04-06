@@ -38,6 +38,11 @@
             </intent-filter>
         </receiver>
 
+        <!-- Receives PackageInstaller session results for silent APK installation -->
+        <receiver
+            android:name=".InstallStatusReceiver"
+            android:exported="false" />
+
         <!-- Device Owner receiver for silent APK installation -->
         <receiver
             android:name=".DeviceAdminReceiver"

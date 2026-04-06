@@ -200,6 +200,7 @@ Detailed feature breakdown organized by area. See [phases.md](phases.md) for imp
 - Device token stored via Capacitor Preferences (localStorage fallback for browser dev)
 - Offline state shows cached data with "Reconnecting..." indicator
 - **Device Owner mode** -- App provisioned as Android Device Owner via one-time ADB script; enables silent APK installation without user interaction; see `packages/kiosk/SETUP.md` for provisioning steps
+- **Silent APK updates** -- `SilentUpdate` custom Capacitor plugin (`src/lib/plugins/silent-update.ts`) downloads an APK from the backend, verifies its SHA-256 checksum and APK signing certificate, and installs it via `PackageInstaller` without any user prompt; callable from Svelte/TypeScript via `SilentUpdate.downloadAndInstall({ url, checksum })`; fires `downloadProgress` events during download; browser fallback logs a warning in dev mode
 
 ### Design Principles
 
