@@ -3,9 +3,9 @@
  */
 
 import Anthropic from '@anthropic-ai/sdk'
-import type { AIService, DescriptionResult, DocumentCategory } from './types'
-import { logger } from '../logger'
-import { env } from '../../config/env'
+import type { AIService, DescriptionResult, DocumentCategory } from './types.js'
+import { logger } from '../logger.js'
+import { env } from '../../config/env.js'
 
 const VALID_CATEGORIES: DocumentCategory[] = [
   'lab_result',

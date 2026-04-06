@@ -1,13 +1,13 @@
 /** Device profile assignment endpoints — use user JWT auth. */
 import { Router, Request, Response } from 'express'
 import { eq, and, inArray } from 'drizzle-orm'
-import { db } from '../../db'
+import { db } from '../../db/index.js'
 import { deviceAccess, deviceCareProfiles, careProfiles } from '@carehub/shared'
-import { requireAuth } from '../../middleware/auth'
-import { logger } from '../../services/logger'
-import { broadcastToDevice } from '../../websocket'
-import { validate } from '../../middleware/validate'
-import { assignProfilesSchema } from '../../schemas/devices'
+import { requireAuth } from '../../middleware/auth.js'
+import { logger } from '../../services/logger.js'
+import { broadcastToDevice } from '../../websocket/index.js'
+import { validate } from '../../middleware/validate.js'
+import { assignProfilesSchema } from '../../schemas/devices.js'
 
 export const profilesRouter = Router()
 

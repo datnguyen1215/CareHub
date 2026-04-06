@@ -3,12 +3,12 @@
  * Creates the appropriate OCR service based on environment configuration.
  */
 
-import type { OCRService } from './types'
-import { TesseractOCR } from './tesseract'
-import { GoogleVisionOCR } from './google'
-import { logger } from '../logger'
+import type { OCRService } from './types.js'
+import { TesseractOCR } from './tesseract.js'
+import { GoogleVisionOCR } from './google.js'
+import { logger } from '../logger.js'
 
-export type { OCRService } from './types'
+export type { OCRService } from './types.js'
 
 const OCR_PROVIDER = process.env.OCR_PROVIDER ?? 'tesseract'
 
@@ -33,5 +33,5 @@ export function resetOCRService(): void {
   ocrInstance = null
 }
 
-export { TesseractOCR } from './tesseract'
-export { GoogleVisionOCR } from './google'
+export { TesseractOCR } from './tesseract.js'
+export { GoogleVisionOCR } from './google.js'

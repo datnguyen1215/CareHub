@@ -1,13 +1,13 @@
 /** Care Profile routes — CRUD for profiles owned by users. */
 import { Router, Request, Response } from 'express'
 import { eq, and, sql } from 'drizzle-orm'
-import { db } from '../db'
+import { db } from '../db/index.js'
 import { careProfiles, profileShares, medications } from '@carehub/shared'
-import { requireAuth } from '../middleware/auth'
-import { logger } from '../services/logger'
-import { validate } from '../middleware/validate'
-import { createProfileSchema, updateProfileSchema } from '../schemas/profiles'
-import { canViewProfile, canEditProfile, isProfileOwner } from '../services/access'
+import { requireAuth } from '../middleware/auth.js'
+import { logger } from '../services/logger.js'
+import { validate } from '../middleware/validate.js'
+import { createProfileSchema, updateProfileSchema } from '../schemas/profiles.js'
+import { canViewProfile, canEditProfile, isProfileOwner } from '../services/access.js'
 
 export const profilesRouter = Router()
 

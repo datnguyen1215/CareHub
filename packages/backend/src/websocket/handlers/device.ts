@@ -1,14 +1,14 @@
 /** Device WebSocket handlers — heartbeat, status updates. */
 import { WebSocket } from 'ws'
 import { eq } from 'drizzle-orm'
-import { db } from '../../db'
+import { db } from '../../db/index.js'
 import { devices, deviceAccess } from '@carehub/shared'
-import { logger } from '../../services/logger'
-import { addClient, removeClient, broadcastToUser, getConnectedUserIds } from '../clients'
-import type { DeviceMessage, DeviceStatusChangedMessage } from '../types'
-import { handleCallMessage } from './call'
-import { getActiveCallForDevice, markCallFailed } from '../../services/call'
-import { TIMEOUTS } from '../../config/constants'
+import { logger } from '../../services/logger.js'
+import { addClient, removeClient, broadcastToUser, getConnectedUserIds } from '../clients.js'
+import type { DeviceMessage, DeviceStatusChangedMessage } from '../types.js'
+import { handleCallMessage } from './call.js'
+import { getActiveCallForDevice, markCallFailed } from '../../services/call.js'
+import { TIMEOUTS } from '../../config/constants.js'
 
 /**
  * Broadcast device status change to all connected portal users who have access to the device.
@@ -55,7 +55,8 @@ export const handleDeviceConnection = async (ws: WebSocket, deviceId: string): P
 
   // Update device status to online
   try {
-    await db.update(devices)
+    await db
+      .update(devices)
       .set({ status: 'online', last_seen_at: new Date() })
       .where(eq(devices.id, deviceId))
   } catch (err) {
@@ -119,9 +120,7 @@ export const handleDeviceConnection = async (ws: WebSocket, deviceId: string): P
   // Handle pong (confirms connection is alive)
   ws.on('pong', async () => {
     try {
-      await db.update(devices)
-        .set({ last_seen_at: new Date() })
-        .where(eq(devices.id, deviceId))
+      await db.update(devices).set({ last_seen_at: new Date() }).where(eq(devices.id, deviceId))
     } catch (err) {
       logger.error({ err, deviceId }, 'Error updating last_seen_at')
     }
@@ -137,7 +136,10 @@ export const handleDeviceConnection = async (ws: WebSocket, deviceId: string): P
     try {
       await db.update(devices).set({ status: 'offline' }).where(eq(devices.id, deviceId))
     } catch (err) {
-      logger.warn({ err, deviceId }, 'Failed to update device status to offline — DB status may be stale')
+      logger.warn(
+        { err, deviceId },
+        'Failed to update device status to offline — DB status may be stale'
+      )
     }
 
     // Notify portal users with access that device is now offline

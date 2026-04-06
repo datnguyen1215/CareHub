@@ -1,14 +1,20 @@
 /** Device management endpoints — use user JWT auth. */
 import { Router, Request, Response } from 'express'
 import { eq, and, notInArray } from 'drizzle-orm'
-import { db } from '../../db'
-import { devices, deviceAccess, deviceCareProfiles, careProfiles, callSessions } from '@carehub/shared'
+import { db } from '../../db/index.js'
+import {
+  devices,
+  deviceAccess,
+  deviceCareProfiles,
+  careProfiles,
+  callSessions,
+} from '@carehub/shared'
 import type { CallStatus, CallEndReason } from '@carehub/shared'
-import { requireAuth } from '../../middleware/auth'
-import { logger } from '../../services/logger'
-import { broadcastToDevice, broadcastToUser } from '../../websocket'
-import { validate } from '../../middleware/validate'
-import { updateDeviceSchema } from '../../schemas/devices'
+import { requireAuth } from '../../middleware/auth.js'
+import { logger } from '../../services/logger.js'
+import { broadcastToDevice, broadcastToUser } from '../../websocket/index.js'
+import { validate } from '../../middleware/validate.js'
+import { updateDeviceSchema } from '../../schemas/devices.js'
 
 export const managementRouter = Router()
 
@@ -72,36 +78,41 @@ managementRouter.get('/:id', requireAuth, async (req: Request, res: Response): P
  * PATCH /api/devices/:id
  * Update device name.
  */
-managementRouter.patch('/:id', requireAuth, validate(updateDeviceSchema), async (req: Request, res: Response): Promise<void> => {
-  try {
-    const userId = req.user!.userId
-    const deviceId = req.params.id as string
-    const { name } = req.body as { name: string }
+managementRouter.patch(
+  '/:id',
+  requireAuth,
+  validate(updateDeviceSchema),
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      const userId = req.user!.userId
+      const deviceId = req.params.id as string
+      const { name } = req.body as { name: string }
 
-    // Verify user has access
-    const [access] = await db
-      .select()
-      .from(deviceAccess)
-      .where(and(eq(deviceAccess.device_id, deviceId), eq(deviceAccess.user_id, userId)))
-      .limit(1)
+      // Verify user has access
+      const [access] = await db
+        .select()
+        .from(deviceAccess)
+        .where(and(eq(deviceAccess.device_id, deviceId), eq(deviceAccess.user_id, userId)))
+        .limit(1)
 
-    if (!access) {
-      res.status(404).json({ error: 'Device not found' })
-      return
+      if (!access) {
+        res.status(404).json({ error: 'Device not found' })
+        return
+      }
+
+      const [updated] = await db
+        .update(devices)
+        .set({ name })
+        .where(eq(devices.id, deviceId))
+        .returning()
+
+      res.json(updated)
+    } catch (err) {
+      logger.error({ err }, 'PATCH /devices/:id error')
+      res.status(500).json({ error: 'Failed to update device' })
     }
-
-    const [updated] = await db
-      .update(devices)
-      .set({ name })
-      .where(eq(devices.id, deviceId))
-      .returning()
-
-    res.json(updated)
-  } catch (err) {
-    logger.error({ err }, 'PATCH /devices/:id error')
-    res.status(500).json({ error: 'Failed to update device' })
   }
-})
+)
 
 /**
  * DELETE /api/devices/:id
@@ -170,7 +181,10 @@ managementRouter.delete('/:id', requireAuth, async (req: Request, res: Response)
           )
 
         endedCallInfo = { id: activeCallRow.id, callerUserId: activeCallRow.callerUserId }
-        logger.info({ callId: activeCallRow.id, deviceId }, 'Active call cancelled before device deletion')
+        logger.info(
+          { callId: activeCallRow.id, deviceId },
+          'Active call cancelled before device deletion'
+        )
       }
 
       // Delete device (cascades to device_care_profiles, device_access, device_pairing_tokens)

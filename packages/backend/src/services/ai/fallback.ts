@@ -3,7 +3,7 @@
  * Used when AI APIs are unavailable.
  */
 
-import type { AIService, DescriptionResult, DocumentCategory } from './types'
+import type { AIService, DescriptionResult, DocumentCategory } from './types.js'
 
 /** Keyword patterns for category detection */
 const CATEGORY_KEYWORDS: Record<DocumentCategory, string[]> = {

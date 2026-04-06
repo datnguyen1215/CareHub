@@ -11,7 +11,7 @@ import type {
   IceCandidateMessage,
   ScreenShareStateMessage,
 } from '@carehub/shared'
-import type { ClientType } from './clients'
+import type { ClientType } from './clients.js'
 
 /** Base WebSocket message structure */
 export interface WsMessage {

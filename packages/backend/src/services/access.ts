@@ -1,6 +1,6 @@
 /** Shared profile access-check utilities. */
 import { eq, and } from 'drizzle-orm'
-import { db } from '../db'
+import { db } from '../db/index.js'
 import { careProfiles, profileShares } from '@carehub/shared'
 
 // Infer the full row type returned by `db.select().from(careProfiles)`

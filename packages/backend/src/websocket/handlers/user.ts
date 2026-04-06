@@ -1,12 +1,12 @@
 /** User WebSocket handlers — JWT authentication and message routing. */
 import { WebSocket } from 'ws'
 import jwt from 'jsonwebtoken'
-import { logger } from '../../services/logger'
-import { env } from '../../config/env'
-import { addClient, removeClient, broadcastToDevice, getUserClients } from '../clients'
-import type { UserMessage } from '../types'
-import { handleCallMessage } from './call'
-import { getActiveCallForUser, markCallFailed } from '../../services/call'
+import { logger } from '../../services/logger.js'
+import { env } from '../../config/env.js'
+import { addClient, removeClient, broadcastToDevice, getUserClients } from '../clients.js'
+import type { UserMessage } from '../types.js'
+import { handleCallMessage } from './call.js'
+import { getActiveCallForUser, markCallFailed } from '../../services/call.js'
 
 interface JwtPayload {
   userId: string

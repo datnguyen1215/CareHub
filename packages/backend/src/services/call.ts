@@ -1,9 +1,9 @@
 /** Call service — manages call session database operations. */
 import { eq, and, notInArray } from 'drizzle-orm'
-import { db } from '../db'
+import { db } from '../db/index.js'
 import { callSessions, deviceAccess, users, devices } from '@carehub/shared'
 import type { CallStatus, CallEndReason, CallParticipant } from '@carehub/shared'
-import { logger } from './logger'
+import { logger } from './logger.js'
 
 /** Terminal call statuses — calls in these states are considered ended */
 const TERMINAL_STATUSES: CallStatus[] = ['ended', 'failed']

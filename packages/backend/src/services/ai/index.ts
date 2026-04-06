@@ -3,13 +3,13 @@
  * Creates the appropriate AI service based on environment configuration.
  */
 
-import type { AIService, DescriptionResult } from './types'
-import { OpenAIService } from './openai'
-import { AnthropicService } from './anthropic'
-import { FallbackAI } from './fallback'
-import { logger } from '../logger'
+import type { AIService, DescriptionResult } from './types.js'
+import { OpenAIService } from './openai.js'
+import { AnthropicService } from './anthropic.js'
+import { FallbackAI } from './fallback.js'
+import { logger } from '../logger.js'
 
-export type { AIService, DescriptionResult, DocumentCategory } from './types'
+export type { AIService, DescriptionResult, DocumentCategory } from './types.js'
 
 const AI_PROVIDER = process.env.AI_PROVIDER ?? 'fallback'
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY
@@ -55,6 +55,6 @@ export async function generateDescription(ocrText: string): Promise<DescriptionR
   }
 }
 
-export { OpenAIService } from './openai'
-export { AnthropicService } from './anthropic'
-export { FallbackAI } from './fallback'
+export { OpenAIService } from './openai.js'
+export { AnthropicService } from './anthropic.js'
+export { FallbackAI } from './fallback.js'

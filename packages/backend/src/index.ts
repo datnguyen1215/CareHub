@@ -1,9 +1,9 @@
 import 'dotenv/config'
 import http from 'http'
-import { validateConfig, env } from './config/env'
-import { createApp } from './app'
-import { initWebSocketServer } from './websocket'
-import { logger } from './services/logger'
+import { validateConfig, env } from './config/env.js'
+import { createApp } from './app.js'
+import { initWebSocketServer } from './websocket/index.js'
+import { logger } from './services/logger.js'
 
 validateConfig()
 const app = createApp()

@@ -1,13 +1,13 @@
 /** Journal routes — CRUD for journal entries within a care profile. */
 import { Router, Request, Response } from 'express'
 import { eq, and, desc, asc, sql, count } from 'drizzle-orm'
-import { db } from '../db'
+import { db } from '../db/index.js'
 import { journalEntries, events, attachments } from '@carehub/shared'
-import { requireAuth } from '../middleware/auth'
-import { logger } from '../services/logger'
-import { validate } from '../middleware/validate'
-import { createJournalSchema, updateJournalSchema } from '../schemas/journal'
-import { canAccessProfile } from '../services/access'
+import { requireAuth } from '../middleware/auth.js'
+import { logger } from '../services/logger.js'
+import { validate } from '../middleware/validate.js'
+import { createJournalSchema, updateJournalSchema } from '../schemas/journal.js'
+import { canAccessProfile } from '../services/access.js'
 
 export const journalRouter = Router({ mergeParams: true })
 

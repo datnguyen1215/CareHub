@@ -1,7 +1,7 @@
 /** Call signaling handlers — WebRTC offer/answer/ICE exchange. */
 import { WebSocket } from 'ws'
 import { RING_TIMEOUT_MS } from '@carehub/shared'
-import { logger } from '../../services/logger'
+import { logger } from '../../services/logger.js'
 import {
   updateCallStatus,
   endCall,
@@ -11,9 +11,9 @@ import {
   clearRingTimeout,
   getCallSession,
   tryCreateCallSession,
-} from '../../services/call'
-import { broadcastToDevice, broadcastToUser, isDeviceConnected } from '../clients'
-import type { ClientType } from '../clients'
+} from '../../services/call.js'
+import { broadcastToDevice, broadcastToUser, isDeviceConnected } from '../clients.js'
+import type { ClientType } from '../clients.js'
 import type {
   SignalingMessage,
   CallInitiateMessage,
@@ -24,7 +24,7 @@ import type {
   CallAnswerMessage,
   IceCandidateMessage,
   ScreenShareStateMessage,
-} from '../types'
+} from '../types.js'
 
 /**
  * Route incoming call message to appropriate handler.

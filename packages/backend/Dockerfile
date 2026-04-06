@@ -18,7 +18,7 @@ COPY packages/shared/ ./packages/shared/
 COPY packages/backend/ ./packages/backend/
 
 # Build shared then backend
-RUN npm run build --workspace=packages/shared 2>/dev/null || true
+RUN npm run build --workspace=packages/shared
 RUN npm run build --workspace=packages/backend
 
 # Run stage

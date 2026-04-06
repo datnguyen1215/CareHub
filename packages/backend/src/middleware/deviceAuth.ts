@@ -1,7 +1,7 @@
 /** Device auth middleware — validates device tokens for kiosk endpoints. */
 import { Request, Response, NextFunction } from 'express'
 import { eq } from 'drizzle-orm'
-import { db } from '../db'
+import { db } from '../db/index.js'
 import { devices } from '@carehub/shared'
 
 export interface DevicePayload {

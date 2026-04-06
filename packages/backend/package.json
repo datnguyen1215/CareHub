@@ -2,6 +2,7 @@
   "name": "@carehub/backend",
   "version": "1.0.0",
   "private": true,
+  "type": "module",
   "main": "dist/index.js",
   "scripts": {
     "dev": "nodemon --exec tsx src/index.ts",

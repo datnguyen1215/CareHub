@@ -1,13 +1,13 @@
 /** Event routes — CRUD for events within a care profile. */
 import { Router, Request, Response } from 'express'
 import { eq, and, gte, lte } from 'drizzle-orm'
-import { db } from '../db'
+import { db } from '../db/index.js'
 import { events } from '@carehub/shared'
-import { requireAuth } from '../middleware/auth'
-import { logger } from '../services/logger'
-import { validate } from '../middleware/validate'
-import { createEventSchema, updateEventSchema } from '../schemas/events'
-import { canAccessProfile } from '../services/access'
+import { requireAuth } from '../middleware/auth.js'
+import { logger } from '../services/logger.js'
+import { validate } from '../middleware/validate.js'
+import { createEventSchema, updateEventSchema } from '../schemas/events.js'
+import { canAccessProfile } from '../services/access.js'
 
 export const eventsRouter = Router({ mergeParams: true })
 

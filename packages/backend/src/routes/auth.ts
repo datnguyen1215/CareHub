@@ -2,15 +2,15 @@
 import { Router, Request, Response } from 'express'
 import crypto from 'crypto'
 import { eq, and, gt, max } from 'drizzle-orm'
-import { db } from '../db'
+import { db } from '../db/index.js'
 import { otps, users } from '@carehub/shared'
-import { sendOtpEmail } from '../services/email'
-import { signToken, requireAuth } from '../middleware/auth'
-import { authLimiter } from '../middleware/rateLimit'
-import { logger } from '../services/logger'
-import { validate } from '../middleware/validate'
-import { requestOtpSchema, verifyOtpSchema } from '../schemas/auth'
-import { TIMEOUTS } from '../config/constants'
+import { sendOtpEmail } from '../services/email.js'
+import { signToken, requireAuth } from '../middleware/auth.js'
+import { authLimiter } from '../middleware/rateLimit.js'
+import { logger } from '../services/logger.js'
+import { validate } from '../middleware/validate.js'
+import { requestOtpSchema, verifyOtpSchema } from '../schemas/auth.js'
+import { TIMEOUTS } from '../config/constants.js'
 
 export const authRouter = Router()
 

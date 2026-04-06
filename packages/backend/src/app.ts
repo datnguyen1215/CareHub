@@ -14,11 +14,12 @@ import express from 'express'
 import path from 'path'
 import cookieParser from 'cookie-parser'
 import cors from 'cors'
-import pinoHttp from 'pino-http'
-import { registerRoutes } from './routes'
-import { logger } from './services/logger'
-import { errorHandler } from './middleware/errorHandler'
-import { globalLimiter } from './middleware/rateLimit'
+import pinoHttpModule from 'pino-http'
+const pinoHttp = pinoHttpModule.default ?? pinoHttpModule
+import { registerRoutes } from './routes/index.js'
+import { logger } from './services/logger.js'
+import { errorHandler } from './middleware/errorHandler.js'
+import { globalLimiter } from './middleware/rateLimit.js'
 
 const UPLOADS_PATH = process.env.UPLOADS_PATH ?? path.join(process.cwd(), 'uploads')
 

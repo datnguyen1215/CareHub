@@ -2,7 +2,7 @@
 import pino from 'pino'
 import { mkdirSync, existsSync } from 'node:fs'
 import { dirname } from 'node:path'
-import { env } from '../config/env'
+import { env } from '../config/env.js'
 
 /**
  * Creates a configured pino logger instance.

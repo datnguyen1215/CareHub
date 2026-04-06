@@ -2,12 +2,12 @@
 import { WebSocketServer } from 'ws'
 import { Server } from 'http'
 import { eq } from 'drizzle-orm'
-import { db } from '../db'
+import { db } from '../db/index.js'
 import { devices } from '@carehub/shared'
-import { logger } from '../services/logger'
-import { handleDeviceConnection } from './handlers/device'
-import { handleUserConnection, verifyUserToken } from './handlers/user'
-import { consumeWsTicket } from '../routes/auth'
+import { logger } from '../services/logger.js'
+import { handleDeviceConnection } from './handlers/device.js'
+import { handleUserConnection, verifyUserToken } from './handlers/user.js'
+import { consumeWsTicket } from '../routes/auth.js'
 import {
   clearAllClients,
   broadcastToDevice,
@@ -17,10 +17,10 @@ import {
   isUserConnected,
   getConnectedDeviceCount,
   getConnectedUserCount,
-} from './clients'
+} from './clients.js'
 
 // Re-export types and utilities for external use
-export type { WsMessage, SignalingMessage } from './types'
+export type { WsMessage, SignalingMessage } from './types.js'
 export {
   broadcastToDevice,
   broadcastToUser,

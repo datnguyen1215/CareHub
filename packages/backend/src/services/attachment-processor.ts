@@ -5,11 +5,11 @@
 
 import path from 'path'
 import { eq } from 'drizzle-orm'
-import { db } from '../db'
+import { db } from '../db/index.js'
 import { attachments } from '@carehub/shared'
-import { getOCRService } from './ocr'
-import { generateDescription, type DocumentCategory } from './ai'
-import { logger } from './logger'
+import { getOCRService } from './ocr/index.js'
+import { generateDescription, type DocumentCategory } from './ai/index.js'
+import { logger } from './logger.js'
 
 // Supported image types for OCR processing
 const OCR_SUPPORTED_TYPES = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.pdf']

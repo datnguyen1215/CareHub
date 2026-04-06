@@ -2,10 +2,10 @@
 import { Router, Request, Response } from 'express'
 import crypto from 'crypto'
 import { eq } from 'drizzle-orm'
-import { db } from '../../db'
+import { db } from '../../db/index.js'
 import { devices } from '@carehub/shared'
-import { deviceRegisterLimiter } from '../../middleware/rateLimit'
-import { logger } from '../../services/logger'
+import { deviceRegisterLimiter } from '../../middleware/rateLimit.js'
+import { logger } from '../../services/logger.js'
 
 export const registrationRouter = Router()
 

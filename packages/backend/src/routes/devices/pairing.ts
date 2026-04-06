@@ -1,13 +1,19 @@
 /** Caretaker device pairing endpoints — use user JWT auth. */
 import { Router, Request, Response } from 'express'
 import { eq, and, gt, inArray } from 'drizzle-orm'
-import { db } from '../../db'
-import { devices, deviceCareProfiles, deviceAccess, devicePairingTokens, careProfiles } from '@carehub/shared'
-import { requireAuth } from '../../middleware/auth'
-import { logger } from '../../services/logger'
-import { broadcastToDevice, isDeviceConnected } from '../../websocket'
-import { validate } from '../../middleware/validate'
-import { pairDeviceSchema } from '../../schemas/devices'
+import { db } from '../../db/index.js'
+import {
+  devices,
+  deviceCareProfiles,
+  deviceAccess,
+  devicePairingTokens,
+  careProfiles,
+} from '@carehub/shared'
+import { requireAuth } from '../../middleware/auth.js'
+import { logger } from '../../services/logger.js'
+import { broadcastToDevice, isDeviceConnected } from '../../websocket/index.js'
+import { validate } from '../../middleware/validate.js'
+import { pairDeviceSchema } from '../../schemas/devices.js'
 
 export const pairingRouter = Router()
 
@@ -40,16 +46,19 @@ pairingRouter.get('/', requireAuth, async (req: Request, res: Response): Promise
       .where(eq(deviceAccess.user_id, userId))
 
     // Group profiles by device
-    const deviceMap = new Map<string, {
-      id: string
-      name: string
-      status: string
-      battery_level: number | null
-      last_seen_at: Date | null
-      paired_at: Date | null
-      created_at: Date
-      profiles: { id: string; name: string; avatar_url: string | null }[]
-    }>()
+    const deviceMap = new Map<
+      string,
+      {
+        id: string
+        name: string
+        status: string
+        battery_level: number | null
+        last_seen_at: Date | null
+        paired_at: Date | null
+        created_at: Date
+        profiles: { id: string; name: string; avatar_url: string | null }[]
+      }
+    >()
 
     for (const row of rows) {
       if (!deviceMap.has(row.id)) {
@@ -85,116 +94,118 @@ pairingRouter.get('/', requireAuth, async (req: Request, res: Response): Promise
  * Complete pairing by scanning QR token.
  * Links device to profiles and grants caretaker access.
  */
-pairingRouter.post('/pair', requireAuth, validate(pairDeviceSchema), async (req: Request, res: Response): Promise<void> => {
-  try {
-    const userId = req.user!.userId
-    const { token, profileIds } = req.body as { token: string; profileIds?: string[] }
+pairingRouter.post(
+  '/pair',
+  requireAuth,
+  validate(pairDeviceSchema),
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      const userId = req.user!.userId
+      const { token, profileIds } = req.body as { token: string; profileIds?: string[] }
 
-    // Find valid pairing token
-    const now = new Date()
-    const [pairingToken] = await db
-      .select()
-      .from(devicePairingTokens)
-      .where(
-        and(
-          eq(devicePairingTokens.token, token.toUpperCase()),
-          gt(devicePairingTokens.expires_at, now)
-        )
-      )
-      .limit(1)
-
-    if (!pairingToken || !pairingToken.device_id) {
-      res.status(400).json({ error: 'Invalid or expired pairing token' })
-      return
-    }
-
-    const deviceId = pairingToken.device_id
-
-    // Verify user has access to the profiles they're assigning
-    const validProfileIds: string[] = []
-    if (profileIds && Array.isArray(profileIds) && profileIds.length > 0) {
-      const userProfiles = await db
-        .select({ id: careProfiles.id })
-        .from(careProfiles)
-        .where(and(eq(careProfiles.user_id, userId), inArray(careProfiles.id, profileIds)))
-
-      validProfileIds.push(...userProfiles.map((p) => p.id))
-    }
-
-    // Check actual WebSocket connection status
-    const status = isDeviceConnected(deviceId) ? 'online' : 'offline'
-
-    await db.transaction(async (tx) => {
-      // Update device as paired
-      await tx
-        .update(devices)
-        .set({ paired_at: now, status })
-        .where(eq(devices.id, deviceId))
-
-      // Grant user access to device
-      const existingAccess = await tx
+      // Find valid pairing token
+      const now = new Date()
+      const [pairingToken] = await db
         .select()
-        .from(deviceAccess)
-        .where(and(eq(deviceAccess.device_id, deviceId), eq(deviceAccess.user_id, userId)))
+        .from(devicePairingTokens)
+        .where(
+          and(
+            eq(devicePairingTokens.token, token.toUpperCase()),
+            gt(devicePairingTokens.expires_at, now)
+          )
+        )
         .limit(1)
 
-      if (existingAccess.length === 0) {
-        await tx.insert(deviceAccess).values({
-          device_id: deviceId,
-          user_id: userId,
-          granted_by: userId,
-        })
+      if (!pairingToken || !pairingToken.device_id) {
+        res.status(400).json({ error: 'Invalid or expired pairing token' })
+        return
       }
 
-      // Assign profiles to device
-      if (validProfileIds.length > 0) {
-        // Remove existing profile assignments first
-        await tx.delete(deviceCareProfiles).where(eq(deviceCareProfiles.device_id, deviceId))
+      const deviceId = pairingToken.device_id
 
-        // Add new profile assignments
-        await tx.insert(deviceCareProfiles).values(
-          validProfileIds.map((profileId) => ({
+      // Verify user has access to the profiles they're assigning
+      const validProfileIds: string[] = []
+      if (profileIds && Array.isArray(profileIds) && profileIds.length > 0) {
+        const userProfiles = await db
+          .select({ id: careProfiles.id })
+          .from(careProfiles)
+          .where(and(eq(careProfiles.user_id, userId), inArray(careProfiles.id, profileIds)))
+
+        validProfileIds.push(...userProfiles.map((p) => p.id))
+      }
+
+      // Check actual WebSocket connection status
+      const status = isDeviceConnected(deviceId) ? 'online' : 'offline'
+
+      await db.transaction(async (tx) => {
+        // Update device as paired
+        await tx.update(devices).set({ paired_at: now, status }).where(eq(devices.id, deviceId))
+
+        // Grant user access to device
+        const existingAccess = await tx
+          .select()
+          .from(deviceAccess)
+          .where(and(eq(deviceAccess.device_id, deviceId), eq(deviceAccess.user_id, userId)))
+          .limit(1)
+
+        if (existingAccess.length === 0) {
+          await tx.insert(deviceAccess).values({
             device_id: deviceId,
-            care_profile_id: profileId,
-          }))
-        )
-      }
+            user_id: userId,
+            granted_by: userId,
+          })
+        }
 
-      // Delete used pairing token
-      await tx.delete(devicePairingTokens).where(eq(devicePairingTokens.id, pairingToken.id))
-    })
+        // Assign profiles to device
+        if (validProfileIds.length > 0) {
+          // Remove existing profile assignments first
+          await tx.delete(deviceCareProfiles).where(eq(deviceCareProfiles.device_id, deviceId))
 
-    // Get updated device info
-    const [device] = await db.select().from(devices).where(eq(devices.id, deviceId)).limit(1)
+          // Add new profile assignments
+          await tx.insert(deviceCareProfiles).values(
+            validProfileIds.map((profileId) => ({
+              device_id: deviceId,
+              care_profile_id: profileId,
+            }))
+          )
+        }
 
-    const profiles = await db
-      .select({
-        id: careProfiles.id,
-        name: careProfiles.name,
-        avatar_url: careProfiles.avatar_url,
+        // Delete used pairing token
+        await tx.delete(devicePairingTokens).where(eq(devicePairingTokens.id, pairingToken.id))
       })
-      .from(deviceCareProfiles)
-      .innerJoin(careProfiles, eq(deviceCareProfiles.care_profile_id, careProfiles.id))
-      .where(eq(deviceCareProfiles.device_id, deviceId))
 
-    // Notify device via WebSocket
-    broadcastToDevice(deviceId, {
-      type: 'device_paired',
-      payload: {
-        deviceId,
+      // Get updated device info
+      const [device] = await db.select().from(devices).where(eq(devices.id, deviceId)).limit(1)
+
+      const profiles = await db
+        .select({
+          id: careProfiles.id,
+          name: careProfiles.name,
+          avatar_url: careProfiles.avatar_url,
+        })
+        .from(deviceCareProfiles)
+        .innerJoin(careProfiles, eq(deviceCareProfiles.care_profile_id, careProfiles.id))
+        .where(eq(deviceCareProfiles.device_id, deviceId))
+
+      // Notify device via WebSocket
+      broadcastToDevice(deviceId, {
+        type: 'device_paired',
+        payload: {
+          deviceId,
+          profiles,
+        },
+      })
+
+      res.json({
+        id: device.id,
+        name: device.name,
+        status: device.status,
+        pairedAt: device.paired_at,
         profiles,
-      },
-    })
-
-    res.json({
-      id: device.id,
-      name: device.name,
-      status: device.status,
-      pairedAt: device.paired_at,
-      profiles,
-    })
-  } catch (err) {
-    logger.error({ err }, 'POST /devices/pair error')
-    res.status(500).json({ error: 'Failed to pair device' })
+      })
+    } catch (err) {
+      logger.error({ err }, 'POST /devices/pair error')
+      res.status(500).json({ error: 'Failed to pair device' })
+    }
   }
-})
+)

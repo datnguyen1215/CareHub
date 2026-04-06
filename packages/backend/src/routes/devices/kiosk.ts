@@ -2,11 +2,11 @@
 import { Router, Request, Response } from 'express'
 import crypto from 'crypto'
 import { eq } from 'drizzle-orm'
-import { db } from '../../db'
+import { db } from '../../db/index.js'
 import { devices, deviceCareProfiles, deviceAccess, devicePairingTokens, careProfiles, users } from '@carehub/shared'
-import { requireDeviceAuth } from '../../middleware/deviceAuth'
-import { logger } from '../../services/logger'
-import { TIMEOUTS } from '../../config/constants'
+import { requireDeviceAuth } from '../../middleware/deviceAuth.js'
+import { logger } from '../../services/logger.js'
+import { TIMEOUTS } from '../../config/constants.js'
 
 export const kioskRouter = Router()
 

@@ -1,6 +1,6 @@
 /** WebSocket client registry — tracks connected devices and users. */
 import { WebSocket } from 'ws'
-import { logger } from '../services/logger'
+import { logger } from '../services/logger.js'
 
 /** Client type identifier */
 export type ClientType = 'device' | 'user'

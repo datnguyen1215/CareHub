@@ -1,7 +1,7 @@
 import { Router } from 'express'
-import { db } from '../db'
+import { db } from '../db/index.js'
 import { sql } from 'drizzle-orm'
-import { logger } from '../services/logger'
+import { logger } from '../services/logger.js'
 
 const router = Router()
 

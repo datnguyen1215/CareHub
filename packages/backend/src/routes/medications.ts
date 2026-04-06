@@ -1,13 +1,13 @@
 /** Medication routes — CRUD for medications within a care profile. */
 import { Router, Request, Response } from 'express'
 import { eq, and } from 'drizzle-orm'
-import { db } from '../db'
+import { db } from '../db/index.js'
 import { medications } from '@carehub/shared'
-import { requireAuth } from '../middleware/auth'
-import { logger } from '../services/logger'
-import { validate } from '../middleware/validate'
-import { createMedicationSchema, updateMedicationSchema } from '../schemas/medications'
-import { canAccessProfile } from '../services/access'
+import { requireAuth } from '../middleware/auth.js'
+import { logger } from '../services/logger.js'
+import { validate } from '../middleware/validate.js'
+import { createMedicationSchema, updateMedicationSchema } from '../schemas/medications.js'
+import { canAccessProfile } from '../services/access.js'
 
 export const medicationsRouter = Router({ mergeParams: true })
 

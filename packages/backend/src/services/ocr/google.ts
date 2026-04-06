@@ -4,8 +4,8 @@
  */
 
 import { ImageAnnotatorClient } from '@google-cloud/vision'
-import type { OCRService } from './types'
-import { logger } from '../logger'
+import type { OCRService } from './types.js'
+import { logger } from '../logger.js'
 
 export class GoogleVisionOCR implements OCRService {
   private client: ImageAnnotatorClient
