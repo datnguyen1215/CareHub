@@ -134,6 +134,7 @@
 		class="fixed inset-0 z-60 flex items-center justify-center bg-black/40 p-unit-2"
 		role="dialog"
 		aria-modal="true"
+		tabindex="-1"
 		onmousedown={(e) => {
 			if (e.target === e.currentTarget) handleCancelDelete();
 		}}

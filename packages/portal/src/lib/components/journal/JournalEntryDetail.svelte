@@ -111,6 +111,7 @@
 	class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-unit-2"
 	role="dialog"
 	aria-modal="true"
+	tabindex="-1"
 	aria-labelledby="journal-detail-title"
 	onmousedown={handleBackdropClick}
 >
