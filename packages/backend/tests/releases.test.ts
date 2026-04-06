@@ -76,10 +76,13 @@ describe('POST /api/releases/upload', () => {
     expect(res.body.checksum).toMatch(/^[a-f0-9]{64}$/)
     expect(res.body.file_size).toBe(100)
     expect(res.body.notes).toBe('Initial release')
-    expect(res.body.file_path).toBeDefined()
+    // file_path is intentionally omitted from the response to avoid leaking internal paths
+    expect(res.body.file_path).toBeUndefined()
 
-    // Verify APK file was written to disk
-    expect(fs.existsSync(res.body.file_path)).toBe(true)
+    // Verify APK file was written to the configured releases directory
+    const filesInDir = fs.readdirSync(testReleasesDir)
+    const uploadedFile = filesInDir.find((f) => f.startsWith('kiosk-1.0.0-100-') && f.endsWith('.apk'))
+    expect(uploadedFile).toBeDefined()
   })
 
   it('accepts portal app type', async () => {
@@ -188,6 +191,8 @@ describe('POST /api/releases/upload', () => {
 
 describe('GET /api/releases/latest', () => {
   beforeAll(async () => {
+    // Truncate first to isolate from upload test data (which inserts kiosk version_codes 100 and 9001)
+    await truncateAll()
     // Seed releases for latest query tests
     await createRelease({
       app: 'kiosk',

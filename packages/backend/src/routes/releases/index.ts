@@ -9,7 +9,7 @@
  * Upload directory is configurable via RELEASES_DIR env var (default: data/releases/).
  * APKs are stored outside the static web directory to prevent direct URL access.
  */
-import { Router, Request, Response, NextFunction } from 'express'
+import { Router, Request, Response } from 'express'
 import multer, { MulterError } from 'multer'
 import path from 'path'
 import fs from 'fs'
@@ -20,7 +20,6 @@ import { appReleases } from '@carehub/shared'
 import { requireAuth } from '../../middleware/auth.js'
 import { requireDeviceAuth } from '../../middleware/deviceAuth.js'
 import { logger } from '../../services/logger.js'
-import { env } from '../../config/env.js'
 
 export const releasesRouter = Router()
 
@@ -32,7 +31,7 @@ const APK_MAGIC = Buffer.from([0x50, 0x4b, 0x03, 0x04])
  * Uses RELEASES_DIR env var if set, otherwise defaults to data/releases/ relative to CWD.
  */
 function getReleasesDir(): string {
-  const dir = env.RELEASES_DIR || path.join(process.cwd(), 'data', 'releases')
+  const dir = process.env.RELEASES_DIR || path.join(process.cwd(), 'data', 'releases')
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true })
   }
@@ -88,7 +87,7 @@ const upload = multer({
 releasesRouter.post(
   '/upload',
   requireAuth,
-  (req: Request, res: Response, next: NextFunction): void => {
+  (req: Request, res: Response): void => {
     upload.single('file')(req, res, async (err: unknown) => {
       // Handle multer errors
       if (err) {
