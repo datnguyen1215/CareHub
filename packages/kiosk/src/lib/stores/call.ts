@@ -37,7 +37,8 @@ import {
 	sendCallDeclined,
 	sendCallAnswer,
 	sendIceCandidate,
-	sendCallEnded
+	sendCallEnded,
+	flushPendingUpdate
 } from '$lib/services/websocket';
 import * as webrtc from '$lib/services/webrtc';
 import { notification } from '$lib/stores/notifications';
@@ -579,6 +580,7 @@ export function endCall(): void {
 /**
  * Reset call state to idle.
  * Call this after showing "call ended" UI.
+ * Also triggers any update that was deferred while the call was active.
  */
 export function resetCallState(): void {
 	stopDurationTimer();
@@ -587,6 +589,8 @@ export function resetCallState(): void {
 	callState = { ...initialState };
 	machine = createCallMachine();
 	notify();
+	// Apply any OTA update that arrived during the call
+	flushPendingUpdate();
 }
 
 /**
