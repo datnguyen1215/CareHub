@@ -10,6 +10,8 @@ import type {
   CallAnswerMessage,
   IceCandidateMessage,
   ScreenShareStateMessage,
+  AppUpdateMessage,
+  AppUpdateStatusMessage,
 } from '@carehub/shared'
 import type { ClientType } from './clients.js'
 
@@ -24,6 +26,8 @@ export interface HeartbeatMessage {
   type: 'heartbeat'
   payload: {
     batteryLevel?: number
+    /** Semver string of the app version currently running on the device */
+    appVersion?: string
   }
 }
 
@@ -44,6 +48,7 @@ export type DeviceMessage =
   | CallEndedMessage
   | CallAnswerMessage
   | IceCandidateMessage
+  | AppUpdateStatusMessage
 
 /** Device status changed — broadcast to portal users */
 export interface DeviceStatusChangedMessage {
@@ -99,4 +104,6 @@ export type {
   CallAnswerMessage,
   IceCandidateMessage,
   ScreenShareStateMessage,
+  AppUpdateMessage,
+  AppUpdateStatusMessage,
 }
