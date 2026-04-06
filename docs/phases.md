@@ -107,6 +107,7 @@ Enable the tablet kiosk experience, Capacitor mobile app, and real-time communic
 - [x] **Backend ping/pong** -- User WebSocket handler supports `ping` messages and responds with `pong`
 - [x] **Race condition prevention** -- Old socket event handlers nulled before close to prevent stale events from corrupting new connections
 - [x] **Multi-tab signal isolation** -- `handleIncomingSignal()` skips signals when tab call state is idle; prevents duplicate SDP offers and conflicting ICE negotiations when a user has multiple portal tabs open
+- [x] **Real-time device status** -- `device_status_changed` WebSocket events broadcast from backend; portal `deviceStatus.svelte.ts` store seeded from REST API on load and updated reactively; device list, device detail, DeviceCard, and OverviewPanel all reflect live status; call button disabled state derived from live store; `handleCall` guards in devices page and OverviewPanel use `getDeviceStatus()` for defense-in-depth
 
 - [x] **Call UI components** -- Full-screen call interface on portal with CallModal and CallControls
 - [x] **Portal call initiation** -- Call from device detail page and profile overview tab, both wired to call store
