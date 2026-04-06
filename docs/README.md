@@ -39,6 +39,7 @@ Managing health care for multiple elderly family members involves tracking medic
 | [User Flows](user-flows.md)        | Step-by-step workflows for core tasks             |
 | [UI/UX Design](ui-design.md)       | Design guidelines, colors, typography, wireframes |
 | [Implementation Phases](phases.md) | Phased delivery plan with key deliverables        |
+| [Releasing](../RELEASING.md)       | APK build, sign, and upload pipeline              |
 
 ## Wireframes
 

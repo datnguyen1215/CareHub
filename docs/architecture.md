@@ -622,6 +622,19 @@ All Capacitor apps (caretaker phones and elderly tablets) receive UI and logic u
 - APK rebuild is only needed when native plugins or Capacitor configuration change (rare after initial setup).
 - Elderly tablets update automatically with zero intervention.
 
+### Release Pipeline
+
+Signed APK builds and uploads are automated via `scripts/release.sh` in each app package.
+
+```bash
+npm run release:kiosk -- --version 1.2.0
+npm run release:portal -- --version 1.2.0
+```
+
+The script: validates prerequisites (`ANDROID_HOME`, keystore, `.env.release`), increments `versionCode` and sets `versionName` in `build.gradle`, runs the Vite build and Capacitor sync, builds a signed APK via Gradle, then uploads it to `POST /api/releases/upload` (multipart/form-data: `file`, `app`, `version`, `version_code`).
+
+Signing credentials are stored in a gitignored `.env.release` file in each package directory. See [RELEASING.md](../RELEASING.md) for full setup and usage.
+
 ### Silent APK Update Plugin
 
 The kiosk uses a custom Capacitor plugin (`SilentUpdate`) to download and install APK updates without user interaction, using Device Owner privileges.

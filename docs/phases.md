@@ -133,6 +133,7 @@ Enable the tablet kiosk experience, Capacitor mobile app, and real-time communic
 - [x] **Build workflow** -- Scripts for `cap:sync`, `cap:open`, `cap:build`
 - [x] **Capacitor portal integration** -- Portal configured with adapter-static, Capacitor Android platform, and client-side auth
 - [x] **Device Owner provisioning** -- `DeviceAdminReceiver` registered in manifest with `BIND_DEVICE_ADMIN` permission; `device_admin.xml` declares empty `<uses-policies>` (Device Owner inherits all privileges); `REQUEST_INSTALL_PACKAGES` and `REQUEST_DELETE_PACKAGES` permissions added; one-time ADB provisioning script at `packages/kiosk/scripts/provision-device-owner.sh`; setup steps documented in `packages/kiosk/SETUP.md`
+- [x] **Release pipeline** -- `scripts/release.sh` for kiosk and portal: bumps versionCode/versionName, builds signed APK, uploads to backend; `npm run release:kiosk` and `npm run release:portal` at root; see [RELEASING.md](../RELEASING.md)
 
 **Planned:**
 

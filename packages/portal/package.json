@@ -13,6 +13,7 @@
     "cap:sync": "cap sync android",
     "cap:open": "cap open android",
     "cap:build": "npm run build && npm run cap:sync",
+    "release": "bash scripts/release.sh",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage"
