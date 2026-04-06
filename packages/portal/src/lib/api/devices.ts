@@ -26,7 +26,6 @@ export interface Device {
 // Backend returns camelCase for single device responses.
 // This normalization maps camelCase fields to snake_case to match
 // the Device interface used by consumers (consistent with list responses).
-// Backend returns camelCase for single device responses; list responses use snake_case already.
 interface DeviceApiResponse {
 	id: string;
 	name: string;

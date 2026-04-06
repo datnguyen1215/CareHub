@@ -659,6 +659,7 @@
 		role="dialog"
 		aria-modal="true"
 		aria-labelledby="update-modal-title"
+		tabindex="-1"
 		onmousedown={(e) => {
 			if (e.target === e.currentTarget) showUpdateConfirm = false;
 		}}
