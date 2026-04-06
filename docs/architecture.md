@@ -325,7 +325,7 @@ Tablet push notifications, device status monitoring, and video call signaling al
 
 - `packages/backend/src/websocket/clients.ts` - Central registry with key format `device:{id}` or `user:{id}`
 - Devices: single connection per device
-- Users: multiple connections supported (multi-tab browser sessions); `broadcastToUser()` sends to all user connections, so each tab must filter signals based on its own call state
+- Users: multiple connections supported (multi-tab browser sessions); `broadcastToUser()` sends to all user connections, so each tab must filter signals based on its own call state; idle tabs log a `warn`-level message when discarding incoming signals (visible in production)
 - Functions: `broadcastToDevice()`, `broadcastToUser()`, `isDeviceConnected()`, `isUserConnected()`, `getConnectedUserIds()`
 
 **Message Handlers:**
@@ -535,6 +535,7 @@ Both Portal and Kiosk use hierarchical state machines (via `@datnguyen1215/hsmjs
 - Cannot create offer unless peer connection exists and local stream attached
 - Cannot transition to `connected` unless ICE connection state is `connected`
 - Cannot accept call unless in `incoming` state
+- Kiosk rejects incoming calls when not idle: sends `call:declined` back to the server (reason: busy) so the caller receives explicit feedback instead of silence
 - ICE candidates received before peer connection ready are queued in `pendingIceCandidates` and flushed when entering `connecting` state
 
 **Logging:**
@@ -544,6 +545,7 @@ Both Portal and Kiosk use hierarchical state machines (via `@datnguyen1215/hsmjs
   - `logCallLifecycle(eventType, details)` — uses `logger.warn` (always visible in production); used for key lifecycle events: call initiated, incoming, accepted/declined, connected, ended, failed, and top-level state entries (`idle`, `initiating`, `connecting`, `connected`, `ending`, `failed`). Uses `warn` because `logger.info` is suppressed in production.
   - `logWebRTCEvent(eventType, details)` — uses `logger.debug` (suppressed in production); used for verbose events: ICE candidates, SDP offer/answer details, timer start/clear, connection state changes, signaling sub-state entries
 - All state transitions also logged at debug level with format: `[Call:WebRTC:TIMESTAMP] oldState → newState (trigger: eventName)`
+- Dropped signals logged at `warn` level: idle tabs log the discarded message type (`handleIncomingSignal: dropping message while idle, type: …`); `initiateCall` logs when rejected due to non-idle state
 
 **Events:**
 
