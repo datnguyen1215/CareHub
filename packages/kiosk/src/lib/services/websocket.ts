@@ -64,6 +64,13 @@ let cachedAppVersion: string | null = null;
  */
 let pendingUpdate: AppUpdatePayload | null = null;
 
+/**
+ * Guard flag — true while an OTA update is in progress.
+ * Prevents a second concurrent update from starting if the backend
+ * sends another `app:update` message before the first finishes.
+ */
+let isUpdating = false;
+
 const reconnectStrategy = createFixedReconnectStrategy(3000);
 
 let heartbeatTimer: ReturnType<typeof setInterval> | null = null;
@@ -286,6 +293,11 @@ function routeUpdateMessage(message: WsMessage): void {
 		return;
 	}
 
+	if (isUpdating) {
+		logger.warn('[update] Update already in progress — ignoring duplicate app:update message');
+		return;
+	}
+
 	handleAppUpdate(payload);
 }
 
@@ -295,6 +307,10 @@ function routeUpdateMessage(message: WsMessage): void {
  */
 export function flushPendingUpdate(): void {
 	if (pendingUpdate) {
+		if (isUpdating) {
+			logger.warn('[update] Update already in progress — cannot flush deferred update yet');
+			return;
+		}
 		const payload = pendingUpdate;
 		pendingUpdate = null;
 		logger.info('[update] Call ended — running deferred app:update');
@@ -320,6 +336,7 @@ async function handleAppUpdate(payload: AppUpdatePayload): Promise<void> {
 	const { downloadUrl, checksum, version, releaseId } = payload;
 	logger.info(`[update] Starting update to ${version} (release ${releaseId})`);
 
+	isUpdating = true;
 	setUpdateStatus('downloading', { updateProgress: 0 });
 
 	// Listen for download progress events from the native plugin
@@ -333,8 +350,10 @@ async function handleAppUpdate(payload: AppUpdatePayload): Promise<void> {
 	});
 
 	try {
-		setUpdateStatus('installing');
 		await SilentUpdate.downloadAndInstall({ url: downloadUrl, checksum });
+
+		// Download + install succeeded — transition to installing state
+		setUpdateStatus('installing');
 
 		// Refresh the cached version after a successful install
 		try {
@@ -360,6 +379,7 @@ async function handleAppUpdate(payload: AppUpdatePayload): Promise<void> {
 		logger.error('[update] Update failed:', errorMessage);
 	} finally {
 		await progressListener.remove();
+		isUpdating = false;
 	}
 }
 
