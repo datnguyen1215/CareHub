@@ -64,6 +64,7 @@ managementRouter.get('/:id', requireAuth, async (req: Request, res: Response): P
       name: device.name,
       status: device.status,
       batteryLevel: device.battery_level,
+      appVersion: device.app_version,
       lastSeenAt: device.last_seen_at,
       pairedAt: device.paired_at,
       createdAt: device.created_at,
