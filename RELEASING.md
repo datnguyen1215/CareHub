@@ -106,7 +106,7 @@ The version argument is required and must be in `X.Y.Z` (semver) format.
 | `npm run build` | Runs Vite to produce the web bundle |
 | `npx cap sync android` | Copies the web bundle into the Android project and updates Capacitor plugins |
 | `./gradlew assembleRelease` | Compiles and signs the APK using the provided keystore credentials |
-| Upload | POSTs the APK to `$BACKEND_URL/api/releases/upload` with `app`, `version` fields |
+| Upload | POSTs the APK to `$BACKEND_URL/api/releases/upload` as multipart/form-data with `file`, `app`, `version`, `version_code` fields |
 | Output | Prints the release ID and version on success |
 
 ---

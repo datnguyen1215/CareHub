@@ -627,7 +627,7 @@ npm run release:kiosk -- --version 1.2.0
 npm run release:portal -- --version 1.2.0
 ```
 
-The script: validates prerequisites (`ANDROID_HOME`, keystore, `.env.release`), increments `versionCode` and sets `versionName` in `build.gradle`, runs the Vite build and Capacitor sync, builds a signed APK via Gradle, then uploads it to `POST /api/releases/upload`.
+The script: validates prerequisites (`ANDROID_HOME`, keystore, `.env.release`), increments `versionCode` and sets `versionName` in `build.gradle`, runs the Vite build and Capacitor sync, builds a signed APK via Gradle, then uploads it to `POST /api/releases/upload` (multipart/form-data: `file`, `app`, `version`, `version_code`).
 
 Signing credentials are stored in a gitignored `.env.release` file in each package directory. See [RELEASING.md](../RELEASING.md) for full setup and usage.
 
