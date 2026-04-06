@@ -8,6 +8,7 @@ import {
   pgEnum,
   primaryKey,
   index,
+  uniqueIndex,
   boolean,
   integer,
 } from 'drizzle-orm/pg-core'
@@ -274,6 +275,7 @@ export const appReleases = pgTable(
     /** Server-side file path to the stored APK (relative or absolute depending on storage backend) */
     file_path: varchar('file_path').notNull(),
     /** Size of the APK in bytes; used to show download progress on the device */
+    // int4 is sufficient — APKs are capped well under 2 GB; revisit if storing AAB bundles or expansion files
     file_size: integer('file_size').notNull(),
     /** SHA-256 hex digest of the APK file; verified by the device after download to ensure integrity */
     checksum: varchar('checksum').notNull(),
@@ -283,8 +285,8 @@ export const appReleases = pgTable(
     created_at: timestamp('created_at').defaultNow().notNull(),
   },
   (table) => ({
-    /** Composite index on (app, version_code) for efficient latest-version queries per app */
-    appVersionCodeIdx: index('app_releases_app_version_code_idx').on(
+    /** Unique composite index on (app, version_code) — enforces that version_code is unique per app and enables efficient latest-version queries */
+    appVersionCodeIdx: uniqueIndex('app_releases_app_version_code_idx').on(
       table.app,
       table.version_code
     ),

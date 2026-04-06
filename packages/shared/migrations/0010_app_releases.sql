@@ -16,7 +16,7 @@ CREATE TABLE "app_releases" (
 );
 --> statement-breakpoint
 
-CREATE INDEX "app_releases_app_version_code_idx" ON "app_releases" ("app", "version_code");
+CREATE UNIQUE INDEX "app_releases_app_version_code_idx" ON "app_releases" ("app", "version_code");
 --> statement-breakpoint
 
 ALTER TABLE "devices" ADD COLUMN "app_version" varchar;
