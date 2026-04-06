@@ -14,7 +14,7 @@ import multer, { MulterError } from 'multer'
 import path from 'path'
 import fs from 'fs'
 import crypto from 'crypto'
-import { eq, and, desc } from 'drizzle-orm'
+import { eq, desc } from 'drizzle-orm'
 import { db } from '../../db/index.js'
 import { appReleases } from '@carehub/shared'
 import { requireAuth } from '../../middleware/auth.js'
@@ -79,7 +79,7 @@ const upload = multer({
  *   - version_code (required) — Android versionCode integer
  *   - notes   (optional) — Release notes text
  *
- * Response 201: { id, app, version, version_code, file_path, file_size, checksum, notes, created_at }
+ * Response 201: { id, app, version, version_code, file_size, checksum, notes, created_at }
  * Response 400: { error: string } — missing/invalid fields or non-APK file
  * Response 401: { error: "Unauthorized" } — missing or invalid JWT
  * Response 409: { error: string } — duplicate (app, version_code)
@@ -142,10 +142,14 @@ releasesRouter.post(
       const checksum = sha256(req.file.buffer)
       const fileSize = req.file.buffer.length
 
-      // Determine filename and write to disk
+      // Determine filename and write to disk.
+      // A UUID suffix ensures concurrent uploads of the same (app, version_code) write to
+      // distinct paths, so a failed DB insert cannot unlink the file written by a racing
+      // successful upload.
       const releasesDir = getReleasesDir()
       const safeVersion = version.trim().replace(/[^a-zA-Z0-9._-]/g, '_')
-      const filename = `${app}-${safeVersion}-${versionCodeNum}.apk`
+      const uniqueSuffix = crypto.randomUUID()
+      const filename = `${app}-${safeVersion}-${versionCodeNum}-${uniqueSuffix}.apk`
       const filePath = path.join(releasesDir, filename)
 
       try {
@@ -171,7 +175,9 @@ releasesRouter.post(
           })
           .returning()
 
-        res.status(201).json(release)
+        // Omit file_path from response to avoid leaking internal filesystem paths
+        const { file_path: _fp, ...releaseResponse } = release
+        res.status(201).json(releaseResponse)
       } catch (dbErr: unknown) {
         // Clean up written file on DB error
         await fs.promises.unlink(filePath).catch(() => {})
@@ -200,7 +206,7 @@ releasesRouter.post(
  * Query params:
  *   - app (required) — "kiosk" or "portal"
  *
- * Response 200: { id, app, version, version_code, file_path, file_size, checksum, notes, created_at }
+ * Response 200: { id, app, version, version_code, file_size, checksum, notes, created_at }
  * Response 400: { error: string } — missing or invalid app param
  * Response 401: { error: "Unauthorized" } — missing or invalid JWT
  * Response 404: { error: "No releases found" } — no releases for the given app
@@ -227,7 +233,9 @@ releasesRouter.get('/latest', requireAuth, async (req: Request, res: Response): 
       return
     }
 
-    res.json(release)
+    // Omit file_path from response to avoid leaking internal filesystem paths
+    const { file_path: _fp, ...releaseResponse } = release
+    res.json(releaseResponse)
   } catch (err) {
     logger.error({ err }, 'GET /releases/latest error')
     res.status(500).json({ error: 'Failed to fetch latest release' })
