@@ -135,10 +135,14 @@ export function logWebRTCEvent(eventType: string, details?: string): void {
  * Logs key call lifecycle events at warn level (always visible in production).
  * Use for: call initiated, incoming, accepted/declined, connected, ended, failed,
  * and top-level state machine transitions.
+ *
+ * Uses warn level because logger.info is suppressed in production; these are
+ * informational lifecycle events, not warnings.
  */
 export function logCallLifecycle(eventType: string, details?: string): void {
   const timestamp = new Date().toISOString()
   const message = details ? `${eventType}: ${details}` : eventType
+  // Uses warn level because logger.info is suppressed in production; these are informational lifecycle events, not warnings.
   logger.warn(`[Call:${timestamp}] ${message}`)
 }
 
