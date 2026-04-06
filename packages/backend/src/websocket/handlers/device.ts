@@ -5,7 +5,7 @@ import { db } from '../../db'
 import { devices, deviceAccess } from '@carehub/shared'
 import { logger } from '../../services/logger'
 import { addClient, removeClient, broadcastToUser, getConnectedUserIds } from '../clients'
-import type { DeviceMessage } from '../types'
+import type { DeviceMessage, DeviceStatusChangedMessage } from '../types'
 import { handleCallMessage } from './call'
 import { getActiveCallForDevice, markCallFailed } from '../../services/call'
 import { TIMEOUTS } from '../../config/constants'
@@ -32,7 +32,7 @@ const broadcastDeviceStatus = async (
 
   if (usersWithAccess.length === 0) return
 
-  const message = { type: 'device_status_changed' as const, deviceId, status }
+  const message: DeviceStatusChangedMessage = { type: 'device_status_changed', deviceId, status }
 
   for (const userId of usersWithAccess) {
     broadcastToUser(userId, message)
@@ -66,7 +66,14 @@ export const handleDeviceConnection = async (ws: WebSocket, deviceId: string): P
   }
 
   // Notify portal users with access that device is now online
-  await broadcastDeviceStatus(deviceId, 'online')
+  try {
+    await broadcastDeviceStatus(deviceId, 'online')
+  } catch (err) {
+    logger.warn(
+      { err, deviceId },
+      'Failed to broadcast device online status — portal users may have stale device status'
+    )
+  }
 
   // Setup ping interval
   const pingInterval = setInterval(() => {
@@ -127,20 +134,35 @@ export const handleDeviceConnection = async (ws: WebSocket, deviceId: string): P
     logger.info({ deviceId }, 'Device disconnected')
 
     // Update device status to offline
-    await db.update(devices).set({ status: 'offline' }).where(eq(devices.id, deviceId))
+    try {
+      await db.update(devices).set({ status: 'offline' }).where(eq(devices.id, deviceId))
+    } catch (err) {
+      logger.warn({ err, deviceId }, 'Failed to update device status to offline — DB status may be stale')
+    }
 
     // Notify portal users with access that device is now offline
-    await broadcastDeviceStatus(deviceId, 'offline')
+    try {
+      await broadcastDeviceStatus(deviceId, 'offline')
+    } catch (err) {
+      logger.warn(
+        { err, deviceId },
+        'Failed to broadcast device offline status — portal users may have stale device status'
+      )
+    }
 
     // Handle any active calls (mark as failed)
-    const activeCall = await getActiveCallForDevice(deviceId)
-    if (activeCall) {
-      await markCallFailed(activeCall.id)
-      broadcastToUser(activeCall.callerUserId, {
-        type: 'call:ended',
-        callId: activeCall.id,
-        reason: 'failed',
-      })
+    try {
+      const activeCall = await getActiveCallForDevice(deviceId)
+      if (activeCall) {
+        await markCallFailed(activeCall.id)
+        broadcastToUser(activeCall.callerUserId, {
+          type: 'call:ended',
+          callId: activeCall.id,
+          reason: 'failed',
+        })
+      }
+    } catch (err) {
+      logger.error({ err, deviceId }, 'Failed to handle active call cleanup on device disconnect')
     }
   })
 
