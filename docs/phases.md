@@ -132,12 +132,14 @@ Enable the tablet kiosk experience, Capacitor mobile app, and real-time communic
 - [x] **Android project** -- Capacitor Android platform with Lock Task Mode, auto-launch on boot, foreground service permissions
 - [x] **Build workflow** -- Scripts for `cap:sync`, `cap:open`, `cap:build`
 - [x] **Capacitor portal integration** -- Portal configured with adapter-static, Capacitor Android platform, and client-side auth
+- [x] **Device Owner provisioning** -- `DeviceAdminReceiver` registered in manifest with `BIND_DEVICE_ADMIN` permission; `device_admin.xml` declares empty `<uses-policies>` (Device Owner inherits all privileges); `REQUEST_INSTALL_PACKAGES` and `REQUEST_DELETE_PACKAGES` permissions added; one-time ADB provisioning script at `packages/kiosk/scripts/provision-device-owner.sh`; setup steps documented in `packages/kiosk/SETUP.md`
 
 **Planned:**
 
 - **Firebase Cloud Messaging** -- FCM integration for high-priority push notifications
 - **Native incoming call UI** -- Full-screen call notification on caretaker's phone with ringtone
 - **Foreground service implementation** -- Keep WebSocket alive on tablet
+- **Silent APK updates** -- Use Device Owner `DevicePolicyManager` to install APK updates without user interaction
 - **Capgo OTA updates** -- Over-the-air web bundle updates; automatic updates without APK reinstall
 
 ### Screens Implemented
