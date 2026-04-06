@@ -194,11 +194,12 @@ Detailed feature breakdown organized by area. See [phases.md](phases.md) for imp
 
 ### Runtime
 
-- SvelteKit web app running in browser (Capacitor APK wrapper planned for Phase 3.5)
+- SvelteKit web app in Capacitor Android APK (kiosk package)
 - Persistent WebSocket connection for real-time features
 - Auto-reconnect on network interruption
-- Device token stored securely (localStorage for now, Capacitor Secure Storage when native)
+- Device token stored via Capacitor Preferences (localStorage fallback for browser dev)
 - Offline state shows cached data with "Reconnecting..." indicator
+- **Device Owner mode** -- App provisioned as Android Device Owner via one-time ADB script; enables silent APK installation without user interaction; see `packages/kiosk/SETUP.md` for provisioning steps
 
 ### Design Principles
 
