@@ -47,6 +47,13 @@ export const callEndReasonEnum = pgEnum('call_end_reason', [
   'timeout',
 ])
 
+/**
+ * Identifies which application an APK release belongs to.
+ * - `kiosk`: the Android kiosk tablet app
+ * - `portal`: the Android portal/caregiver app
+ */
+export const appTypeEnum = pgEnum('app_type', ['kiosk', 'portal'])
+
 // Users
 export const users = pgTable('users', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -194,6 +201,8 @@ export const devices = pgTable(
     last_seen_at: timestamp('last_seen_at'),
     paired_at: timestamp('paired_at'),
     created_at: timestamp('created_at').defaultNow().notNull(),
+    /** Semver string of the app version currently installed on this device, as reported by the kiosk on check-in. Null until the device reports its version. */
+    app_version: varchar('app_version'),
   },
   (table) => ({
     tokenIdx: index('devices_token_idx').on(table.device_token),
@@ -247,6 +256,38 @@ export const devicePairingTokens = pgTable(
   },
   (table) => ({
     tokenIdx: index('device_pairing_tokens_token_idx').on(table.token),
+  })
+)
+
+// App Releases — published APK builds available for OTA distribution
+export const appReleases = pgTable(
+  'app_releases',
+  {
+    /** UUID primary key */
+    id: uuid('id').primaryKey().defaultRandom(),
+    /** Which application this release is for (kiosk or portal) */
+    app: appTypeEnum('app').notNull(),
+    /** Human-readable semver string, e.g. "1.2.0" */
+    version: varchar('version').notNull(),
+    /** Android versionCode — monotonically increasing integer used for ordering releases */
+    version_code: integer('version_code').notNull(),
+    /** Server-side file path to the stored APK (relative or absolute depending on storage backend) */
+    file_path: varchar('file_path').notNull(),
+    /** Size of the APK in bytes; used to show download progress on the device */
+    file_size: integer('file_size').notNull(),
+    /** SHA-256 hex digest of the APK file; verified by the device after download to ensure integrity */
+    checksum: varchar('checksum').notNull(),
+    /** Optional human-readable release notes describing what changed in this version */
+    notes: text('notes'),
+    /** Timestamp when this release record was created */
+    created_at: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => ({
+    /** Composite index on (app, version_code) for efficient latest-version queries per app */
+    appVersionCodeIdx: index('app_releases_app_version_code_idx').on(
+      table.app,
+      table.version_code
+    ),
   })
 )
 
