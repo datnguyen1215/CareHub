@@ -174,6 +174,7 @@
 		class="fixed inset-0 z-50 flex items-end justify-center bg-black/40"
 		role="dialog"
 		aria-modal="true"
+		tabindex="-1"
 		onmousedown={(e) => {
 			if (e.target === e.currentTarget) closeActionSheet();
 		}}
@@ -254,6 +255,7 @@
 		class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-unit-2"
 		role="dialog"
 		aria-modal="true"
+		tabindex="-1"
 		onmousedown={(e) => {
 			if (e.target === e.currentTarget) handleCancelUpload();
 		}}

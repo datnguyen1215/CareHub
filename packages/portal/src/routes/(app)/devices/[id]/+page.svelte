@@ -517,6 +517,7 @@
 		class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-unit-2"
 		role="dialog"
 		aria-modal="true"
+		tabindex="-1"
 		aria-labelledby="unpair-modal-title"
 		onmousedown={(e) => {
 			if (e.target === e.currentTarget) closeUnpairModal();
@@ -566,6 +567,7 @@
 		class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-unit-2"
 		role="dialog"
 		aria-modal="true"
+		tabindex="-1"
 		aria-labelledby="add-profile-modal-title"
 		onmousedown={(e) => {
 			if (e.target === e.currentTarget) showAddProfileModal = false;
