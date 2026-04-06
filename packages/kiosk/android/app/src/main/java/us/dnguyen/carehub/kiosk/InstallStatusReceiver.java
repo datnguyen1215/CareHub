@@ -113,6 +113,17 @@ public class InstallStatusReceiver extends BroadcastReceiver {
             String errorMsg = "Install failed (status=" + status + ")"
                     + (message != null ? ": " + message : "");
             Log.e(TAG, errorMsg);
+
+            // Clean up the downloaded APK on failure as well — it is no longer needed
+            // and leaving it on disk would accumulate stale files across failed updates.
+            String apkPath = intent.getStringExtra(EXTRA_APK_PATH);
+            if (apkPath != null) {
+                File apkFile = new File(apkPath);
+                if (apkFile.exists() && !apkFile.delete()) {
+                    Log.w(TAG, "Failed to delete APK after failed install: " + apkPath);
+                }
+            }
+
             call.reject(errorMsg);
         }
     }

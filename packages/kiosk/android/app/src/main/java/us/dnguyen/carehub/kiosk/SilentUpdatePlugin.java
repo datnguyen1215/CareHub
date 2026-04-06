@@ -109,6 +109,10 @@ public class SilentUpdatePlugin extends Plugin {
         }
 
         // Run on a background thread — network I/O must never block the main thread.
+        // PluginCall is stored in InstallStatusReceiver's static map (not Capacitor's saveCall)
+        // because the BroadcastReceiver is a separate class that cannot access the plugin's
+        // bridge-saved calls. The static ConcurrentHashMap keeps a strong reference, and
+        // call.resolve()/call.reject() remain valid as long as the JS promise is still pending.
         final String finalUrl = url;
         final String finalChecksum = checksum.toLowerCase();
         new Thread(() -> {
