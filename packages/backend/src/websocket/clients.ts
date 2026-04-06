@@ -182,6 +182,19 @@ export const getConnectedUserCount = (): number => {
 }
 
 /**
+ * Get IDs of all currently connected users.
+ */
+export const getConnectedUserIds = (): string[] => {
+  const ids: string[] = []
+  for (const key of clientRegistry.keys()) {
+    if (key.startsWith('user:')) {
+      ids.push(key.slice('user:'.length))
+    }
+  }
+  return ids
+}
+
+/**
  * Clear all connections (for shutdown).
  */
 export const clearAllClients = (): void => {

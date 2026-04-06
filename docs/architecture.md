@@ -326,7 +326,7 @@ Tablet push notifications, device status monitoring, and video call signaling al
 - `packages/backend/src/websocket/clients.ts` - Central registry with key format `device:{id}` or `user:{id}`
 - Devices: single connection per device
 - Users: multiple connections supported (multi-tab browser sessions); `broadcastToUser()` sends to all user connections, so each tab must filter signals based on its own call state
-- Functions: `broadcastToDevice()`, `broadcastToUser()`, `isDeviceConnected()`, `isUserConnected()`
+- Functions: `broadcastToDevice()`, `broadcastToUser()`, `isDeviceConnected()`, `isUserConnected()`, `getConnectedUserIds()`
 
 **Message Handlers:**
 
@@ -357,6 +357,17 @@ Tablet push notifications, device status monitoring, and video call signaling al
 - `call:ended` - Device ends call
 - `call:answer` - SDP answer to user's offer
 - `call:ice-candidate` - ICE candidate for WebRTC connection
+
+**Events (Server → Portal Users):**
+
+- `device_status_changed` - Device connected or disconnected; payload `{ deviceId, status: 'online' | 'offline' }`; broadcast to all connected portal users who have `DeviceAccess` for that device; DB query is skipped if no portal users are currently connected
+- `call:ringing` - Forwarded from device when it receives an incoming call
+- `call:accepted` - Device accepted the call
+- `call:declined` - Device declined the call
+- `call:ended` - Call terminated (reason: `missed`, `failed`, `declined`, or `ended`)
+- `call:answer` - SDP answer from device (WebRTC)
+- `call:ice-candidate` - ICE candidate for WebRTC connection
+- `pong` - Response to `ping` heartbeat
 
 **Events (User → Server):**
 
