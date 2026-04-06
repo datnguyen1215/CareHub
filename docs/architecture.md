@@ -486,6 +486,19 @@ All Capacitor apps (caretaker phones and elderly tablets) receive UI and logic u
 - APK rebuild is only needed when native plugins or Capacitor configuration change (rare after initial setup).
 - Elderly tablets update automatically with zero intervention.
 
+### Release Pipeline
+
+Signed APK builds and uploads are automated via `scripts/release.sh` in each app package.
+
+```bash
+npm run release:kiosk -- --version 1.2.0
+npm run release:portal -- --version 1.2.0
+```
+
+The script: validates prerequisites (`ANDROID_HOME`, keystore, `.env.release`), increments `versionCode` and sets `versionName` in `build.gradle`, runs the Vite build and Capacitor sync, builds a signed APK via Gradle, then uploads it to `POST /api/releases/upload`.
+
+Signing credentials are stored in a gitignored `.env.release` file in each package directory. See [RELEASING.md](../RELEASING.md) for full setup and usage.
+
 ### Push Notification Strategy (FCM for Portal Only)
 
 **Decision:** FCM is only used for the caretaker phone app (portal), NOT the kiosk tablet.
@@ -602,6 +615,7 @@ Email + OTP passwordless login via Nodemailer + Gmail SMTP.
 | `DELETE` | `/api/devices/:id`                                         | Required    | Unpair/remove device                                                                                                   |
 | `POST`   | `/api/devices/:id/profiles`                                | Required    | Assign profiles to device                                                                                              |
 | `DELETE` | `/api/devices/:id/profiles/:profileId`                     | Required    | Remove profile from device                                                                                             |
+| `POST`   | `/api/releases/upload`                                     | Required    | Upload a signed APK release; multipart fields: `apk` (file), `version` (string), `app` (`kiosk` or `portal`); returns release ID and version |
 
 **SMTP configuration via environment variables:**
 

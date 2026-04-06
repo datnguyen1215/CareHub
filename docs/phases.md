@@ -121,6 +121,7 @@ Enable the tablet kiosk experience, Capacitor mobile app, and real-time communic
 - [x] **Android project** -- Capacitor Android platform with Lock Task Mode, auto-launch on boot, foreground service permissions
 - [x] **Build workflow** -- Scripts for `cap:sync`, `cap:open`, `cap:build`
 - [x] **Capacitor portal integration** -- Portal configured with adapter-static, Capacitor Android platform, and client-side auth
+- [x] **Release pipeline** -- `scripts/release.sh` for kiosk and portal: bumps versionCode/versionName, builds signed APK, uploads to backend; `npm run release:kiosk` and `npm run release:portal` at root; see [RELEASING.md](../RELEASING.md)
 
 **Planned:**
 

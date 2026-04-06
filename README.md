@@ -105,6 +105,8 @@ Copy `.env.example` to `.env` and configure the following:
 - `npm run dev` - Start all services concurrently (frontend, backend, shared)
 - `npm run db:up` - Start PostgreSQL database container
 - `npm run db:down` - Stop PostgreSQL database container
+- `npm run release:kiosk -- --version X.Y.Z` - Build, sign, and upload kiosk APK
+- `npm run release:portal -- --version X.Y.Z` - Build, sign, and upload portal APK
 
 ### Package-Specific
 
@@ -213,6 +215,6 @@ The `dev` script uses: `nodemon --exec tsx src/index.ts`
 For detailed documentation, see:
 
 - [Roadmap](./ROADMAP.md) - Project milestones and progress tracking
-- [Architecture Documentation](./docs/design.md)
-- [API Documentation](./docs/api.md)
-- [Data Model](./docs/data-model.md)
+- [Architecture Documentation](./docs/architecture.md)
+- [Features](./docs/features.md)
+- [Releasing Android APKs](./RELEASING.md) - Build, sign, and upload pipeline
