@@ -33,7 +33,7 @@ echo ""
 # Step 1: Remove existing accounts (required for device owner setup)
 # ---------------------------------------------------------------------------
 echo "[1/3] Removing existing accounts from device..."
-ACCOUNTS=$(adb shell dumpsys account | grep -oP '(?<=Account \{name=)[^,]+' 2>/dev/null || true)
+ACCOUNTS=$(adb shell dumpsys account | grep -o 'Account {name=[^,]*' 2>/dev/null | awk -F'=' '{print $2}' || true)
 if [ -n "$ACCOUNTS" ]; then
     echo "  Found accounts — attempting removal via account manager..."
     adb shell pm remove-all-accounts-for-user 0 2>/dev/null || true
