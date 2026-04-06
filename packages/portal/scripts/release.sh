@@ -161,8 +161,9 @@ echo "==> APK built: $APK_PATH"
 # ── Upload to backend ──────────────────────────────────────────────────────────
 echo "==> Uploading to $BACKEND_URL/api/releases/upload..."
 RESPONSE=$(curl -sSf \
-  -F "apk=@$APK_PATH" \
+  -F "file=@$APK_PATH" \
   -F "version=$VERSION" \
+  -F "version_code=$NEW_VERSION_CODE" \
   -F "app=$APP_NAME" \
   "$BACKEND_URL/api/releases/upload") || { echo "Error: Upload failed. Check the backend URL and server logs." >&2; exit 1; }
 
