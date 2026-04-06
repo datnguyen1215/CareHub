@@ -186,7 +186,9 @@ public class SilentUpdatePlugin extends Plugin {
         }
 
         long totalBytes = connection.getContentLengthLong(); // -1 if unknown
-        File apkFile = new File(getContext().getFilesDir(), "pending_update.apk");
+        // Use a unique filename per call to avoid concurrent downloads overwriting each other.
+        File apkFile = new File(getContext().getFilesDir(),
+                "pending_update_" + call.getCallbackId() + ".apk");
 
         try (InputStream in = connection.getInputStream();
              FileOutputStream out = new FileOutputStream(apkFile)) {
@@ -416,38 +418,50 @@ public class SilentUpdatePlugin extends Plugin {
         params.setAppPackageName(context.getPackageName());
 
         int sessionId = installer.createSession(params);
-        PackageInstaller.Session session = installer.openSession(sessionId);
 
-        try (FileInputStream in = new FileInputStream(apkFile);
-             OutputStream out = session.openWrite("package", 0, apkFile.length())) {
+        // Use try-with-resources so the session is always closed if streaming or commit
+        // throws — prevents PackageInstaller session leaks.
+        try (PackageInstaller.Session session = installer.openSession(sessionId)) {
 
-            byte[] buffer = new byte[BUFFER_SIZE];
-            int bytesRead;
-            while ((bytesRead = in.read(buffer)) != -1) {
-                out.write(buffer, 0, bytesRead);
+            try (FileInputStream in = new FileInputStream(apkFile);
+                 OutputStream out = session.openWrite("package", 0, apkFile.length())) {
+
+                byte[] buffer = new byte[BUFFER_SIZE];
+                int bytesRead;
+                while ((bytesRead = in.read(buffer)) != -1) {
+                    out.write(buffer, 0, bytesRead);
+                }
+                session.fsync(out);
             }
-            session.fsync(out);
+
+            // Build a broadcast intent that PackageInstaller will send when the install completes.
+            // Include the APK file path so the receiver can delete it after a successful install.
+            Intent resultIntent = new Intent(context, InstallStatusReceiver.class);
+            resultIntent.putExtra(InstallStatusReceiver.EXTRA_CALL_CALLBACK_ID, call.getCallbackId());
+            resultIntent.putExtra(InstallStatusReceiver.EXTRA_APK_PATH, apkFile.getAbsolutePath());
+
+            IntentSender statusReceiver = android.app.PendingIntent.getBroadcast(
+                    context,
+                    sessionId,
+                    resultIntent,
+                    android.app.PendingIntent.FLAG_UPDATE_CURRENT
+                            | android.app.PendingIntent.FLAG_MUTABLE
+            ).getIntentSender();
+
+            // Register the call before commit, and remove it on commit failure so the
+            // entry does not leak in pendingCalls (the receiver will never fire if commit throws).
+            InstallStatusReceiver.registerCall(call.getCallbackId(), call);
+            try {
+                session.commit(statusReceiver);
+            } catch (IOException e) {
+                InstallStatusReceiver.unregisterCall(call.getCallbackId());
+                throw e;
+            }
+
+            // close() releases the local reference; the OS continues the install session
+            // asynchronously. The try-with-resources above will call close() here.
+            Log.i(TAG, "Install session committed, sessionId=" + sessionId);
         }
-
-        // Build a broadcast intent that PackageInstaller will send when the install completes.
-        Intent resultIntent = new Intent(context, InstallStatusReceiver.class);
-        resultIntent.putExtra(InstallStatusReceiver.EXTRA_CALL_CALLBACK_ID, call.getCallbackId());
-
-        IntentSender statusReceiver = android.app.PendingIntent.getBroadcast(
-                context,
-                sessionId,
-                resultIntent,
-                android.app.PendingIntent.FLAG_UPDATE_CURRENT
-                        | android.app.PendingIntent.FLAG_MUTABLE
-        ).getIntentSender();
-
-        // Store the call so the receiver can resolve/reject it.
-        InstallStatusReceiver.registerCall(call.getCallbackId(), call);
-
-        session.commit(statusReceiver);
-        session.close();
-
-        Log.i(TAG, "Install session committed, sessionId=" + sessionId);
     }
 
     // -------------------------------------------------------------------------

@@ -8,6 +8,7 @@ import android.util.Log;
 
 import com.getcapacitor.PluginCall;
 
+import java.io.File;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -33,6 +34,12 @@ public class InstallStatusReceiver extends BroadcastReceiver {
     public static final String EXTRA_CALL_CALLBACK_ID = "callbackId";
 
     /**
+     * Intent extra key used to pass the downloaded APK file path through the PendingIntent
+     * so this receiver can delete the file after a successful installation.
+     */
+    public static final String EXTRA_APK_PATH = "apkPath";
+
+    /**
      * Pending plugin calls awaiting an install result, keyed by Capacitor callback ID.
      * ConcurrentHashMap is used because the BroadcastReceiver runs on the main thread
      * while calls are registered from a background thread.
@@ -49,6 +56,18 @@ public class InstallStatusReceiver extends BroadcastReceiver {
      */
     public static void registerCall(String callbackId, PluginCall call) {
         pendingCalls.put(callbackId, call);
+    }
+
+    /**
+     * Removes a previously registered {@link PluginCall} from the pending map without
+     * resolving or rejecting it. Called by {@link SilentUpdatePlugin} when
+     * {@link android.content.pm.PackageInstaller.Session#commit} fails after registration,
+     * to prevent the entry from leaking (the receiver will never fire in that case).
+     *
+     * @param callbackId the Capacitor callback ID to remove
+     */
+    public static void unregisterCall(String callbackId) {
+        pendingCalls.remove(callbackId);
     }
 
     /**
@@ -77,6 +96,16 @@ public class InstallStatusReceiver extends BroadcastReceiver {
 
         if (status == PackageInstaller.STATUS_SUCCESS) {
             Log.i(TAG, "Silent install succeeded");
+
+            // Clean up the downloaded APK — the OS has finished reading it.
+            String apkPath = intent.getStringExtra(EXTRA_APK_PATH);
+            if (apkPath != null) {
+                File apkFile = new File(apkPath);
+                if (apkFile.exists() && !apkFile.delete()) {
+                    Log.w(TAG, "Failed to delete APK after install: " + apkPath);
+                }
+            }
+
             com.getcapacitor.JSObject result = new com.getcapacitor.JSObject();
             result.put("success", true);
             call.resolve(result);
