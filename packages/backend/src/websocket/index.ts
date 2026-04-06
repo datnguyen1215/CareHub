@@ -36,8 +36,9 @@ export {
  * - Devices connect with `token` query param (device token)
  * - Users connect with `jwt` query param (JWT token)
  * @param {Server} server - HTTP server instance
+ * @returns {WebSocketServer} The WebSocket server instance
  */
-export function initWebSocketServer(server: Server): void {
+export function initWebSocketServer(server: Server): WebSocketServer {
   const wss = new WebSocketServer({ server, path: '/ws' })
 
   wss.on('connection', async (ws, req) => {
@@ -62,23 +63,8 @@ export function initWebSocketServer(server: Server): void {
     }
   })
 
-  // Handle server shutdown
-  // Note: process signal handlers accumulate if initWebSocketServer is called multiple
-  // times (e.g., in tests). This is benign when fileParallelism is false since only one
-  // test file's server is active at a time, and clearAllClients/wss.close are idempotent.
-  process.on('SIGTERM', () => {
-    logger.info('WebSocket server shutting down')
-    clearAllClients()
-    wss.close()
-  })
-
-  process.on('SIGINT', () => {
-    logger.info('WebSocket server shutting down')
-    clearAllClients()
-    wss.close()
-  })
-
   logger.info('WebSocket server initialized on /ws')
+  return wss
 }
 
 /**
