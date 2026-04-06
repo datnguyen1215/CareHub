@@ -158,6 +158,8 @@ Attachment
   |-- belongs to --> CareProfile (required)
   |-- optionally linked to --> CalendarEvent
   |-- optionally linked to --> JournalEntry
+
+AppRelease  (standalone — tracks APK builds for OTA distribution)
 ```
 
 ### Entities
@@ -259,6 +261,7 @@ All entities are defined as Drizzle ORM schemas in `packages/shared`.
 - `last_seen_at`
 - `paired_at`
 - `created_at`
+- `app_version` (varchar, nullable) — semver string of the app version currently installed on the device, as last reported by the kiosk on check-in; null until the device reports its version
 
 **DeviceCareProfile** (join table)
 
@@ -280,6 +283,19 @@ All entities are defined as Drizzle ORM schemas in `packages/shared`.
 - `device_id` (FK -> Device, nullable) - Null until device claims it
 - `expires_at` (timestamp) - 5 minute expiry
 - `created_at` (timestamp)
+
+**AppRelease**
+
+- `id` (UUID, primary key)
+- `app` (enum: `AppType` — `kiosk`, `portal`) — which application this release targets
+- `version` (varchar) — human-readable semver string, e.g. `"1.2.0"`
+- `version_code` (integer) — Android versionCode, monotonically increasing; used to determine whether a device needs an update
+- `file_path` (varchar) — server-side path to the stored APK file
+- `file_size` (integer, bytes) — used to display download progress on the device; int4 is sufficient since APKs are well under 2 GB
+- `checksum` (varchar) — SHA-256 hex digest; verified by the device after download to ensure file integrity
+- `notes` (text, nullable) — optional human-readable release notes
+- `created_at` (timestamp)
+- **Unique index** on `(app, version_code)` — enforces that each versionCode is unique per app and enables efficient latest-version queries
 
 **CallSession**
 

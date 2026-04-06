@@ -64,6 +64,13 @@
       "when": 1775300000000,
       "tag": "0009_callee_device_nullable",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1775400000000,
+      "tag": "0010_app_releases",
+      "breakpoints": true
     }
   ]
 }
