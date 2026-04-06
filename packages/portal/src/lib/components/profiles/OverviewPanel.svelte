@@ -15,6 +15,7 @@
 	import DeviceStatusDot from '$lib/components/devices/DeviceStatusDot.svelte';
 	import BatteryIndicator from '$lib/components/devices/BatteryIndicator.svelte';
 	import { getErrorMessage } from '$lib/utils/error-utils';
+	import { seedDeviceStatuses, getDeviceStatus } from '$lib/stores/deviceStatus.svelte';
 	import { formatDateLong, formatDateShort, getInitial } from '$lib/utils/format';
 	import { toast } from '$lib/stores/toast.svelte';
 	import {
@@ -74,6 +75,7 @@
 			try {
 				const devicesData = await listDevices();
 				profileDevices = devicesData.filter((d) => d.profiles.some((p) => p.id === profileId));
+				seedDeviceStatuses(devicesData);
 			} catch {
 				profileDevices = [];
 			}
@@ -160,6 +162,10 @@
 	}
 
 	function handleCall(device: Device) {
+		if (getDeviceStatus(device.id, device.status) !== 'online') {
+			toast.warning('Device is offline. Cannot place call.');
+			return;
+		}
 		initiateCall(device.id, device.name);
 	}
 
@@ -272,7 +278,8 @@
 	<!-- Device card(s) -->
 	{#if profileDevices.length > 0}
 		{#each profileDevices as device (device.id)}
-			{@const isOnline = device.status === 'online'}
+			{@const liveStatus = getDeviceStatus(device.id, device.status)}
+			{@const isOnline = liveStatus === 'online'}
 			<div class="card mb-unit-2">
 				<div class="flex items-center justify-between mb-unit-2">
 					<div class="flex items-center gap-2">
@@ -280,8 +287,8 @@
 						<h3 class="text-base font-semibold text-text-primary">{device.name}</h3>
 					</div>
 					<div class="flex items-center gap-1.5">
-						<DeviceStatusDot status={device.status} size="sm" />
-						<span class="text-xs text-text-secondary capitalize">{device.status}</span>
+						<DeviceStatusDot status={liveStatus} size="sm" />
+						<span class="text-xs text-text-secondary capitalize">{liveStatus}</span>
 					</div>
 				</div>
 

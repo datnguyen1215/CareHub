@@ -13,6 +13,7 @@
 	} from '$lib/stores/call.svelte';
 	import CallModal from '$lib/components/call/CallModal.svelte';
 	import { toast } from '$lib/stores/toast.svelte';
+	import { seedDeviceStatuses, getDeviceStatus } from '$lib/stores/deviceStatus.svelte';
 
 	let devices = $state<Device[]>([]);
 	let loadError = $state('');
@@ -28,6 +29,7 @@
 
 		try {
 			devices = await listDevices();
+			seedDeviceStatuses(devices);
 		} catch (err: unknown) {
 			const apiErr = err as { status?: number };
 			if (apiErr?.status === 401) {
@@ -51,7 +53,7 @@
 	}
 
 	function handleCall(device: Device) {
-		if (device.status !== 'online') {
+		if (getDeviceStatus(device.id, device.status) !== 'online') {
 			toast.warning('Device is offline. Cannot place call.');
 			return;
 		}

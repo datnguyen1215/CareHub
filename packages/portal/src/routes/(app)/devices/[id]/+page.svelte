@@ -25,6 +25,7 @@
 		toggleVideo
 	} from '$lib/stores/call.svelte';
 	import { toast } from '$lib/stores/toast.svelte';
+	import { seedDeviceStatus, getDeviceStatus } from '$lib/stores/deviceStatus.svelte';
 
 	let device = $state<Device | null>(null);
 	let allProfiles = $state<CareProfile[]>([]);
@@ -63,6 +64,7 @@
 			device = deviceData;
 			allProfiles = profilesData;
 			editedName = deviceData.name;
+			seedDeviceStatus(deviceData);
 		} catch (err: unknown) {
 			const apiErr = err as { status?: number };
 			if (apiErr?.status === 401) {
@@ -221,7 +223,7 @@
 	}
 
 	function handleCall() {
-		if (!device || device.status !== 'online') {
+		if (!device || liveStatus !== 'online') {
 			toast.warning('Device is offline. Cannot place call.');
 			return;
 		}
@@ -229,7 +231,7 @@
 	}
 
 	function handleRetryCall() {
-		if (!device || device.status !== 'online') {
+		if (!device || liveStatus !== 'online') {
 			toast.warning('Device is offline. Cannot place call.');
 			return;
 		}
@@ -239,6 +241,9 @@
 	// Derived state for call button
 	const isCallInProgress = $derived(callState.status !== 'idle' && callState.status !== 'ended');
 	const showCallModal = $derived(callState.status !== 'idle');
+
+	/** Live device status from store — updates reactively on WebSocket events */
+	const liveStatus = $derived(device ? getDeviceStatus(device.id, device.status) : 'offline');
 </script>
 
 <div class="max-w-2xl mx-auto px-unit-3 py-unit-3">
@@ -368,8 +373,8 @@
 				<div class="flex items-center justify-between">
 					<span class="text-text-secondary">Status</span>
 					<div class="flex items-center gap-2">
-						<DeviceStatusDot status={device.status} />
-						<span class="capitalize text-text-primary">{device.status}</span>
+						<DeviceStatusDot status={liveStatus} />
+						<span class="capitalize text-text-primary">{liveStatus}</span>
 					</div>
 				</div>
 				<div class="flex items-center justify-between">
@@ -392,9 +397,9 @@
 				<button
 					type="button"
 					onclick={handleSendPhoto}
-					disabled={device.status !== 'online'}
+					disabled={liveStatus !== 'online'}
 					class="flex-1 px-3 py-2 rounded-card border border-gray-300 font-medium
-						{device.status === 'online'
+						{liveStatus === 'online'
 						? 'text-text-primary hover:bg-gray-50'
 						: 'text-gray-400 cursor-not-allowed'} transition-colors"
 				>
@@ -403,9 +408,9 @@
 				<button
 					type="button"
 					onclick={handleCall}
-					disabled={device.status !== 'online' || isCallInProgress}
+					disabled={liveStatus !== 'online' || isCallInProgress}
 					class="flex-1 px-3 py-2 rounded-card border border-gray-300 font-medium
-						{device.status === 'online' && !isCallInProgress
+						{liveStatus === 'online' && !isCallInProgress
 						? 'text-text-primary hover:bg-gray-50'
 						: 'text-gray-400 cursor-not-allowed'} transition-colors"
 				>

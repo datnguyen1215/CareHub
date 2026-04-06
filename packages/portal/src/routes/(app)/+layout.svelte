@@ -6,6 +6,7 @@
 	import type { Snippet } from 'svelte';
 	import * as websocket from '$lib/services/websocket';
 	import { initializeCallHandlers } from '$lib/stores/call.svelte';
+	import { initializeDeviceStatusHandlers } from '$lib/stores/deviceStatus.svelte';
 
 	let { children }: { children: Snippet } = $props();
 
@@ -16,8 +17,12 @@
 		// Initialize call state handlers
 		const cleanupCallHandlers = initializeCallHandlers();
 
+		// Initialize device status handlers (real-time status updates)
+		const cleanupDeviceStatusHandlers = initializeDeviceStatusHandlers();
+
 		return () => {
 			cleanupCallHandlers();
+			cleanupDeviceStatusHandlers();
 			websocket.disconnect();
 		};
 	});

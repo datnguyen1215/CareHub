@@ -69,8 +69,9 @@ src/
       error-utils.ts         # Error display utilities — getErrorMessage() for user-friendly messages, isRetryable() for retry eligibility
       focusTrap.ts           # Focus trap utility for modal dialogs
     stores/
-      toast.svelte.ts      # Toast notification store (Svelte 5 $state runes) — delegates to shared createToastStore(), wraps in $state for reactivity
-      call.svelte.ts       # Call state store (Svelte 5 $state runes) — idle → calling → connected → ended
+      toast.svelte.ts        # Toast notification store (Svelte 5 $state runes) — delegates to shared createToastStore(), wraps in $state for reactivity
+      call.svelte.ts         # Call state store (Svelte 5 $state runes) — idle → calling → connected → ended
+      deviceStatus.svelte.ts # Reactive device status store — seeded from REST API on page load, updated in real-time via device_status_changed WebSocket events; getDeviceStatus(id, fallback), seedDeviceStatuses(devices), seedDeviceStatus(device), initializeDeviceStatusHandlers()
     utils/
       format.ts            # Date/time formatting (formatDateShort, formatDateLong, formatDateFull, formatDateDefault, formatDateTime, formatTime, formatWeekdayLong, formatMonthYear, formatRelativeTime) and string helpers (getInitial)
       debounce.ts          # debounce() utility with .cancel() method for cleanup
@@ -78,7 +79,7 @@ src/
   routes/
     login/                 # Public auth pages (email entry, OTP verify, account setup)
     (app)/
-      +layout.svelte       # Shared layout: TopBar + main content area + BottomNav
+      +layout.svelte       # Shared layout: TopBar + main content area + BottomNav; initializes WebSocket, call handlers, and device status handlers on mount
       +error.svelte        # Error boundary — user-friendly error page for unhandled route errors with Go back / Go home actions
       +page.svelte         # Home page — upcoming events list grouped by day with 7/14/30 day range toggle, loading skeleton, error state with retry
       profiles/
@@ -414,12 +415,12 @@ Portal connects to WebSocket on app mount via JWT authentication (`/ws?jwt={toke
 - Automatic reconnection with exponential backoff via shared `createReconnectStrategy()` (1s → 2s → 4s → max 30s)
 - Immediate reconnect (bypasses backoff) for urgent recovery scenarios (e.g., tab visibility restore)
 - Auth failure detection (close code 4001) triggers redirect to login
-- Real-time signaling message routing for video call coordination
+- Real-time signaling message routing for video call coordination and device status updates
 - Connection state management (connecting/connected/disconnected)
 - Heartbeat keep-alive: sends `ping` every 25 seconds; detects dead connections within 30 seconds (5s pong timeout)
-- Message queue: messages sent during disconnection are buffered (max 50, 30s TTL) and flushed on reconnect; priority-based eviction drops lowest-priority messages first — critical WebRTC signaling (SDP offers/answers, ICE candidates) is preserved over less urgent messages (screen-share state, errors)
+- Message queue: messages sent during disconnection are buffered (max 50, 30s TTL) and flushed on reconnect; priority-based eviction drops lowest-priority messages first — critical WebRTC signaling (SDP offers/answers, ICE candidates) is preserved over less urgent messages (screen-share state, errors, device status updates)
 - Race condition prevention: old socket event handlers are nulled before closing to prevent stale async events from corrupting new connections
-- Initialized in `(app)/+layout.svelte` on mount for all authenticated pages
+- Initialized in `(app)/+layout.svelte` on mount for all authenticated pages; also initializes `initializeDeviceStatusHandlers()` from `deviceStatus.svelte.ts` to route `device_status_changed` messages into the reactive device status store
 
 ### Peer-to-Peer Video
 
@@ -435,6 +436,7 @@ Common UI, WebRTC, and WebSocket logic is extracted into the shared package to a
 
 **Shared WebRTC/WebSocket Utilities:**
 
+- `packages/shared/src/webrtc/messages.ts` — TypeScript interfaces for all WebSocket signaling messages (`SignalingMessage` union); includes `DeviceStatusChangedMessage` (`type: 'device_status_changed'`, `deviceId`, `status: 'online' | 'offline'`) used by both backend broadcast and portal device status store
 - `packages/shared/src/webrtc/webrtc-core.ts` — Peer connection cleanup, stream acquisition (`acquireLocalStream`), stream cleanup (`cleanupStream`), peer connection cleanup (`cleanupPeerConnection`), default media constraints (720p video, echo cancellation), re-exports `ICE_SERVERS`
 - `packages/shared/src/webrtc/error-utils.ts` — `getUserFriendlyError()` maps technical errors to user-friendly messages
 - `packages/shared/src/webrtc/call-utils.ts` — `createDurationTimer()` for call length tracking, `getTopLevelState()` for state machine state parsing
