@@ -38,3 +38,9 @@ Thumbs.db
 google-services.json
 serviceAccountKey.json
 *-firebase-adminsdk-*.json
+
+# Android release signing (never commit keystores or release env files)
+*.keystore
+*.jks
+.env.release
+android/app/build/outputs/

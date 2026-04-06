@@ -12,7 +12,8 @@
     "format": "prettier --write .",
     "cap:sync": "cap sync android",
     "cap:open": "cap open android",
-    "cap:build": "npm run build && npm run cap:sync"
+    "cap:build": "npm run build && npm run cap:sync",
+    "release": "bash scripts/release.sh"
   },
   "devDependencies": {
     "@sveltejs/adapter-node": "^5.5.4",

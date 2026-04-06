@@ -8,7 +8,9 @@
   "scripts": {
     "dev": "concurrently \"npm run dev --workspace=packages/shared\" \"npm run dev --workspace=packages/portal\" \"npm run dev --workspace=packages/backend\"",
     "db:up": "docker compose up -d",
-    "db:down": "docker compose down"
+    "db:down": "docker compose down",
+    "release:kiosk": "npm run release -w @carehub/kiosk --",
+    "release:portal": "npm run release -w @carehub/portal --"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"
