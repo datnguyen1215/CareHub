@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, onDestroy } from 'svelte';
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
 	import {
@@ -9,8 +9,11 @@
 		listProfiles,
 		assignProfilesToDevice,
 		removeProfileFromDevice,
+		getLatestRelease,
+		triggerDeviceUpdate,
 		type Device,
-		type CareProfile
+		type CareProfile,
+		type Release
 	} from '$lib/api';
 	import { getErrorMessage, isRetryable } from '$lib/utils/error-utils';
 	import DeviceStatusDot from '$lib/components/devices/DeviceStatusDot.svelte';
@@ -26,6 +29,7 @@
 	} from '$lib/stores/call.svelte';
 	import { toast } from '$lib/stores/toast.svelte';
 	import { seedDeviceStatus, getDeviceStatus } from '$lib/stores/deviceStatus.svelte';
+	import * as websocket from '$lib/services/websocket';
 
 	let device = $state<Device | null>(null);
 	let allProfiles = $state<CareProfile[]>([]);
@@ -47,6 +51,18 @@
 	let addProfileError = $state('');
 	let removeProfileError = $state('');
 
+	// Software update state
+	let latestRelease = $state<Release | null>(null);
+	let showUpdateConfirm = $state(false);
+	let updateLoading = $state(false);
+	/**
+	 * Update progress state received via WebSocket device_status_changed messages.
+	 * phase: null = idle, 'downloading' = in progress, 'complete' = done, 'failed' = error
+	 */
+	let updatePhase = $state<'downloading' | 'complete' | 'failed' | null>(null);
+	let updateProgress = $state(0); // 0–100 during download
+	let unsubscribeWs: (() => void) | null = null;
+
 	const deviceId = $derived(page.params.id ?? '');
 
 	async function loadData() {
@@ -60,11 +76,16 @@
 		}
 
 		try {
-			const [deviceData, profilesData] = await Promise.all([getDevice(deviceId), listProfiles()]);
+			const [deviceData, profilesData, releaseData] = await Promise.all([
+				getDevice(deviceId),
+				listProfiles(),
+				getLatestRelease('kiosk').catch(() => undefined)
+			]);
 			device = deviceData;
 			allProfiles = profilesData;
 			editedName = deviceData.name;
 			seedDeviceStatus(deviceData);
+			latestRelease = releaseData ?? null;
 		} catch (err: unknown) {
 			const apiErr = err as { status?: number };
 			if (apiErr?.status === 401) {
@@ -84,6 +105,40 @@
 
 	onMount(() => {
 		loadData();
+
+		/**
+		 * Listen for device_status_changed WebSocket messages that carry OTA update progress.
+		 * Expected message shape: { type: 'device_status_changed', deviceId, updateStatus, updateProgress }
+		 * updateStatus: 'downloading' | 'complete' | 'failed'
+		 * updateProgress: number (0–100, present when status is 'downloading')
+		 *
+		 * Note: device_status_changed is not in SignalingMessage — it's added by the OTA backend
+		 * (commit 5818216f). Cast to any until shared types are updated.
+		 */
+		unsubscribeWs = websocket.onMessage((message) => {
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			const msg = message as any;
+			if (msg.type !== 'device_status_changed') return;
+			if (msg.deviceId !== deviceId) return;
+
+			if (msg.updateStatus === 'downloading') {
+				updatePhase = 'downloading';
+				updateProgress = typeof msg.updateProgress === 'number' ? msg.updateProgress : 0;
+			} else if (msg.updateStatus === 'complete') {
+				updatePhase = 'complete';
+				updateProgress = 100;
+				toast.success('Kiosk updated successfully.');
+				// Reload device to get updated app_version
+				loadData();
+			} else if (msg.updateStatus === 'failed') {
+				updatePhase = 'failed';
+				toast.error('Kiosk update failed. Please try again.');
+			}
+		});
+	});
+
+	onDestroy(() => {
+		if (unsubscribeWs) unsubscribeWs();
 	});
 
 	function getRelativeTime(dateStr: string | null): string {
@@ -239,6 +294,36 @@
 
 	/** Live device status from store — updates reactively on WebSocket events */
 	const liveStatus = $derived(device ? getDeviceStatus(device.id, device.status) : 'offline');
+
+	/**
+	 * True when device is online, a release exists, device version is known, and differs from latest.
+	 * The update button is only enabled in this state.
+	 */
+	const canUpdate = $derived(
+		device !== null &&
+			liveStatus === 'online' &&
+			latestRelease !== null &&
+			device.app_version !== null &&
+			device.app_version !== undefined &&
+			device.app_version !== latestRelease.version &&
+			updatePhase !== 'downloading'
+	);
+
+	async function handleTriggerUpdate() {
+		if (!device || !latestRelease) return;
+		showUpdateConfirm = false;
+		updateLoading = true;
+		updatePhase = 'downloading';
+		updateProgress = 0;
+		try {
+			await triggerDeviceUpdate(device.id, latestRelease.id);
+		} catch (err: unknown) {
+			updatePhase = 'failed';
+			toast.error(getErrorMessage(err, 'trigger update'));
+		} finally {
+			updateLoading = false;
+		}
+	}
 </script>
 
 <div class="max-w-2xl mx-auto px-unit-3 py-unit-3">
@@ -474,6 +559,71 @@
 			{/if}
 		</div>
 
+		<!-- Software Update Section -->
+		<div class="card mb-unit-3">
+			<h3 class="text-sm font-semibold text-text-secondary uppercase tracking-wider mb-unit-2">
+				Software Update
+			</h3>
+			<div class="space-y-2">
+				<div class="flex items-center justify-between">
+					<span class="text-text-secondary">Current version</span>
+					<span class="text-text-primary font-mono text-sm">
+						{device.app_version ?? 'Unknown'}
+					</span>
+				</div>
+				<div class="flex items-center justify-between">
+					<span class="text-text-secondary">Latest available</span>
+					<span class="text-text-primary font-mono text-sm">
+						{latestRelease ? latestRelease.version : 'No releases yet'}
+					</span>
+				</div>
+				{#if latestRelease?.notes}
+					<div class="pt-1">
+						<p class="text-xs text-text-secondary mb-1">Release notes</p>
+						<p class="text-sm text-text-primary whitespace-pre-line">{latestRelease.notes}</p>
+					</div>
+				{/if}
+			</div>
+
+			<!-- Update progress bar shown during download -->
+			{#if updatePhase === 'downloading'}
+				<div class="mt-unit-2">
+					<div class="flex items-center justify-between text-xs text-text-secondary mb-1">
+						<span>Downloading update…</span>
+						<span>{updateProgress}%</span>
+					</div>
+					<div class="w-full bg-gray-200 rounded-full h-2">
+						<div
+							class="bg-primary h-2 rounded-full transition-all duration-300"
+							style="width: {updateProgress}%"
+						></div>
+					</div>
+				</div>
+			{/if}
+
+			<button
+				type="button"
+				onclick={() => (showUpdateConfirm = true)}
+				disabled={!canUpdate || updateLoading}
+				class="mt-unit-3 w-full px-unit-3 py-2 rounded-card font-semibold text-sm transition-colors
+					{canUpdate && !updateLoading
+					? 'bg-primary text-white hover:bg-blue-600'
+					: 'bg-gray-100 text-gray-400 cursor-not-allowed'}"
+			>
+				{#if updatePhase === 'downloading'}
+					Updating…
+				{:else if latestRelease}
+					Update to v{latestRelease.version}
+				{:else}
+					No update available
+				{/if}
+			</button>
+
+			{#if !canUpdate && liveStatus !== 'online' && latestRelease && device.app_version !== latestRelease.version}
+				<p class="text-xs text-text-secondary mt-1 text-center">Device must be online to update</p>
+			{/if}
+		</div>
+
 		<!-- Danger Zone -->
 		<div class="card border-danger/30">
 			<h3 class="text-sm font-semibold text-danger uppercase tracking-wider mb-unit-2">
@@ -493,6 +643,47 @@
 		</div>
 	{/if}
 </div>
+
+<!-- Update Confirmation Modal -->
+{#if showUpdateConfirm && device && latestRelease}
+	<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+	<div
+		class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-unit-2"
+		role="dialog"
+		aria-modal="true"
+		aria-labelledby="update-modal-title"
+		onmousedown={(e) => {
+			if (e.target === e.currentTarget) showUpdateConfirm = false;
+		}}
+	>
+		<div class="card w-full max-w-sm">
+			<h2 id="update-modal-title" class="text-h3 font-semibold text-text-primary mb-unit-2">
+				Update kiosk
+			</h2>
+			<p class="text-base text-text-secondary mb-unit-3">
+				Update <strong class="text-text-primary">{device.name}</strong> to
+				<strong class="text-text-primary">v{latestRelease.version}</strong>? The kiosk will
+				restart after the update completes.
+			</p>
+			<div class="flex gap-unit-2 justify-end">
+				<button
+					type="button"
+					onclick={() => (showUpdateConfirm = false)}
+					class="px-unit-3 py-2 rounded-card border border-gray-300 text-base text-text-primary hover:bg-gray-50 transition-colors"
+				>
+					Cancel
+				</button>
+				<button
+					type="button"
+					onclick={handleTriggerUpdate}
+					class="px-unit-3 py-2 rounded-card bg-primary text-white font-semibold text-base hover:bg-blue-600 transition-colors"
+				>
+					Update to v{latestRelease.version}
+				</button>
+			</div>
+		</div>
+	</div>
+{/if}
 
 <!-- Unpair Confirmation Modal -->
 {#if showUnpairModal && device}

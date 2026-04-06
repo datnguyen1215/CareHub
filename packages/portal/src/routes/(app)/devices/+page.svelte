@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
-	import { listDevices, type Device } from '$lib/api';
+	import { listDevices, getLatestRelease, type Device, type Release } from '$lib/api';
 	import { getErrorMessage, isRetryable } from '$lib/utils/error-utils';
 	import DeviceCard from '$lib/components/devices/DeviceCard.svelte';
 	import {
@@ -16,6 +16,7 @@
 	import { seedDeviceStatuses, getDeviceStatus } from '$lib/stores/deviceStatus.svelte';
 
 	let devices = $state<Device[]>([]);
+	let latestRelease = $state<Release | null>(null);
 	let loadError = $state('');
 	let loading = $state(true);
 	let canRetry = $state(false);
@@ -28,8 +29,13 @@
 		canRetry = false;
 
 		try {
-			devices = await listDevices();
+			const [deviceList, releaseData] = await Promise.all([
+				listDevices(),
+				getLatestRelease('kiosk').catch(() => undefined)
+			]);
+			devices = deviceList;
 			seedDeviceStatuses(devices);
+			latestRelease = releaseData ?? null;
 		} catch (err: unknown) {
 			const apiErr = err as { status?: number };
 			if (apiErr?.status === 401) {
@@ -129,7 +135,7 @@
 		<!-- Device List -->
 		<div class="space-y-unit-2">
 			{#each devices as device (device.id)}
-				<DeviceCard {device} onCall={handleCall} />
+				<DeviceCard {device} {latestRelease} onCall={handleCall} />
 			{/each}
 
 			<!-- Add new device card (dashed border style) -->
