@@ -327,6 +327,8 @@ Tablet push notifications, device status monitoring, and video call signaling al
 - Devices: single connection per device
 - Users: multiple connections supported (multi-tab browser sessions); `broadcastToUser()` sends to all user connections, so each tab must filter signals based on its own call state
 - Functions: `broadcastToDevice()`, `broadcastToUser()`, `isDeviceConnected()`, `isUserConnected()`, `getConnectedUserIds()`
+- Return values: `broadcastToDevice()` returns `boolean` (true if device was connected and message sent); `broadcastToUser()` returns `number` (count of connections message was sent to, 0 if user not connected)
+- The call handler (`call.ts`) checks every broadcast return value and logs at `warn` level when delivery fails (recipient disconnected); SDP answer delivery failure logs at `error` level since an undelivered answer causes the call to hang indefinitely
 
 **Message Handlers:**
 

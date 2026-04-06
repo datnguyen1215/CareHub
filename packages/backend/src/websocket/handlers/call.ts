@@ -144,17 +144,23 @@ const handleCallInitiate = async (
   // Start ring timeout
   startRingTimeout(session.id, RING_TIMEOUT_MS, () => {
     // Notify user that call was missed
-    broadcastToUser(userId, {
+    const userNotified = broadcastToUser(userId, {
       type: 'call:ended',
       callId: session.id,
       reason: 'missed',
     })
+    if (userNotified === 0) {
+      logger.warn({ callId: session.id, userId }, 'Missed call notification not delivered — user not connected')
+    }
     // Notify kiosk device so it returns to idle
-    broadcastToDevice(deviceId, {
+    const deviceNotified = broadcastToDevice(deviceId, {
       type: 'call:ended',
       callId: session.id,
       reason: 'missed',
     })
+    if (!deviceNotified) {
+      logger.warn({ callId: session.id, deviceId }, 'Missed call notification not delivered — device not connected')
+    }
   })
 
   // Confirm to caller that call is ringing
@@ -203,12 +209,16 @@ const handleCallAccepted = async (
   await updateCallStatus(callId, 'connecting')
 
   // Forward to caller
-  broadcastToUser(session.callerUserId, {
+  const callerNotified = broadcastToUser(session.callerUserId, {
     type: 'call:accepted',
     callId,
   })
 
-  logger.info({ callId, userId: session.callerUserId, deviceId }, 'Call accepted, notified caller')
+  if (callerNotified === 0) {
+    logger.warn({ callId, userId: session.callerUserId, deviceId }, 'Call accepted — caller not connected, notification not delivered')
+  } else {
+    logger.info({ callId, userId: session.callerUserId, deviceId }, 'Call accepted, notified caller')
+  }
 }
 
 /**
@@ -246,12 +256,16 @@ const handleCallDeclined = async (
   await endCall(callId, 'declined')
 
   // Forward to caller
-  broadcastToUser(session.callerUserId, {
+  const callerNotified = broadcastToUser(session.callerUserId, {
     type: 'call:declined',
     callId,
   })
 
-  logger.info({ callId, userId: session.callerUserId, deviceId }, 'Call declined, notified caller')
+  if (callerNotified === 0) {
+    logger.warn({ callId, userId: session.callerUserId, deviceId }, 'Call declined — caller not connected, notification not delivered')
+  } else {
+    logger.info({ callId, userId: session.callerUserId, deviceId }, 'Call declined, notified caller')
+  }
 }
 
 /**
@@ -297,21 +311,29 @@ const handleCallEnded = async (
   // Notify the other party
   if (senderType === 'user') {
     if (session.calleeDeviceId !== null) {
-      broadcastToDevice(session.calleeDeviceId, {
+      const deviceNotified = broadcastToDevice(session.calleeDeviceId, {
         type: 'call:ended',
         callId,
         reason,
       })
+      if (!deviceNotified) {
+        logger.warn({ callId, reason, deviceId: session.calleeDeviceId }, 'Call ended — device not connected, notification not delivered')
+      } else {
+        logger.info({ callId, reason }, 'Call ended, notified other party')
+      }
     }
   } else {
-    broadcastToUser(session.callerUserId, {
+    const callerNotified = broadcastToUser(session.callerUserId, {
       type: 'call:ended',
       callId,
       reason,
     })
+    if (callerNotified === 0) {
+      logger.warn({ callId, reason, userId: session.callerUserId }, 'Call ended — caller not connected, notification not delivered')
+    } else {
+      logger.info({ callId, reason }, 'Call ended, notified other party')
+    }
   }
-
-  logger.info({ callId, reason }, 'Call ended, notified other party')
 }
 
 /**
@@ -377,13 +399,17 @@ const handleAnswer = async (
   await updateCallStatus(callId, 'connected')
 
   // Forward answer to user
-  broadcastToUser(session.callerUserId, {
+  const callerNotified = broadcastToUser(session.callerUserId, {
     type: 'call:answer',
     callId,
     sdp,
   })
 
-  logger.info({ callId }, 'Call connected')
+  if (callerNotified === 0) {
+    logger.error({ callId, userId: session.callerUserId, deviceId }, 'SDP answer not delivered — caller not connected, call will hang')
+  } else {
+    logger.info({ callId }, 'Call connected')
+  }
 }
 
 /**
@@ -419,18 +445,24 @@ const handleIceCandidate = async (
   // Forward to the other party
   if (senderType === 'user') {
     if (session.calleeDeviceId !== null) {
-      broadcastToDevice(session.calleeDeviceId, {
+      const deviceNotified = broadcastToDevice(session.calleeDeviceId, {
         type: 'call:ice-candidate',
         callId,
         candidate,
       })
+      if (!deviceNotified) {
+        logger.warn({ callId, deviceId: session.calleeDeviceId }, 'ICE candidate not delivered — device not connected')
+      }
     }
   } else {
-    broadcastToUser(session.callerUserId, {
+    const callerNotified = broadcastToUser(session.callerUserId, {
       type: 'call:ice-candidate',
       callId,
       candidate,
     })
+    if (callerNotified === 0) {
+      logger.warn({ callId, userId: session.callerUserId }, 'ICE candidate not delivered — caller not connected')
+    }
   }
 }
 
@@ -477,11 +509,14 @@ const handleScreenShare = async (
   }
 
   // Forward to device
-  broadcastToDevice(session.calleeDeviceId, {
+  const deviceNotified = broadcastToDevice(session.calleeDeviceId, {
     type: 'call:screen-share',
     callId,
     active,
   })
+  if (!deviceNotified) {
+    logger.warn({ callId, deviceId: session.calleeDeviceId }, 'Screen share state not delivered — device not connected')
+  }
 }
 
 /**
