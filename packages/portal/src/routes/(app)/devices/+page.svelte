@@ -12,6 +12,7 @@
 		toggleVideo
 	} from '$lib/stores/call.svelte';
 	import CallModal from '$lib/components/call/CallModal.svelte';
+	import { toast } from '$lib/stores/toast.svelte';
 
 	let devices = $state<Device[]>([]);
 	let loadError = $state('');
@@ -50,6 +51,10 @@
 	}
 
 	function handleCall(device: Device) {
+		if (device.status !== 'online') {
+			toast.warning('Device is offline. Cannot place call.');
+			return;
+		}
 		initiateCall(device.id, device.name);
 	}
 </script>

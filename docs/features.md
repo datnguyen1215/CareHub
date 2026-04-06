@@ -273,6 +273,8 @@ Detailed feature breakdown organized by area. See [phases.md](phases.md) for imp
   - Call button on device detail page (`/devices/[id]`)
   - Alternative: Call button on device card in Profile Overview tab
   - Button disabled when device offline or call already in progress
+  - If user clicks Call while device is offline, a warning toast displays: "Device is offline. Cannot place call."
+  - If user clicks Call while another call is already in progress, a warning toast displays: "A call is already in progress"
   - Button shows "Calling..." text during initiating/ringing states
 - Full-screen CallModal displays during active calls
   - Call status indicators: Calling → Ringing → Connecting → Connected
@@ -300,7 +302,7 @@ Detailed feature breakdown organized by area. See [phases.md](phases.md) for imp
 - Heartbeat keep-alive: ping every 25 seconds, dead connection detected within 30 seconds (5s pong timeout)
 - Message queue: signaling messages buffered during disconnection (max 50 messages, 30s TTL), flushed on reconnect; priority-based eviction drops lowest-priority messages first — critical WebRTC signaling (SDP offers/answers, ICE candidates) is preserved over less urgent messages (screen-share state, errors)
 - Tab visibility handling: detects when browser tab is hidden during a call; on return, verifies WebSocket health and recovers dead media streams by re-acquiring and replacing tracks
-- Multi-tab signal isolation: only the tab that initiated a call processes signaling messages; other idle tabs silently ignore `call:ringing`, `call:accepted`, `call:answer`, and `call:ice-candidate` messages broadcast to all user connections
+- Multi-tab signal isolation: only the tab that initiated a call processes signaling messages; other idle tabs log a `warn`-level message and discard `call:ringing`, `call:accepted`, `call:answer`, and `call:ice-candidate` messages broadcast to all user connections
 - Fallback through TURN relay if direct peer connection fails
 - Connection quality indicator
 - Setup timeout: if ICE negotiation stalls in the `connecting` state, the call automatically fails after 15 seconds (`CALL_SETUP_TIMEOUT_MS`) with a user-friendly error message and retry option

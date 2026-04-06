@@ -24,6 +24,7 @@
 		toggleMute,
 		toggleVideo
 	} from '$lib/stores/call.svelte';
+	import { toast } from '$lib/stores/toast.svelte';
 
 	let device = $state<Device | null>(null);
 	let allProfiles = $state<CareProfile[]>([]);
@@ -220,12 +221,18 @@
 	}
 
 	function handleCall() {
-		if (!device || device.status !== 'online') return;
+		if (!device || device.status !== 'online') {
+			toast.warning('Device is offline. Cannot place call.');
+			return;
+		}
 		initiateCall(device.id, device.name);
 	}
 
 	function handleRetryCall() {
-		if (!device || device.status !== 'online') return;
+		if (!device || device.status !== 'online') {
+			toast.warning('Device is offline. Cannot place call.');
+			return;
+		}
 		initiateCall(device.id, device.name);
 	}
 

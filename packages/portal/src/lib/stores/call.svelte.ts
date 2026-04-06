@@ -404,6 +404,7 @@ export async function initiateCall(deviceId: string, deviceName: string): Promis
 	// Guard: can only initiate from idle state
 	if (!machine.matches('idle')) {
 		logger.warn('[Call] Cannot initiate: not in idle state');
+		toast.warning('A call is already in progress');
 		return;
 	}
 
@@ -571,7 +572,10 @@ export async function handleIncomingSignal(message: SignalingMessage): Promise<v
 
 	// Only process signals if this tab has an active call.
 	// Prevents multi-tab interference — only the initiating tab is non-idle.
-	if (callState.status === 'idle') return;
+	if (callState.status === 'idle') {
+		logger.warn('[Call] handleIncomingSignal: dropping message while idle, type:', message.type);
+		return;
+	}
 
 	// Ignore messages for other calls (except call:ringing which establishes the session)
 	if (

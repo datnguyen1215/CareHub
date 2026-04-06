@@ -169,6 +169,17 @@ From the profile detail page (`/profiles/:id`):
 9. When screen sharing stops, the kiosk returns to normal video layout
 10. Either party can end the call
 
+**If the device is offline:**
+
+1. Tapping Call on an offline device shows a warning toast: "Device is offline. Cannot place call."
+2. No call is initiated
+
+**If the tablet is busy (already in a call):**
+
+1. Tablet receives `call:incoming` but is not in idle state
+2. Tablet immediately sends `call:declined` back so the caller gets explicit feedback
+3. Portal call state transitions to failed with a declined error
+
 **If the call is not answered (ring timeout):**
 
 1. After 30 seconds of ringing with no answer, the server ends the session
@@ -362,7 +373,7 @@ From the profile detail page (`/profiles/:id`):
 21. If the network interruption exceeds 10 seconds, the call transitions to failed with a "disconnected" error
 22. Tap "End Call" button or press Escape → State machine transitions to ending, WebSocket sends `call:ended`, connection closes, modal closes
 23. If call fails or is declined, state transitions to failed, error message displays with "Try Again" (if retryable) or "Close" button
-24. If device is offline, Call button is disabled (grayed out)
-25. If a call is already in progress, Call button is disabled
+24. If device is offline, Call button is disabled (grayed out); if the user taps it anyway (e.g., status changed just before tap), a warning toast displays: "Device is offline. Cannot place call."
+25. If a call is already in progress, Call button is disabled; if the user triggers `initiateCall` while not idle (e.g., via keyboard shortcut), a warning toast displays: "A call is already in progress"
 26. Alternative from profile detail: tap "📞 Call" on device card in Profile Overview tab to initiate call
 27. During the call, the caretaker can share their screen; the kiosk switches to screen share display mode (full document visible, light gray background) with a "Screen shared by [name]" indicator; stopping screen share returns to normal video layout

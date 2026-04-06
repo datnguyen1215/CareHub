@@ -451,6 +451,7 @@ function handleIncomingCall(message: CallIncomingMessage): void {
 	// Guard: can only receive incoming call if idle
 	if (!machine.matches('idle')) {
 		logger.warn('[Call] Ignoring incoming call: not in idle state');
+		sendCallDeclined(message.callId);
 		return;
 	}
 
