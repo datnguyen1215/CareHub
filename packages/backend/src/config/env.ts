@@ -57,6 +57,11 @@ export const env = {
   ANTHROPIC_API_KEY: optionalEnv('ANTHROPIC_API_KEY', ''),
   OPENAI_MODEL: optionalEnv('OPENAI_MODEL', 'gpt-4o-mini'),
   ANTHROPIC_MODEL: optionalEnv('ANTHROPIC_MODEL', 'claude-3-haiku-20240307'),
+
+  // Release Storage
+  // Directory where APK files are stored on disk. Must be outside the static web
+  // directory to prevent direct URL access. Defaults to data/releases/ relative to CWD.
+  RELEASES_DIR: optionalEnv('RELEASES_DIR', ''),
 } as const
 
 export type Env = typeof env

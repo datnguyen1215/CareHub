@@ -8,6 +8,7 @@ import { journalRouter } from './journal.js'
 import { attachmentsRouter } from './attachments.js'
 import { uploadRouter } from './upload.js'
 import { devicesRouter } from './devices/index.js'
+import { releasesRouter } from './releases/index.js'
 import healthRouter from './health.js'
 
 export function registerRoutes(app: Express): void {
@@ -22,4 +23,5 @@ export function registerRoutes(app: Express): void {
   app.use('/api/profiles/:profileId/journal', journalRouter)
   app.use('/api/profiles/:profileId/attachments', attachmentsRouter)
   app.use('/api/devices', devicesRouter)
+  app.use('/api/releases', releasesRouter)
 }

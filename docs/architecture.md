@@ -11,7 +11,7 @@
 | Database           | PostgreSQL via Docker (self-hosted)                               | Relational data, full control, no external dependency                                                                                                                            |
 | ORM / Migrations   | Drizzle ORM                                                       | Type-safe queries, SQL-first migrations                                                                                                                                          |
 | Auth               | Email + OTP (Nodemailer + Gmail SMTP)                             | Passwordless email login without third-party auth service                                                                                                                        |
-| File Storage       | TBD                                                               | To be decided in a future phase                                                                                                                                                  |
+| File Storage       | Local disk (`data/releases/`)                                     | APK files stored outside the static web directory; path configurable via `RELEASES_DIR` env var; served via authenticated download endpoint                                     |
 | Real-time          | WebSockets (custom)                                               | Tablet push, device status, call signaling                                                                                                                                       |
 | Video Calling      | WebRTC + @datnguyen1215/hsmjs                                     | Peer-to-peer video with hierarchical state machines for call lifecycle management                                                                                                |
 | Push Notifications | Firebase Cloud Messaging (FCM)                                    | High-priority data messages for call notifications; reliable delivery even when app is closed                                                                                    |
@@ -734,6 +734,9 @@ Email + OTP passwordless login via Nodemailer + Gmail SMTP.
 | `DELETE` | `/api/devices/:id`                                         | Required    | Unpair/remove device                                                                                                   |
 | `POST`   | `/api/devices/:id/profiles`                                | Required    | Assign profiles to device (body validated with Zod)                                                                    |
 | `DELETE` | `/api/devices/:id/profiles/:profileId`                     | Required    | Remove profile from device                                                                                             |
+| `POST`   | `/api/releases/upload`                                     | Required    | Upload an APK release; multipart/form-data with `file`, `app`, `version`, `version_code`, `notes`; validates APK magic bytes; returns 201 with release metadata (excludes `file_path`) |
+| `GET`    | `/api/releases/latest?app=kiosk\|portal`                   | Required    | Return the release with the highest `version_code` for the given app type                                              |
+| `GET`    | `/api/releases/:id/download`                               | Device Auth | Serve the APK binary for download (`Content-Type: application/vnd.android.package-archive`); validates device token    |
 
 **SMTP configuration via environment variables:**
 
@@ -746,6 +749,12 @@ Email + OTP passwordless login via Nodemailer + Gmail SMTP.
 | `SMTP_FROM_NAME` | Display name for sent emails  |
 
 A dedicated Gmail account is recommended for sending OTP emails.
+
+**Release storage configuration:**
+
+| Variable       | Description                                                                                          |
+| -------------- | ---------------------------------------------------------------------------------------------------- |
+| `RELEASES_DIR` | Absolute path to the directory where APK files are stored on disk. Defaults to `data/releases/` relative to the process working directory. Must be outside the static web directory to prevent direct URL access. Directory is created automatically if it does not exist. |
 
 ### Request Validation
 
@@ -848,7 +857,7 @@ The tablet kiosk requires one-time Device Owner provisioning to enable Lock Task
 
 **Backend:** Integration tests using Vitest + Supertest against the Express API and the `ws` package for WebSocket tests. Covers the critical API surface.
 
-**HTTP endpoint tests** cover authentication, devices, profiles, medications, attachments, and health — using Supertest against the Express app.
+**HTTP endpoint tests** cover authentication, devices, profiles, medications, attachments, releases, and health — using Supertest against the Express app.
 
 **WebSocket tests** cover the real-time communication layer — connection authentication (device token, JWT, ticket), client registry (multi-tab support, broadcast, cleanup), device lifecycle (heartbeat, status transitions), and call signaling (initiate, accept, decline, WebRTC exchange, ring timeout). These tests use an actual HTTP server (`server.listen(0)` for random port allocation) with the `ws` package as client. Tests run with `fileParallelism: false` to avoid WebSocket server conflicts.
 
