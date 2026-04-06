@@ -15,6 +15,7 @@ import {
   deviceAccess,
   deviceCareProfiles,
   devicePairingTokens,
+  appReleases,
 } from '@carehub/shared'
 
 /**
@@ -170,4 +171,21 @@ export async function createDevicePairingToken(data: {
 }) {
   const [pairingToken] = await db.insert(devicePairingTokens).values(data).returning()
   return pairingToken
+}
+
+/**
+ * Create an app release record in the test database.
+ */
+export async function createRelease(data: {
+  id?: string
+  app: 'kiosk' | 'portal'
+  version: string
+  version_code: number
+  file_path: string
+  file_size: number
+  checksum: string
+  notes?: string | null
+}) {
+  const [release] = await db.insert(appReleases).values(data).returning()
+  return release
 }
