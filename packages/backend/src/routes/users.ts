@@ -1,9 +1,9 @@
 import { Router, Request, Response } from 'express'
 import { eq } from 'drizzle-orm'
-import { db } from '../db'
+import { db } from '../db/index.js'
 import { users } from '@carehub/shared'
-import { requireAuth } from '../middleware/auth'
-import { logger } from '../services/logger'
+import { requireAuth } from '../middleware/auth.js'
+import { logger } from '../services/logger.js'
 
 export const usersRouter = Router()
 

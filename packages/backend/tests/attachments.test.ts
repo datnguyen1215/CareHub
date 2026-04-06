@@ -55,6 +55,21 @@ describe('POST /api/profiles/:profileId/attachments', () => {
     expect(res.body.error).toContain('category is required')
   })
 
+  it('returns 400 when category is invalid', async () => {
+    const user = await createUser({ email: 'attach-bad-category@example.com' })
+    const profile = await createProfile({ user_id: user.id, name: 'Rose' })
+
+    const res = await request(app)
+      .post(`/api/profiles/${profile.id}/attachments`)
+      .set('Cookie', makeAuthCookie(user.id, user.email))
+      .field('category', 'foo')
+      .field('event_id', '00000000-0000-0000-0000-000000000000')
+      .attach('file', Buffer.from('test'), 'test.jpg')
+
+    expect(res.status).toBe(400)
+    expect(res.body.error).toContain('category')
+  })
+
   it('returns 400 when neither event_id nor journal_id is provided', async () => {
     const user = await createUser({ email: 'attach-no-parent@example.com' })
     const profile = await createProfile({ user_id: user.id, name: 'Rose' })

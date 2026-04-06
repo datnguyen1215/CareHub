@@ -13,19 +13,26 @@
     "cap:sync": "cap sync android",
     "cap:open": "cap open android",
     "cap:build": "npm run build && npm run cap:sync",
-    "release": "bash scripts/release.sh"
+    "release": "bash scripts/release.sh",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
   },
   "devDependencies": {
     "@sveltejs/adapter-node": "^5.5.4",
     "@sveltejs/adapter-static": "^3.0.10",
     "@sveltejs/kit": "^2.55.0",
     "@sveltejs/vite-plugin-svelte": "^4.0.4",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/svelte": "^5.3.1",
     "@types/node": "^22.0.0",
+    "@vitest/coverage-v8": "^4.1.2",
     "autoprefixer": "^10.4.19",
     "eslint": "^9.5.0",
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-svelte": "^2.41.0",
     "globals": "^15.6.0",
+    "jsdom": "^29.0.1",
     "postcss": "^8.4.38",
     "prettier": "^3.3.2",
     "prettier-plugin-svelte": "^3.2.5",
@@ -33,7 +40,8 @@
     "svelte-check": "^4.4.5",
     "tailwindcss": "^3.4.4",
     "typescript": "^5.5.2",
-    "vite": "^5.3.1"
+    "vite": "^5.3.1",
+    "vitest": "^4.1.2"
   },
   "dependencies": {
     "@capacitor/android": "^8.3.0",

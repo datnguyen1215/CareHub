@@ -55,7 +55,7 @@ Detailed feature breakdown organized by area. See [phases.md](phases.md) for imp
 
 - Device card displayed in Profile Overview tab for linked devices
 - Shows device name, online/offline status dot, battery level indicator
-- Quick action buttons: Send Photo, Call (both disabled when offline), Settings
+- Quick action buttons: Call (disabled when offline), Settings
 - Multiple devices supported (cards stack vertically)
 - Empty state with "+ Link Device" CTA when no device assigned
 
@@ -125,13 +125,15 @@ Detailed feature breakdown organized by area. See [phases.md](phases.md) for imp
 - Attachments belong to a care profile
 - Attachments can be linked to journal entries or calendar events
 - Attach documents when creating or editing journals and events
+- Upload error recovery: if upload fails, an inline error message is displayed with a "Retry" button to re-attempt the upload
 
 ### AI Processing
 
-- OCR text extraction at upload time (Google Vision API)
-- Auto-generated descriptions based on OCR content
+- OCR text extraction at upload time (Google Vision API), with 60-second timeout — on timeout, attachment is saved without OCR text
+- Auto-generated descriptions based on OCR content, with 30-second timeout — on timeout, attachment is saved without description
 - Auto-categorization: lab results, prescriptions, insurance, billing, imaging, other
 - Extracted text stored for full-text search
+- Timeouts prevent indefinite blocking; timed-out steps are skipped with a warning log, attachment still saved with partial results
 
 ### Documents Tab
 
@@ -192,11 +194,13 @@ Detailed feature breakdown organized by area. See [phases.md](phases.md) for imp
 
 ### Runtime
 
-- SvelteKit web app running in browser (Capacitor APK wrapper planned for Phase 3.5)
+- SvelteKit web app in Capacitor Android APK (kiosk package)
 - Persistent WebSocket connection for real-time features
 - Auto-reconnect on network interruption
-- Device token stored securely (localStorage for now, Capacitor Secure Storage when native)
+- Device token stored via Capacitor Preferences (localStorage fallback for browser dev)
 - Offline state shows cached data with "Reconnecting..." indicator
+- **Device Owner mode** -- App provisioned as Android Device Owner via one-time ADB script; enables silent APK installation without user interaction; see `packages/kiosk/SETUP.md` for provisioning steps
+- **Silent APK updates** -- `SilentUpdate` custom Capacitor plugin (`src/lib/plugins/silent-update.ts`) downloads an APK from the backend, verifies its SHA-256 checksum and APK signing certificate, and installs it via `PackageInstaller` without any user prompt; callable from Svelte/TypeScript via `SilentUpdate.downloadAndInstall({ url, checksum })`; fires `downloadProgress` events during download; browser fallback logs a warning in dev mode
 
 ### Design Principles
 
@@ -256,12 +260,14 @@ Detailed feature breakdown organized by area. See [phases.md](phases.md) for imp
 
 - WebRTC peer-to-peer video
 - Hierarchical state machines (@datnguyen1215/hsmjs) for call lifecycle management
-- Signaling via WebSocket server (call:incoming, call:offer, call:ice-candidate, call:ended, call:error messages)
+- Shared WebRTC/WebSocket utilities in `packages/shared` (stream management, error handling, duration timers, reconnection strategies)
+- Shared UI toast store logic in `packages/shared` (framework-agnostic toast/notification management with configurable auto-dismiss, used by both portal and kiosk)
+- Signaling via WebSocket server (call:incoming, call:offer, call:ice-candidate, call:screen-share, call:ended, call:error messages)
 - ICE/STUN/TURN for NAT traversal
 - Firebase Cloud Messaging (FCM) for call notifications to caretaker devices
 - Capacitor native shell on both caretaker phones and elderly tablets
 - State machine guards prevent invalid transitions and race conditions
-- All state transitions logged with timestamps for debugging
+- Key lifecycle events (initiated, incoming, accepted/declined, connected, ended, failed) logged at warn level via `logCallLifecycle()` (always visible in production); verbose events (ICE, SDP, timers) remain debug-only via `logWebRTCEvent()`
 
 ### Capabilities
 
@@ -269,26 +275,40 @@ Detailed feature breakdown organized by area. See [phases.md](phases.md) for imp
   - Call button on device detail page (`/devices/[id]`)
   - Alternative: Call button on device card in Profile Overview tab
   - Button disabled when device offline or call already in progress
+  - If user clicks Call while device is offline, a warning toast displays: "Device is offline. Cannot place call."
+  - If user clicks Call while another call is already in progress, a warning toast displays: "A call is already in progress"
   - Button shows "Calling..." text during initiating/ringing states
 - Full-screen CallModal displays during active calls
   - Call status indicators: Calling → Ringing → Connecting → Connected
   - Remote video fills screen, local video in picture-in-picture corner
   - Duration timer in MM:SS format
-  - Mute (M key), video toggle (V key), end call (Escape key) controls
+  - Mute (M key), video toggle (V key), screen share (S key), end call (Escape key) controls
+  - Screen sharing via `getDisplayMedia()` — swaps camera track for screen capture using `replaceTrack()` (no renegotiation); green indicator when active; local PIP hidden during share; stopped automatically when call ends
   - Error messages with retry option for retryable errors
 - Elderly family member initiates call from tablet by tapping caretaker photo
 - Full-screen video display on tablet
+  - Normal mode: remote video uses `object-fit: cover` with dark background for face video
+  - Screen share mode: remote video uses `object-fit: contain` with light gray background for document visibility
+  - "Screen shared by [caller name]" indicator shown when caretaker shares their screen
+  - Layout adapts automatically via `call:screen-share` signaling — no WebRTC changes needed on the kiosk side (track replacement handled by peer connection)
 - Audio and video with microphone/camera permissions (720p ideal, echo cancellation, noise suppression)
 - **Native incoming call UI on caretaker phone** -- full-screen notification over lock screen with ringtone, vibration, caller photo, and Accept/Decline buttons (same behavior as WhatsApp or a phone call)
-- Missed call handling with "no answer" state on tablet
+- Missed call handling with "no answer" state on tablet; backend sends `call:ended` (reason: `missed`) to both parties on 30s ring timeout, kiosk returns to idle and can receive new calls
 - Call duration timer displayed during active calls
 - Graceful handling of camera permission delays and call cancellations
 
 ### Reliability
 
-- Auto-reconnect on connection drop
+- Auto-reconnect on connection drop (exponential backoff: 1s → 2s → 4s → max 30s)
+- Immediate reconnect (bypasses backoff) when tab becomes visible after being hidden during a call
+- Heartbeat keep-alive: ping every 25 seconds, dead connection detected within 30 seconds (5s pong timeout)
+- Message queue: signaling messages buffered during disconnection (max 50 messages, 30s TTL), flushed on reconnect; priority-based eviction drops lowest-priority messages first — critical WebRTC signaling (SDP offers/answers, ICE candidates) is preserved over less urgent messages (screen-share state, errors, device status updates)
+- Tab visibility handling: detects when browser tab is hidden during a call; on return, verifies WebSocket health and recovers dead media streams by re-acquiring and replacing tracks
+- Multi-tab signal isolation: only the tab that initiated a call processes signaling messages; other idle tabs log a `warn`-level message and discard `call:ringing`, `call:accepted`, `call:answer`, and `call:ice-candidate` messages broadcast to all user connections
 - Fallback through TURN relay if direct peer connection fails
 - Connection quality indicator
+- Setup timeout: if ICE negotiation stalls in the `connecting` state, the call automatically fails after 15 seconds (`CALL_SETUP_TIMEOUT_MS`) with a user-friendly error message and retry option
+- ICE disconnected grace period: `connected` state uses hierarchical sub-states (`stable` and `unstable`); on `ICE_DISCONNECTED`, the call enters `unstable` and starts a 10-second reconnect timer (`RECONNECT_TIMEOUT_MS`); if ICE recovers (`ICE_CONNECTED`), the call returns to `stable`; if the timer expires (`RECONNECT_TIMEOUT`), the call transitions to `failed` — this prevents dropping calls on brief network blips (WiFi handoff, mobile network switch, momentary packet loss)
 - High-priority FCM ensures notifications delivered even when app is closed or device is in Doze mode
 - Foreground service keeps active calls alive on both caretaker phone and tablet
 - Tablet Lock Task Mode prevents accidental exit during or between calls

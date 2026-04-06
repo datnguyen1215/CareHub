@@ -24,7 +24,9 @@ export async function truncateAll(): Promise<void> {
       devices,
       device_care_profiles,
       device_access,
-      device_pairing_tokens
+      device_pairing_tokens,
+      call_sessions,
+      app_releases
     CASCADE
   `)
 }

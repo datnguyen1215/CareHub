@@ -90,6 +90,14 @@ Copy `.env.example` to `.env` and configure the following:
 - `FRONTEND_URL` - Frontend URL for CORS (default: http://localhost:9390)
 - `NODE_ENV` - Environment mode (development/production)
 
+### AI Configuration
+
+- `AI_PROVIDER` - AI provider to use for document descriptions and categorization: `openai`, `anthropic`, or `fallback` (default: `fallback`)
+- `OPENAI_API_KEY` - OpenAI API key (required when using OpenAI provider)
+- `ANTHROPIC_API_KEY` - Anthropic API key (required when using Anthropic provider)
+- `OPENAI_MODEL` - OpenAI model name (default: `gpt-4o-mini`)
+- `ANTHROPIC_MODEL` - Anthropic model name (default: `claude-3-haiku-20240307`)
+
 ## Port Configuration
 
 | Service  | Port | URL                   |
@@ -105,6 +113,7 @@ Copy `.env.example` to `.env` and configure the following:
 - `npm run dev` - Start all services concurrently (frontend, backend, shared)
 - `npm run db:up` - Start PostgreSQL database container
 - `npm run db:down` - Stop PostgreSQL database container
+- `npm run test:portal` - Run portal tests (Vitest)
 - `npm run release:kiosk -- --version X.Y.Z` - Build, sign, and upload kiosk APK
 - `npm run release:portal -- --version X.Y.Z` - Build, sign, and upload portal APK
 
@@ -122,7 +131,7 @@ carehub/
 ├── packages/
 │   ├── backend/      # Express REST API
 │   ├── portal/       # SvelteKit caretaker portal
-│   ├── shared/       # Drizzle schema and shared types
+│   ├── shared/       # Drizzle schema, shared types, WebRTC/WebSocket utilities, structured logger, UI logic
 │   └── kiosk/        # SvelteKit kiosk app with Capacitor (Android)
 ├── docs/             # Project documentation
 ├── .env.example      # Environment template
@@ -132,7 +141,8 @@ carehub/
 ### Backend Structure
 
 - `src/routes/` - API endpoints
-- `src/middleware/` - Express middleware (auth)
+- `src/middleware/` - Express middleware (auth, request validation)
+- `src/schemas/` - Zod validation schemas (one per domain)
 - `src/services/` - Business logic (email)
 - `src/db/` - Database connection
 
@@ -140,7 +150,7 @@ carehub/
 
 - `src/routes/(app)/` - Protected application routes
 - `src/routes/login/` - Authentication flow
-- `src/lib/` - Reusable components and API client
+- `src/lib/` - Reusable components (organized by domain under `components/`), utilities (`utils/`), and API client
 
 ## Troubleshooting
 

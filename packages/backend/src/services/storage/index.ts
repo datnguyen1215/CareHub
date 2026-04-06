@@ -4,10 +4,10 @@
  */
 
 import path from 'path'
-import type { StorageService } from './types'
-import { LocalStorageService } from './local'
+import type { StorageService } from './types.js'
+import { LocalStorageService } from './local.js'
 
-export type { StorageService } from './types'
+export type { StorageService } from './types.js'
 
 const STORAGE_PROVIDER = process.env.STORAGE_PROVIDER ?? 'local'
 const UPLOADS_PATH = process.env.UPLOADS_PATH ?? path.join(process.cwd(), 'uploads')
@@ -33,4 +33,4 @@ export function resetStorageService(): void {
   storageInstance = null
 }
 
-export { LocalStorageService } from './local'
+export { LocalStorageService } from './local.js'

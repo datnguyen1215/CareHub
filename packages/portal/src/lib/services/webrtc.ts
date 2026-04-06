@@ -1,26 +1,22 @@
 /**
  * WebRTC peer connection manager for video calling.
  * Handles media streams, ICE candidates, and SDP negotiation.
+ * Portal acts as caller (initiates calls to kiosk devices).
  */
 
 import type { IceCandidate } from '@carehub/shared';
-
-/**
- * Public STUN servers for ICE candidate gathering.
- * Matches constants in @carehub/shared/webrtc/constants.
- */
-const ICE_SERVERS: RTCIceServer[] = [
-	{ urls: 'stun:stun.l.google.com:19302' },
-	{ urls: 'stun:stun1.l.google.com:19302' }
-];
-
-/** Time to wait for ICE gathering to complete (10 seconds) */
-const ICE_GATHERING_TIMEOUT_MS = 10_000;
-
-type IceCandidateHandler = (candidate: IceCandidate) => void;
-type TrackHandler = (stream: MediaStream) => void;
-type ConnectionStateHandler = (state: RTCIceConnectionState) => void;
-type ErrorHandler = (error: string) => void;
+import {
+	ICE_SERVERS,
+	ICE_GATHERING_TIMEOUT_MS,
+	DEFAULT_MEDIA_CONSTRAINTS,
+	acquireLocalStream,
+	cleanupStream,
+	cleanupPeerConnection,
+	type IceCandidateHandler,
+	type TrackHandler,
+	type ConnectionStateHandler,
+	type ErrorHandler
+} from '@carehub/shared';
 
 let peerConnection: RTCPeerConnection | null = null;
 let localStream: MediaStream | null = null;
@@ -29,19 +25,6 @@ const iceCandidateHandlers = new Set<IceCandidateHandler>();
 const trackHandlers = new Set<TrackHandler>();
 const connectionStateHandlers = new Set<ConnectionStateHandler>();
 const errorHandlers = new Set<ErrorHandler>();
-
-/** Local media constraints for camera and microphone */
-const LOCAL_MEDIA_CONSTRAINTS: MediaStreamConstraints = {
-	video: {
-		width: { ideal: 1280 },
-		height: { ideal: 720 },
-		facingMode: 'user'
-	},
-	audio: {
-		echoCancellation: true,
-		noiseSuppression: true
-	}
-};
 
 /**
  * Creates and configures an RTCPeerConnection.
@@ -100,15 +83,16 @@ export function createPeerConnection(): RTCPeerConnection {
  * Closes peer connection and cleans up resources.
  */
 export function closePeerConnection(): void {
-	if (peerConnection) {
-		// Remove all tracks
-		peerConnection.getSenders().forEach((sender) => {
-			peerConnection!.removeTrack(sender);
-		});
+	cleanupPeerConnection(peerConnection);
+	peerConnection = null;
+}
 
-		peerConnection.close();
-		peerConnection = null;
-	}
+/**
+ * Returns the current peer connection (or null if none exists).
+ * Needed for track replacement during media recovery.
+ */
+export function getPeerConnection(): RTCPeerConnection | null {
+	return peerConnection;
 }
 
 /**
@@ -129,7 +113,7 @@ export async function getLocalStream(): Promise<MediaStream> {
 	}
 
 	try {
-		localStream = await navigator.mediaDevices.getUserMedia(LOCAL_MEDIA_CONSTRAINTS);
+		localStream = await acquireLocalStream(DEFAULT_MEDIA_CONSTRAINTS);
 		return localStream;
 	} catch (err) {
 		const error = err as Error;
@@ -152,10 +136,8 @@ export async function getLocalStream(): Promise<MediaStream> {
  * Stops all local media tracks and releases camera/microphone.
  */
 export function stopLocalStream(): void {
-	if (localStream) {
-		localStream.getTracks().forEach((track) => track.stop());
-		localStream = null;
-	}
+	cleanupStream(localStream);
+	localStream = null;
 }
 
 /**

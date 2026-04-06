@@ -1,24 +1,31 @@
+/**
+ * CareHub API application factory.
+ *
+ * ## API Response Contract
+ *
+ * All routes MUST follow these response format conventions:
+ *
+ * - **Success with data**: Return entity/array directly with 200 or 201 status.
+ * - **Success without data** (e.g. DELETE, logout): Return 204 No Content.
+ * - **Error**: Return `{ error: 'description' }` with appropriate HTTP status code.
+ * - **Health check**: `{ status: 'ok' }` is the exception (standard health-check convention).
+ */
 import express from 'express'
 import path from 'path'
 import cookieParser from 'cookie-parser'
 import cors from 'cors'
-import pinoHttp from 'pino-http'
-import { authRouter } from './routes/auth'
-import { usersRouter } from './routes/users'
-import { profilesRouter } from './routes/profiles'
-import { medicationsRouter } from './routes/medications'
-import { eventsRouter } from './routes/events'
-import { journalRouter } from './routes/journal'
-import { attachmentsRouter } from './routes/attachments'
-import { uploadRouter } from './routes/upload'
-import { devicesRouter } from './routes/devices'
-import healthRouter from './routes/health'
-import { logger } from './services/logger'
+import pinoHttpModule from 'pino-http'
+const pinoHttp = pinoHttpModule.default ?? pinoHttpModule
+import { registerRoutes } from './routes/index.js'
+import { logger } from './services/logger.js'
+import { errorHandler } from './middleware/errorHandler.js'
+import { globalLimiter } from './middleware/rateLimit.js'
 
 const UPLOADS_PATH = process.env.UPLOADS_PATH ?? path.join(process.cwd(), 'uploads')
 
 export function createApp() {
   const app = express()
+  app.set('trust proxy', 1)
 
   // Request logging middleware (skip health checks to reduce noise)
   app.use(
@@ -49,20 +56,16 @@ export function createApp() {
   app.use(express.json())
   app.use(cookieParser())
 
+  // Global rate limit for all API routes
+  app.use('/api', globalLimiter)
+
   // Serve uploaded files statically
   app.use('/uploads', express.static(UPLOADS_PATH))
 
-  app.use('/health', healthRouter)
-  app.use('/api/health', healthRouter)
-  app.use('/api/auth', authRouter)
-  app.use('/api/users', usersRouter)
-  app.use('/api/upload', uploadRouter)
-  app.use('/api/profiles', profilesRouter)
-  app.use('/api/profiles/:profileId/medications', medicationsRouter)
-  app.use('/api/profiles/:profileId/events', eventsRouter)
-  app.use('/api/profiles/:profileId/journal', journalRouter)
-  app.use('/api/profiles/:profileId/attachments', attachmentsRouter)
-  app.use('/api/devices', devicesRouter)
+  registerRoutes(app)
+
+  // Global error handler — must be registered after all routes
+  app.use(errorHandler)
 
   return app
 }

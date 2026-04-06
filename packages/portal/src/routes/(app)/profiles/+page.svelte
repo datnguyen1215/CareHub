@@ -9,8 +9,9 @@
 		type CreateProfileInput,
 		type Device
 	} from '$lib/api';
-	import { getErrorMessage, isRetryable } from '$lib/error-utils';
-	import ProfileModal from '$lib/ProfileModal.svelte';
+	import { getErrorMessage, isRetryable } from '$lib/utils/error-utils';
+	import ProfileModal from '$lib/components/profiles/ProfileModal.svelte';
+	import { getInitial } from '$lib/utils/format';
 
 	let profiles = $state<CareProfile[]>([]);
 	let devices = $state<Device[]>([]);
@@ -75,9 +76,6 @@
 		closeProfileModal();
 	}
 
-	function getInitial(name: string): string {
-		return name.charAt(0).toUpperCase();
-	}
 </script>
 
 <div class="max-w-2xl mx-auto px-unit-3 py-unit-3">
@@ -94,7 +92,18 @@
 	</div>
 
 	{#if loading}
-		<p class="text-text-secondary text-sm">Loading…</p>
+		<!-- Loading skeleton -->
+		<div class="flex flex-col gap-unit-2" aria-label="Loading profiles">
+			{#each Array(3) as _}
+				<div class="card flex items-center gap-3 animate-pulse">
+					<div class="w-12 h-12 rounded-full bg-gray-200 shrink-0"></div>
+					<div class="flex-1 space-y-2">
+						<div class="h-4 bg-gray-200 rounded w-1/3"></div>
+						<div class="h-3 bg-gray-200 rounded w-1/2"></div>
+					</div>
+				</div>
+			{/each}
+		</div>
 	{:else if loadError}
 		<div class="card">
 			<p class="text-danger text-sm mb-unit-2">{loadError}</p>

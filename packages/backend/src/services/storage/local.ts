@@ -6,7 +6,7 @@
 import { randomUUID } from 'crypto'
 import fs from 'fs/promises'
 import path from 'path'
-import type { StorageService } from './types'
+import type { StorageService } from './types.js'
 
 export class LocalStorageService implements StorageService {
   private storagePath: string

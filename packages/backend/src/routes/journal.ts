@@ -1,68 +1,27 @@
 /** Journal routes — CRUD for journal entries within a care profile. */
 import { Router, Request, Response } from 'express'
 import { eq, and, desc, asc, sql, count } from 'drizzle-orm'
-import { db } from '../db'
-import { journalEntries, careProfiles, profileShares, events, attachments } from '@carehub/shared'
-import { requireAuth } from '../middleware/auth'
-import { logger } from '../services/logger'
+import { db } from '../db/index.js'
+import { journalEntries, events, attachments } from '@carehub/shared'
+import { requireAuth } from '../middleware/auth.js'
+import { logger } from '../services/logger.js'
+import { validate } from '../middleware/validate.js'
+import { createJournalSchema, updateJournalSchema } from '../schemas/journal.js'
+import { canAccessProfile } from '../services/access.js'
 
 export const journalRouter = Router({ mergeParams: true })
 
-/** Check if user can access a profile (owner or shared with them) */
-async function canAccessProfile(userId: string, profileId: string) {
-  const [profile] = await db
-    .select()
-    .from(careProfiles)
-    .where(eq(careProfiles.id, profileId))
-    .limit(1)
-
-  if (!profile) return null
-
-  // Check if user owns the profile
-  if (profile.user_id === userId) {
-    return profile
-  }
-
-  // Check if profile is shared with user
-  const [share] = await db
-    .select()
-    .from(profileShares)
-    .where(and(eq(profileShares.profile_id, profileId), eq(profileShares.user_id, userId)))
-    .limit(1)
-
-  if (share) {
-    return profile
-  }
-
-  return null
-}
-
 // POST /api/profiles/:profileId/journal
-journalRouter.post('/', requireAuth, async (req: Request, res: Response): Promise<void> => {
+journalRouter.post('/', requireAuth, validate(createJournalSchema), async (req: Request, res: Response): Promise<void> => {
   try {
     const profileId = req.params['profileId'] as string
     const { title, content, key_takeaways, entry_date, linked_event_id, starred } = req.body as {
-      title?: string
-      content?: string
-      key_takeaways?: string
-      entry_date?: string
+      title: string
+      content: string
+      key_takeaways?: string | null
+      entry_date: string
       linked_event_id?: string | null
       starred?: boolean
-    }
-
-    if (!title || typeof title !== 'string' || !title.trim()) {
-      res.status(400).json({ error: 'title is required' })
-      return
-    }
-
-    if (!content || typeof content !== 'string' || !content.trim()) {
-      res.status(400).json({ error: 'content is required' })
-      return
-    }
-
-    if (!entry_date || isNaN(Date.parse(entry_date))) {
-      res.status(400).json({ error: 'valid entry_date is required' })
-      return
     }
 
     const profile = await canAccessProfile(req.user!.userId, profileId)
@@ -89,8 +48,8 @@ journalRouter.post('/', requireAuth, async (req: Request, res: Response): Promis
       .insert(journalEntries)
       .values({
         care_profile_id: profileId,
-        title: title.trim(),
-        content: content.trim(),
+        title,
+        content,
         key_takeaways: key_takeaways?.trim() || null,
         entry_date: entry_date,
         linked_event_id: linked_event_id || null,
@@ -259,7 +218,7 @@ journalRouter.get('/:id', requireAuth, async (req: Request, res: Response): Prom
 })
 
 // PATCH /api/profiles/:profileId/journal/:id
-journalRouter.patch('/:id', requireAuth, async (req: Request, res: Response): Promise<void> => {
+journalRouter.patch('/:id', requireAuth, validate(updateJournalSchema), async (req: Request, res: Response): Promise<void> => {
   try {
     const profileId = req.params['profileId'] as string
     const id = req.params['id'] as string
@@ -288,30 +247,10 @@ journalRouter.patch('/:id', requireAuth, async (req: Request, res: Response): Pr
       updated_at: Date
     }> = { updated_at: new Date() }
 
-    if (title !== undefined) {
-      if (typeof title !== 'string' || !title.trim()) {
-        res.status(400).json({ error: 'title cannot be empty' })
-        return
-      }
-      updates.title = title.trim()
-    }
-    if (content !== undefined) {
-      if (typeof content !== 'string' || !content.trim()) {
-        res.status(400).json({ error: 'content cannot be empty' })
-        return
-      }
-      updates.content = content.trim()
-    }
-    if (key_takeaways !== undefined) {
-      updates.key_takeaways = key_takeaways?.trim() || null
-    }
-    if (entry_date !== undefined) {
-      if (isNaN(Date.parse(entry_date))) {
-        res.status(400).json({ error: 'invalid entry_date' })
-        return
-      }
-      updates.entry_date = entry_date
-    }
+    if (title !== undefined) updates.title = title
+    if (content !== undefined) updates.content = content
+    if (key_takeaways !== undefined) updates.key_takeaways = key_takeaways?.trim() || null
+    if (entry_date !== undefined) updates.entry_date = entry_date
     if (linked_event_id !== undefined) {
       if (linked_event_id) {
         // Validate that the event exists and belongs to this profile

@@ -29,7 +29,7 @@ describe('POST /api/auth/request-otp', () => {
   it('sends OTP and returns 200 when no prior OTP exists', async () => {
     const res = await request(app).post('/api/auth/request-otp').send({ email: 'test@example.com' })
     expect(res.status).toBe(200)
-    expect(res.body.message).toBe('OTP sent')
+    expect(res.body.sent).toBe(true)
 
     // Verify OTP was created in database
     const otpRecords = await db.select().from(otps).where(eq(otps.email, 'test@example.com'))
@@ -69,7 +69,7 @@ describe('POST /api/auth/request-otp', () => {
       .post('/api/auth/request-otp')
       .send({ email: 'expired@example.com' })
     expect(res.status).toBe(200)
-    expect(res.body.message).toBe('OTP sent')
+    expect(res.body.sent).toBe(true)
   })
 })
 
@@ -170,8 +170,7 @@ describe('POST /api/auth/verify-otp', () => {
 describe('POST /api/auth/logout', () => {
   it('clears token cookie', async () => {
     const res = await request(app).post('/api/auth/logout')
-    expect(res.status).toBe(200)
-    expect(res.body.message).toBe('Logged out')
+    expect(res.status).toBe(204)
     const cookies = res.headers['set-cookie'] as string[]
     expect(cookies).toBeDefined()
     const tokenCookie = cookies.find((c: string) => c.startsWith('token='))

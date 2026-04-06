@@ -1,13 +1,15 @@
 /** WebSocket service for real-time communication. */
 
 import { getDeviceCredentials } from './storage'
+import { buildWsUrl, parseMessage, createFixedReconnectStrategy, logger } from '@carehub/shared'
 import type {
 	IceCandidate,
 	CallIncomingMessage,
 	CallOfferMessage,
 	IceCandidateMessage,
 	CallEndedMessage,
-	CallErrorMessage
+	CallErrorMessage,
+	ScreenShareStateMessage
 } from '@carehub/shared'
 
 type MessageHandler = (data: WsMessage) => void
@@ -23,6 +25,7 @@ export interface CallMessageHandlers {
 	onCallOffer?: (message: CallOfferMessage) => void
 	onIceCandidate?: (message: IceCandidateMessage) => void
 	onCallEnded?: (message: CallEndedMessage) => void
+	onScreenShare?: (message: ScreenShareStateMessage) => void
 	onCallError?: (message: CallErrorMessage) => void
 }
 
@@ -32,8 +35,9 @@ let ws: WebSocket | null = null;
 let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 let messageHandlers: MessageHandler[] = [];
 
-const RECONNECT_DELAY = 3000; // 3 seconds
 const HEARTBEAT_INTERVAL = 25000; // 25 seconds
+
+const reconnectStrategy = createFixedReconnectStrategy(3000);
 
 let heartbeatTimer: ReturnType<typeof setInterval> | null = null;
 let isConnected = false;
@@ -47,9 +51,7 @@ async function getWsUrl(): Promise<string | null> {
 	const creds = await getDeviceCredentials();
 	if (!creds) return null;
 
-	const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-	const host = window.location.host;
-	return `${protocol}//${host}/ws?token=${creds.deviceToken}`;
+	return buildWsUrl({ token: creds.deviceToken });
 }
 
 /**
@@ -58,7 +60,7 @@ async function getWsUrl(): Promise<string | null> {
 export async function connect(): Promise<void> {
 	const url = await getWsUrl();
 	if (!url) {
-		console.warn('Cannot connect WebSocket: no device credentials');
+		logger.warn('Cannot connect WebSocket: no device credentials');
 		return;
 	}
 
@@ -71,24 +73,22 @@ export async function connect(): Promise<void> {
 		ws = new WebSocket(url);
 
 		ws.onopen = () => {
-			console.log('WebSocket connected');
+			logger.debug('WebSocket connected');
 			isConnected = true;
 			startHeartbeat();
 		};
 
 		ws.onmessage = (event) => {
-			try {
-				const message = JSON.parse(event.data) as WsMessage
+			const message = parseMessage<WsMessage>(event.data);
+			if (message) {
 				// Route call signaling messages to dedicated handlers
 				routeCallMessage(message)
 				messageHandlers.forEach((handler) => handler(message))
-			} catch (err) {
-				console.error('Failed to parse WebSocket message:', err)
 			}
 		}
 
 		ws.onclose = (event) => {
-			console.log('WebSocket closed:', event.code, event.reason);
+			logger.debug('WebSocket closed:', event.code, event.reason);
 			isConnected = false;
 			stopHeartbeat();
 			scheduleReconnect();
@@ -98,7 +98,7 @@ export async function connect(): Promise<void> {
 			console.error('WebSocket error:', err);
 		};
 	} catch (err) {
-		console.error('Failed to create WebSocket:', err);
+		logger.error('Failed to create WebSocket:', err);
 		scheduleReconnect();
 	}
 }
@@ -129,10 +129,11 @@ export function disconnect(): void {
 function scheduleReconnect(): void {
 	if (reconnectTimer) return;
 
+	const delay = reconnectStrategy.getDelay(0);
 	reconnectTimer = setTimeout(() => {
 		reconnectTimer = null;
 		connect();
-	}, RECONNECT_DELAY);
+	}, delay);
 }
 
 /**
@@ -203,6 +204,9 @@ function routeCallMessage(message: WsMessage): void {
 			break
 		case 'call:ended':
 			callHandlers.onCallEnded?.(message as unknown as CallEndedMessage)
+			break
+		case 'call:screen-share':
+			callHandlers.onScreenShare?.(message as unknown as ScreenShareStateMessage)
 			break
 		case 'call:error':
 			callHandlers.onCallError?.(message as unknown as CallErrorMessage)

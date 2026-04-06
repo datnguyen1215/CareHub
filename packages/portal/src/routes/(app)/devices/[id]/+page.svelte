@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount, onDestroy } from 'svelte';
+	import { onMount } from 'svelte';
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
 	import {
@@ -12,18 +12,20 @@
 		type Device,
 		type CareProfile
 	} from '$lib/api';
-	import { getErrorMessage, isRetryable } from '$lib/error-utils';
-	import DeviceStatusDot from '$lib/DeviceStatusDot.svelte';
-	import BatteryIndicator from '$lib/BatteryIndicator.svelte';
+	import { getErrorMessage, isRetryable } from '$lib/utils/error-utils';
+	import DeviceStatusDot from '$lib/components/devices/DeviceStatusDot.svelte';
+	import BatteryIndicator from '$lib/components/devices/BatteryIndicator.svelte';
 	import CallModal from '$lib/components/call/CallModal.svelte';
+	import { getInitial } from '$lib/utils/format';
 	import {
-		subscribe as subscribeCall,
+		callState,
 		initiateCall,
 		endCall,
 		toggleMute,
-		toggleVideo,
-		type CallState
+		toggleVideo
 	} from '$lib/stores/call.svelte';
+	import { toast } from '$lib/stores/toast.svelte';
+	import { seedDeviceStatus, getDeviceStatus } from '$lib/stores/deviceStatus.svelte';
 
 	let device = $state<Device | null>(null);
 	let allProfiles = $state<CareProfile[]>([]);
@@ -45,22 +47,6 @@
 	let addProfileError = $state('');
 	let removeProfileError = $state('');
 
-	// Call state subscription
-	let callState = $state<CallState>({
-		status: 'idle',
-		sessionId: null,
-		targetDeviceId: null,
-		targetDeviceName: null,
-		localStream: null,
-		remoteStream: null,
-		startedAt: null,
-		duration: 0,
-		error: null,
-		isMuted: false,
-		isVideoOff: false
-	});
-	let unsubscribeCall: (() => void) | null = null;
-
 	const deviceId = $derived(page.params.id ?? '');
 
 	async function loadData() {
@@ -78,6 +64,7 @@
 			device = deviceData;
 			allProfiles = profilesData;
 			editedName = deviceData.name;
+			seedDeviceStatus(deviceData);
 		} catch (err: unknown) {
 			const apiErr = err as { status?: number };
 			if (apiErr?.status === 401) {
@@ -97,14 +84,6 @@
 
 	onMount(() => {
 		loadData();
-		// Subscribe to call state changes for cross-module reactivity
-		unsubscribeCall = subscribeCall((state) => {
-			Object.assign(callState, state);
-		});
-	});
-
-	onDestroy(() => {
-		if (unsubscribeCall) unsubscribeCall();
 	});
 
 	function getRelativeTime(dateStr: string | null): string {
@@ -237,28 +216,29 @@
 		}
 	}
 
-	function getInitial(name: string): string {
-		return name.charAt(0).toUpperCase();
-	}
-
-	function handleSendPhoto() {
-		// Phase 3: Opens photo picker - placeholder for now
-		console.log('Send photo to device:', device?.id);
-	}
 
 	function handleCall() {
-		if (!device || device.status !== 'online') return;
+		if (!device || liveStatus !== 'online') {
+			toast.warning('Device is offline. Cannot place call.');
+			return;
+		}
 		initiateCall(device.id, device.name);
 	}
 
 	function handleRetryCall() {
-		if (!device || device.status !== 'online') return;
+		if (!device || liveStatus !== 'online') {
+			toast.warning('Device is offline. Cannot place call.');
+			return;
+		}
 		initiateCall(device.id, device.name);
 	}
 
 	// Derived state for call button
 	const isCallInProgress = $derived(callState.status !== 'idle' && callState.status !== 'ended');
 	const showCallModal = $derived(callState.status !== 'idle');
+
+	/** Live device status from store — updates reactively on WebSocket events */
+	const liveStatus = $derived(device ? getDeviceStatus(device.id, device.status) : 'offline');
 </script>
 
 <div class="max-w-2xl mx-auto px-unit-3 py-unit-3">
@@ -388,8 +368,8 @@
 				<div class="flex items-center justify-between">
 					<span class="text-text-secondary">Status</span>
 					<div class="flex items-center gap-2">
-						<DeviceStatusDot status={device.status} />
-						<span class="capitalize text-text-primary">{device.status}</span>
+						<DeviceStatusDot status={liveStatus} />
+						<span class="capitalize text-text-primary">{liveStatus}</span>
 					</div>
 				</div>
 				<div class="flex items-center justify-between">
@@ -411,21 +391,10 @@
 			<div class="flex gap-2">
 				<button
 					type="button"
-					onclick={handleSendPhoto}
-					disabled={device.status !== 'online'}
-					class="flex-1 px-3 py-2 rounded-card border border-gray-300 font-medium
-						{device.status === 'online'
-						? 'text-text-primary hover:bg-gray-50'
-						: 'text-gray-400 cursor-not-allowed'} transition-colors"
-				>
-					📷 Send Photo
-				</button>
-				<button
-					type="button"
 					onclick={handleCall}
-					disabled={device.status !== 'online' || isCallInProgress}
+					disabled={liveStatus !== 'online' || isCallInProgress}
 					class="flex-1 px-3 py-2 rounded-card border border-gray-300 font-medium
-						{device.status === 'online' && !isCallInProgress
+						{liveStatus === 'online' && !isCallInProgress
 						? 'text-text-primary hover:bg-gray-50'
 						: 'text-gray-400 cursor-not-allowed'} transition-colors"
 				>
@@ -532,6 +501,7 @@
 		class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-unit-2"
 		role="dialog"
 		aria-modal="true"
+		tabindex="-1"
 		aria-labelledby="unpair-modal-title"
 		onmousedown={(e) => {
 			if (e.target === e.currentTarget) closeUnpairModal();
@@ -581,6 +551,7 @@
 		class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-unit-2"
 		role="dialog"
 		aria-modal="true"
+		tabindex="-1"
 		aria-labelledby="add-profile-modal-title"
 		onmousedown={(e) => {
 			if (e.target === e.currentTarget) showAddProfileModal = false;

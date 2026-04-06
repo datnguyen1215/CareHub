@@ -2,12 +2,12 @@
 import { WebSocketServer } from 'ws'
 import { Server } from 'http'
 import { eq } from 'drizzle-orm'
-import { db } from '../db'
+import { db } from '../db/index.js'
 import { devices } from '@carehub/shared'
-import { logger } from '../services/logger'
-import { handleDeviceConnection } from './handlers/device'
-import { handleUserConnection, verifyUserToken } from './handlers/user'
-import { consumeWsTicket } from '../routes/auth'
+import { logger } from '../services/logger.js'
+import { handleDeviceConnection } from './handlers/device.js'
+import { handleUserConnection, verifyUserToken } from './handlers/user.js'
+import { consumeWsTicket } from '../routes/auth.js'
 import {
   clearAllClients,
   broadcastToDevice,
@@ -17,10 +17,10 @@ import {
   isUserConnected,
   getConnectedDeviceCount,
   getConnectedUserCount,
-} from './clients'
+} from './clients.js'
 
 // Re-export types and utilities for external use
-export type { WsMessage, SignalingMessage } from './types'
+export type { WsMessage, SignalingMessage } from './types.js'
 export {
   broadcastToDevice,
   broadcastToUser,
@@ -36,8 +36,9 @@ export {
  * - Devices connect with `token` query param (device token)
  * - Users connect with `jwt` query param (JWT token)
  * @param {Server} server - HTTP server instance
+ * @returns {WebSocketServer} The WebSocket server instance
  */
-export function initWebSocketServer(server: Server): void {
+export function initWebSocketServer(server: Server): WebSocketServer {
   const wss = new WebSocketServer({ server, path: '/ws' })
 
   wss.on('connection', async (ws, req) => {
@@ -62,20 +63,8 @@ export function initWebSocketServer(server: Server): void {
     }
   })
 
-  // Handle server shutdown
-  process.on('SIGTERM', () => {
-    logger.info('WebSocket server shutting down')
-    clearAllClients()
-    wss.close()
-  })
-
-  process.on('SIGINT', () => {
-    logger.info('WebSocket server shutting down')
-    clearAllClients()
-    wss.close()
-  })
-
   logger.info('WebSocket server initialized on /ws')
+  return wss
 }
 
 /**
@@ -95,7 +84,7 @@ async function handleDeviceAuth(ws: import('ws').WebSocket, deviceToken: string)
     return
   }
 
-  handleDeviceConnection(ws, device.id)
+  await handleDeviceConnection(ws, device.id)
 }
 
 /**

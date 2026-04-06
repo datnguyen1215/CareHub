@@ -12,3 +12,6 @@ export const ICE_GATHERING_TIMEOUT_MS = 10_000
 
 /** Time to wait for peer connection establishment (15 seconds) */
 export const CALL_SETUP_TIMEOUT_MS = 15_000
+
+/** Time to wait for ICE reconnection before failing the call (10 seconds) */
+export const RECONNECT_TIMEOUT_MS = 10_000

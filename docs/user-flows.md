@@ -152,8 +152,9 @@ From the profile detail page (`/profiles/:id`):
 2. Device cards show status (online/offline), name, and type
 3. Tap the "Call" button on an online device card
 4. CallModal opens showing device name and "Calling…" status with animated dots
-5. After connection, mute and video toggle buttons become available
-6. Either party can end the call via the red end-call button
+5. After connection, mute, video toggle, and screen share buttons become available
+6. Tap the screen share button (or press S) to share your screen with the tablet; tap again to stop
+7. Either party can end the call via the red end-call button
 
 **From the profile detail page (`/profiles/:id`):**
 
@@ -164,7 +165,28 @@ From the profile detail page (`/profiles/:id`):
 5. Tablet app displays incoming call screen with caretaker's name and photo (`designs/12-tablet-incoming-call.svg`)
 6. Grandparent taps the large Accept button
 7. Video call connects; both sides see and hear each other
-8. Either party can end the call
+8. During the call, the caretaker can share their screen; the kiosk automatically switches to screen share display mode (`object-fit: contain`, light gray background) and shows a "Screen shared by [name]" indicator
+9. When screen sharing stops, the kiosk returns to normal video layout
+10. Either party can end the call
+
+**If the device is offline:**
+
+1. Tapping Call on an offline device shows a warning toast: "Device is offline. Cannot place call."
+2. No call is initiated
+
+**If the tablet is busy (already in a call):**
+
+1. Tablet receives `call:incoming` but is not in idle state
+2. Tablet immediately sends `call:declined` back so the caller gets explicit feedback
+3. Portal call state transitions to failed with a declined error
+
+**If the call is not answered (ring timeout):**
+
+1. After 30 seconds of ringing with no answer, the server ends the session
+2. Both the portal and the tablet receive a `call:ended` message with reason `missed`
+3. Portal shows a "No answer" indication and closes the call UI
+4. Tablet returns to idle state, clearing the incoming call screen
+5. The tablet is immediately available to receive new calls
 
 ---
 
@@ -243,9 +265,12 @@ From the profile detail page (`/profiles/:id`):
 15. Tap "Unpair Device" button
 16. Confirmation dialog: "Are you sure?"
 17. Tap "Unpair" to confirm
-18. Server sends `device_revoked` event to kiosk
-19. Device removed from portal list
-20. Kiosk clears data and returns to pairing screen
+18. Server atomically ends any active call on the device (reason: `cancelled`) and deletes the device in a single transaction
+19. If a call was active, both the caller and the device receive `call:ended` (reason: `cancelled`) via WebSocket
+20. Server sends `device_revoked` event to kiosk
+21. Device removed from portal list
+22. Kiosk clears data and returns to pairing screen
+23. Historical call session records for the device are preserved with `callee_device_id` set to NULL
 
 ---
 
@@ -283,7 +308,7 @@ From the profile detail page (`/profiles/:id`):
 **Actor:** Caretaker (Admin)
 
 1. From the Profiles tab, tap a profile card
-2. Profile detail opens with tabs: Overview, Meds, Calendar, Journal (`designs/03-profile-detail.svg`)
+2. Profile detail opens with tabs: Overview, Meds, Calendar, Journal, Docs (`designs/03-profile-detail.svg`)
 3. Tap the Journal tab (`designs/06-journal-entry.svg`)
 4. Tap "+ Add" button
 5. Modal opens (`designs/06c-journal-modal.svg`)
@@ -338,12 +363,17 @@ From the profile detail page (`/profiles/:id`):
 11. Device accepts call → Portal state machine transitions to signaling.creatingOffer and creates SDP offer
 12. After offer sent, state transitions to signaling.exchangingIce then connecting
 13. CallModal shows "Connecting..." during connecting state while ICE negotiation occurs
-14. ICE connection established → State machine transitions to connected
-15. CallModal displays remote video stream from device (full screen) and local video preview (picture-in-picture corner)
-16. Controls available: mute/unmute audio (M key), toggle video (V key), end call (Escape key)
-17. Call duration counter displays in MM:SS format in status bar
-18. Tap "End Call" button or press Escape → State machine transitions to ending, WebSocket sends `call:ended`, connection closes, modal closes
-19. If call fails or is declined, state transitions to failed, error message displays with "Try Again" (if retryable) or "Close" button
-20. If device is offline, Call button is disabled (grayed out)
-21. If a call is already in progress, Call button is disabled
-22. Alternative from profile detail: tap "📞 Call" on device card in Profile Overview tab to initiate call
+14. If ICE connection is not established within 15 seconds, state machine transitions to failed with error "Could not connect. Please check your network and try again." and a retry option
+15. ICE connection established → State machine transitions to connected
+16. CallModal displays remote video stream from device (full screen) and local video preview (picture-in-picture corner)
+17. Controls available: mute/unmute audio (M key), toggle video (V key), screen share (S key), end call (Escape key)
+18. Screen share button (or S key) swaps camera for screen capture; local PIP hides during share; green indicator shows when active; screen share stops automatically if call ends
+19. Call duration counter displays in MM:SS format in status bar
+20. If network blips occur (WiFi handoff, momentary packet loss), ICE enters disconnected state but call does not immediately fail; a 10-second reconnect timer starts and the call recovers if ICE reconnects
+21. If the network interruption exceeds 10 seconds, the call transitions to failed with a "disconnected" error
+22. Tap "End Call" button or press Escape → State machine transitions to ending, WebSocket sends `call:ended`, connection closes, modal closes
+23. If call fails or is declined, state transitions to failed, error message displays with "Try Again" (if retryable) or "Close" button
+24. If device is offline, Call button is disabled (grayed out); if the user taps it anyway (e.g., status changed just before tap), a warning toast displays: "Device is offline. Cannot place call."
+25. If a call is already in progress, Call button is disabled; if the user triggers `initiateCall` while not idle (e.g., via keyboard shortcut), a warning toast displays: "A call is already in progress"
+26. Alternative from profile detail: tap "📞 Call" on device card in Profile Overview tab to initiate call
+27. During the call, the caretaker can share their screen; the kiosk switches to screen share display mode (full document visible, light gray background) with a "Screen shared by [name]" indicator; stopping screen share returns to normal video layout

@@ -4,8 +4,8 @@
  */
 
 import Tesseract from 'tesseract.js'
-import type { OCRService } from './types'
-import { logger } from '../logger'
+import type { OCRService } from './types.js'
+import { logger } from '../logger.js'
 
 export class TesseractOCR implements OCRService {
   async extractText(imagePath: string): Promise<string> {

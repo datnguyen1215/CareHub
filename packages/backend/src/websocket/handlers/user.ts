@@ -1,14 +1,12 @@
 /** User WebSocket handlers — JWT authentication and message routing. */
 import { WebSocket } from 'ws'
 import jwt from 'jsonwebtoken'
-import { logger } from '../../services/logger'
-import { addClient, removeClient, broadcastToDevice, getUserClients } from '../clients'
-import type { UserMessage } from '../types'
-import { handleCallMessage } from './call'
-import { getActiveCallForUser, markCallFailed } from '../../services/call'
-
-const JWT_SECRET = process.env.JWT_SECRET
-if (!JWT_SECRET) throw new Error('JWT_SECRET environment variable is required')
+import { logger } from '../../services/logger.js'
+import { env } from '../../config/env.js'
+import { addClient, removeClient, broadcastToDevice, getUserClients } from '../clients.js'
+import type { UserMessage } from '../types.js'
+import { handleCallMessage } from './call.js'
+import { getActiveCallForUser, markCallFailed } from '../../services/call.js'
 
 interface JwtPayload {
   userId: string
@@ -21,7 +19,7 @@ interface JwtPayload {
  */
 export const verifyUserToken = (token: string): JwtPayload | null => {
   try {
-    return jwt.verify(token, JWT_SECRET) as JwtPayload
+    return jwt.verify(token, env.JWT_SECRET) as JwtPayload
   } catch {
     return null
   }
@@ -42,11 +40,17 @@ export const handleUserConnection = (ws: WebSocket, userId: string): void => {
       const message = JSON.parse(data.toString()) as UserMessage
 
       switch (message.type) {
+        // Heartbeat keep-alive
+        case 'ping':
+          ws.send(JSON.stringify({ type: 'pong' }))
+          break
+
         // Call signaling messages from user
         case 'call:initiate':
         case 'call:ended':
         case 'call:offer':
         case 'call:ice-candidate':
+        case 'call:screen-share':
           await handleCallMessage(ws, userId, 'user', message)
           break
 
@@ -80,11 +84,13 @@ export const handleUserConnection = (ws: WebSocket, userId: string): void => {
     const activeCall = await getActiveCallForUser(userId)
     if (activeCall) {
       await markCallFailed(activeCall.id)
-      broadcastToDevice(activeCall.calleeDeviceId, {
-        type: 'call:ended',
-        callId: activeCall.id,
-        reason: 'failed',
-      })
+      if (activeCall.calleeDeviceId !== null) {
+        broadcastToDevice(activeCall.calleeDeviceId, {
+          type: 'call:ended',
+          callId: activeCall.id,
+          reason: 'failed',
+        })
+      }
     }
   })
 

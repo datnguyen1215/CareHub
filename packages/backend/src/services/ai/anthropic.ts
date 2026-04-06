@@ -3,8 +3,9 @@
  */
 
 import Anthropic from '@anthropic-ai/sdk'
-import type { AIService, DescriptionResult, DocumentCategory } from './types'
-import { logger } from '../logger'
+import type { AIService, DescriptionResult, DocumentCategory } from './types.js'
+import { logger } from '../logger.js'
+import { env } from '../../config/env.js'
 
 const VALID_CATEGORIES: DocumentCategory[] = [
   'lab_result',
@@ -37,7 +38,7 @@ export class AnthropicService implements AIService {
       const truncatedText = ocrText.slice(0, 4000)
 
       const response = await this.client.messages.create({
-        model: 'claude-3-haiku-20240307',
+        model: env.ANTHROPIC_MODEL,
         max_tokens: 150,
         system: SYSTEM_PROMPT,
         messages: [{ role: 'user', content: `OCR Text:\n${truncatedText}` }],

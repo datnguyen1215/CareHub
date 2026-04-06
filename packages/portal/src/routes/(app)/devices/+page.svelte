@@ -1,39 +1,24 @@
 <script lang="ts">
-	import { onMount, onDestroy } from 'svelte';
+	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { listDevices, type Device } from '$lib/api';
-	import { getErrorMessage, isRetryable } from '$lib/error-utils';
-	import DeviceCard from '$lib/DeviceCard.svelte';
+	import { getErrorMessage, isRetryable } from '$lib/utils/error-utils';
+	import DeviceCard from '$lib/components/devices/DeviceCard.svelte';
 	import {
-		subscribe as subscribeCall,
+		callState,
 		initiateCall,
 		endCall,
 		toggleMute,
-		toggleVideo,
-		type CallState
+		toggleVideo
 	} from '$lib/stores/call.svelte';
 	import CallModal from '$lib/components/call/CallModal.svelte';
+	import { toast } from '$lib/stores/toast.svelte';
+	import { seedDeviceStatuses, getDeviceStatus } from '$lib/stores/deviceStatus.svelte';
 
 	let devices = $state<Device[]>([]);
 	let loadError = $state('');
 	let loading = $state(true);
 	let canRetry = $state(false);
-
-	// Call state subscription
-	let callState = $state<CallState>({
-		status: 'idle',
-		sessionId: null,
-		targetDeviceId: null,
-		targetDeviceName: null,
-		localStream: null,
-		remoteStream: null,
-		startedAt: null,
-		duration: 0,
-		error: null,
-		isMuted: false,
-		isVideoOff: false
-	});
-	let unsubscribeCall: (() => void) | null = null;
 
 	let showCallModal = $derived(callState.status !== 'idle');
 
@@ -44,6 +29,7 @@
 
 		try {
 			devices = await listDevices();
+			seedDeviceStatuses(devices);
 		} catch (err: unknown) {
 			const apiErr = err as { status?: number };
 			if (apiErr?.status === 401) {
@@ -59,22 +45,13 @@
 
 	onMount(() => {
 		loadData();
-		// Subscribe to call state changes for cross-module reactivity
-		unsubscribeCall = subscribeCall((state) => {
-			callState = state;
-		});
 	});
-
-	onDestroy(() => {
-		if (unsubscribeCall) unsubscribeCall();
-	});
-
-	function handleSendPhoto(device: Device) {
-		// Phase 3: Opens photo picker - placeholder for now
-		console.log('Send photo to device:', device.id);
-	}
 
 	function handleCall(device: Device) {
+		if (getDeviceStatus(device.id, device.status) !== 'online') {
+			toast.warning('Device is offline. Cannot place call.');
+			return;
+		}
 		initiateCall(device.id, device.name);
 	}
 </script>
@@ -93,7 +70,20 @@
 	</div>
 
 	{#if loading}
-		<p class="text-text-secondary text-sm">Loading…</p>
+		<!-- Loading skeleton -->
+		<div class="space-y-unit-2" aria-label="Loading devices">
+			{#each Array(2) as _}
+				<div class="card animate-pulse space-y-2">
+					<div class="flex items-center gap-3">
+						<div class="w-10 h-10 rounded-card bg-gray-200"></div>
+						<div class="flex-1 space-y-2">
+							<div class="h-4 bg-gray-200 rounded w-1/3"></div>
+							<div class="h-3 bg-gray-200 rounded w-1/2"></div>
+						</div>
+					</div>
+				</div>
+			{/each}
+		</div>
 	{:else if loadError}
 		<div class="card">
 			<p class="text-danger text-sm mb-unit-2">{loadError}</p>
@@ -139,7 +129,7 @@
 		<!-- Device List -->
 		<div class="space-y-unit-2">
 			{#each devices as device (device.id)}
-				<DeviceCard {device} onSendPhoto={handleSendPhoto} onCall={handleCall} />
+				<DeviceCard {device} onCall={handleCall} />
 			{/each}
 
 			<!-- Add new device card (dashed border style) -->

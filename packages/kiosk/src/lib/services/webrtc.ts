@@ -1,35 +1,22 @@
 /** WebRTC manager for video call peer connections. Kiosk is always the callee. */
 
 import type { IceCandidate } from '@carehub/shared';
-
-/** Public STUN servers for ICE candidate gathering (duplicated from shared for ESM compatibility) */
-const ICE_SERVERS: RTCIceServer[] = [
-	{ urls: 'stun:stun.l.google.com:19302' },
-	{ urls: 'stun:stun1.l.google.com:19302' }
-];
-
-type IceCandidateHandler = (candidate: IceCandidate) => void;
-type TrackHandler = (stream: MediaStream) => void;
-type ConnectionStateHandler = (state: RTCPeerConnectionState) => void;
+import {
+	ICE_SERVERS,
+	DEFAULT_MEDIA_CONSTRAINTS,
+	acquireLocalStream,
+	cleanupStream,
+	cleanupPeerConnection,
+	type IceCandidateHandler,
+	type TrackHandler,
+	type ConnectionStateHandler
+} from '@carehub/shared';
 
 let peerConnection: RTCPeerConnection | null = null;
 let localStream: MediaStream | null = null;
 let iceCandidateHandler: IceCandidateHandler | null = null;
 let trackHandler: TrackHandler | null = null;
 let connectionStateHandler: ConnectionStateHandler | null = null;
-
-/** Media constraints for local stream */
-const MEDIA_CONSTRAINTS: MediaStreamConstraints = {
-	video: {
-		width: { ideal: 1280 },
-		height: { ideal: 720 },
-		facingMode: 'user'
-	},
-	audio: {
-		echoCancellation: true,
-		noiseSuppression: true
-	}
-};
 
 /**
  * Create and configure RTCPeerConnection.
@@ -68,10 +55,10 @@ export function createPeerConnection(): RTCPeerConnection {
 		}
 	};
 
-	// Handle connection state changes
-	peerConnection.onconnectionstatechange = () => {
+	// Handle ICE connection state changes
+	peerConnection.oniceconnectionstatechange = () => {
 		if (peerConnection && connectionStateHandler) {
-			connectionStateHandler(peerConnection.connectionState);
+			connectionStateHandler(peerConnection.iceConnectionState);
 		}
 	};
 
@@ -85,18 +72,18 @@ export function closePeerConnection(): void {
 	if (peerConnection) {
 		peerConnection.onicecandidate = null;
 		peerConnection.ontrack = null;
-		peerConnection.onconnectionstatechange = null;
-		peerConnection.close();
+		peerConnection.oniceconnectionstatechange = null;
+		cleanupPeerConnection(peerConnection);
 		peerConnection = null;
 	}
 }
 
 /**
  * Get current peer connection state.
- * @returns {RTCPeerConnectionState | null} Current state or null if no connection
+ * @returns {RTCIceConnectionState | null} Current state or null if no connection
  */
-export function getPeerConnectionState(): RTCPeerConnectionState | null {
-	return peerConnection?.connectionState ?? null;
+export function getPeerConnectionState(): RTCIceConnectionState | null {
+	return peerConnection?.iceConnectionState ?? null;
 }
 
 /**
@@ -110,7 +97,7 @@ export async function getLocalStream(): Promise<MediaStream> {
 	}
 
 	try {
-		localStream = await navigator.mediaDevices.getUserMedia(MEDIA_CONSTRAINTS);
+		localStream = await acquireLocalStream(DEFAULT_MEDIA_CONSTRAINTS);
 		return localStream;
 	} catch (err) {
 		const error = err as Error;
@@ -130,10 +117,8 @@ export async function getLocalStream(): Promise<MediaStream> {
  * Stop and release local media stream.
  */
 export function stopLocalStream(): void {
-	if (localStream) {
-		localStream.getTracks().forEach((track) => track.stop());
-		localStream = null;
-	}
+	cleanupStream(localStream);
+	localStream = null;
 }
 
 /**

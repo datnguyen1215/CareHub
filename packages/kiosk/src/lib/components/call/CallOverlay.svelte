@@ -15,7 +15,8 @@
 		connectedAt: null,
 		duration: 0,
 		error: null,
-		endReason: null
+		endReason: null,
+		isRemoteScreenSharing: false
 	});
 	let unsubscribe: (() => void) | null = null;
 	let endedTimeout: ReturnType<typeof setTimeout> | null = null;
@@ -53,6 +54,7 @@
 		localStream={callState.localStream}
 		remoteStream={callState.remoteStream}
 		duration={callState.duration}
+		isRemoteScreenSharing={callState.isRemoteScreenSharing}
 	/>
 {:else if callState.status === 'ended' && callState.error}
 	<PermissionError error={callState.error} />

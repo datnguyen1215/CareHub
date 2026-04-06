@@ -2,24 +2,20 @@
 import { Router, Request, Response, NextFunction } from 'express'
 import multer, { MulterError } from 'multer'
 import { eq, and, desc, or, sql } from 'drizzle-orm'
-import { db } from '../db'
-import { attachments, careProfiles, profileShares, events, journalEntries } from '@carehub/shared'
-import { requireAuth } from '../middleware/auth'
-import { getStorageService } from '../services/storage'
-import { logger } from '../services/logger'
-import { queueAttachmentProcessing } from '../services/attachment-processor'
+import { db } from '../db/index.js'
+import { attachments, events, journalEntries } from '@carehub/shared'
+import { requireAuth } from '../middleware/auth.js'
+import { getStorageService } from '../services/storage/index.js'
+import { logger } from '../services/logger.js'
+import { queueAttachmentProcessing } from '../services/attachment-processor.js'
+import { validate } from '../middleware/validate.js'
+import { createAttachmentSchema, updateAttachmentSchema, VALID_CATEGORIES } from '../schemas/attachments.js'
+import { validateQuery } from '../middleware/validate.js'
+import { paginationSchema } from '../schemas/query.js'
+import { canAccessProfile } from '../services/access.js'
 
 export const attachmentsRouter = Router({ mergeParams: true })
 
-// Valid attachment categories
-const VALID_CATEGORIES = [
-  'lab_result',
-  'prescription',
-  'insurance',
-  'billing',
-  'imaging',
-  'other',
-] as const
 type AttachmentCategory = (typeof VALID_CATEGORIES)[number]
 
 // Configure multer for memory storage
@@ -46,35 +42,6 @@ const upload = multer({
     }
   },
 })
-
-/** Check if user can access a profile (owner or shared with them) */
-async function canAccessProfile(userId: string, profileId: string) {
-  const [profile] = await db
-    .select()
-    .from(careProfiles)
-    .where(eq(careProfiles.id, profileId))
-    .limit(1)
-
-  if (!profile) return null
-
-  // Check if user owns the profile
-  if (profile.user_id === userId) {
-    return profile
-  }
-
-  // Check if profile is shared with user
-  const [share] = await db
-    .select()
-    .from(profileShares)
-    .where(and(eq(profileShares.profile_id, profileId), eq(profileShares.user_id, userId)))
-    .limit(1)
-
-  if (share) {
-    return profile
-  }
-
-  return null
-}
 
 // POST /api/profiles/:profileId/attachments
 // Upload file and create attachment record
@@ -109,28 +76,17 @@ attachmentsRouter.post(
         return
       }
 
+      // Validate body fields
+      const bodyResult = createAttachmentSchema.safeParse(req.body)
+      if (!bodyResult.success) {
+        res.status(400).json({ error: bodyResult.error.issues[0].message })
+        return
+      }
+      req.body = bodyResult.data
+
       try {
         const profileId = req.params['profileId'] as string
-        const { event_id, journal_id, category, description } = req.body as {
-          event_id?: string
-          journal_id?: string
-          category?: string
-          description?: string
-        }
-
-        // Validate category
-        if (!category || !VALID_CATEGORIES.includes(category as AttachmentCategory)) {
-          res.status(400).json({
-            error: `category is required and must be one of: ${VALID_CATEGORIES.join(', ')}`,
-          })
-          return
-        }
-
-        // Validate exactly one parent
-        if ((!event_id && !journal_id) || (event_id && journal_id)) {
-          res.status(400).json({ error: 'Exactly one of event_id or journal_id must be provided' })
-          return
-        }
+        const { event_id, journal_id, category, description } = bodyResult.data
 
         // Check profile access
         const profile = await canAccessProfile(req.user!.userId, profileId)
@@ -186,7 +142,7 @@ attachmentsRouter.post(
             journal_id: journal_id || null,
             file_url: fileUrl,
             description: description?.trim() || null,
-            category: category as AttachmentCategory,
+            category,
           })
           .returning()
 
@@ -204,14 +160,14 @@ attachmentsRouter.post(
 
 // GET /api/profiles/:profileId/attachments
 // List attachments with optional filters and search
-attachmentsRouter.get('/', requireAuth, async (req: Request, res: Response): Promise<void> => {
+attachmentsRouter.get('/', requireAuth, validateQuery(paginationSchema), async (req: Request, res: Response): Promise<void> => {
   try {
     const profileId = req.params['profileId'] as string
     const eventId = req.query['event_id'] as string | undefined
     const journalId = req.query['journal_id'] as string | undefined
     const category = req.query['category'] as string | undefined
-    const limit = req.query['limit'] ? parseInt(req.query['limit'] as string, 10) : undefined
-    const offset = req.query['offset'] ? parseInt(req.query['offset'] as string, 10) : undefined
+    const limit = req.query['limit'] as number | undefined
+    const offset = req.query['offset'] as number | undefined
     const search = req.query['search'] as string | undefined
 
     const profile = await canAccessProfile(req.user!.userId, profileId)
@@ -252,11 +208,11 @@ attachmentsRouter.get('/', requireAuth, async (req: Request, res: Response): Pro
       .where(and(...conditions))
       .orderBy(desc(attachments.created_at))
 
-    if (limit && limit > 0) {
+    if (limit) {
       query = query.limit(limit) as typeof query
     }
 
-    if (offset && offset > 0) {
+    if (offset) {
       query = query.offset(offset) as typeof query
     }
 
@@ -302,7 +258,7 @@ attachmentsRouter.get('/:id', requireAuth, async (req: Request, res: Response): 
 
 // PATCH /api/profiles/:profileId/attachments/:id
 // Update attachment metadata (description, category)
-attachmentsRouter.patch('/:id', requireAuth, async (req: Request, res: Response): Promise<void> => {
+attachmentsRouter.patch('/:id', requireAuth, validate(updateAttachmentSchema), async (req: Request, res: Response): Promise<void> => {
   try {
     const profileId = req.params['profileId'] as string
     const id = req.params['id'] as string
@@ -328,12 +284,6 @@ attachmentsRouter.patch('/:id', requireAuth, async (req: Request, res: Response)
     }
 
     if (category !== undefined) {
-      if (!VALID_CATEGORIES.includes(category as AttachmentCategory)) {
-        res.status(400).json({
-          error: `category must be one of: ${VALID_CATEGORIES.join(', ')}`,
-        })
-        return
-      }
       updates.category = category as AttachmentCategory
     }
 

@@ -11,8 +11,9 @@
 		localStream: MediaStream | null;
 		remoteStream: MediaStream | null;
 		duration: number;
+		isRemoteScreenSharing: boolean;
 	}
-	let { status, caller, localStream, remoteStream, duration }: Props = $props();
+	let { status, caller, localStream, remoteStream, duration, isRemoteScreenSharing }: Props = $props();
 
 	let remoteVideoElement: HTMLVideoElement | null = $state(null);
 	let localVideoElement: HTMLVideoElement | null = $state(null);
@@ -62,9 +63,14 @@
 
 <div class="call-screen">
 	<!-- Remote video (full screen) -->
-	<div class="remote-video-container">
+	<div class="remote-video-container {isRemoteScreenSharing ? 'screen-share-bg' : ''}">
 		{#if remoteStream}
-			<video bind:this={remoteVideoElement} autoplay playsinline class="remote-video"></video>
+			<video
+				bind:this={remoteVideoElement}
+				autoplay
+				playsinline
+				class="remote-video {isRemoteScreenSharing ? 'screen-share-mode' : ''}"
+			></video>
 		{:else}
 			<!-- Show avatar when no video -->
 			<div class="no-video-placeholder">
@@ -99,6 +105,14 @@
 				</p>
 			{:else if status === 'connected'}
 				<p class="call-status">{formatDuration(duration)}</p>
+			{/if}
+			{#if isRemoteScreenSharing && status === 'connected'}
+				<p class="screen-share-indicator">
+					<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="screen-share-icon">
+						<path fill-rule="evenodd" d="M2.25 6a3 3 0 0 1 3-3h13.5a3 3 0 0 1 3 3v7.5a3 3 0 0 1-3 3H15a.75.75 0 0 0-.75.75v1.042a3 3 0 0 1-1.5 0V17.25A.75.75 0 0 0 12 16.5h-.75v1.042a3 3 0 0 1-1.5 0V16.5H9a.75.75 0 0 0-.75.75v1.042a3 3 0 0 1-1.5 0V17.25A.75.75 0 0 0 6 16.5H5.25a3 3 0 0 1-3-3V6Zm3-.75A.75.75 0 0 0 4.5 6v7.5c0 .414.336.75.75.75h13.5a.75.75 0 0 0 .75-.75V6a.75.75 0 0 0-.75-.75H5.25Z" clip-rule="evenodd" />
+					</svg>
+					Screen shared by {getDisplayName()}
+				</p>
 			{/if}
 		</div>
 
@@ -145,6 +159,14 @@
 		width: 100%;
 		height: 100%;
 		object-fit: cover;
+	}
+
+	.remote-video.screen-share-mode {
+		object-fit: contain;
+	}
+
+	.remote-video-container.screen-share-bg {
+		background: #f5f5f5;
 	}
 
 	.no-video-placeholder {
@@ -238,6 +260,22 @@
 		align-items: center;
 		justify-content: center;
 		gap: 0.25rem;
+	}
+
+	.screen-share-indicator {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 0.5rem;
+		font-size: 1.1rem;
+		color: rgba(255, 255, 255, 0.9);
+		margin-top: 0.5rem;
+		text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+	}
+
+	.screen-share-icon {
+		width: 18px;
+		height: 18px;
 	}
 
 	.connecting-dot {

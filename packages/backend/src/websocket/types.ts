@@ -9,8 +9,9 @@ import type {
   CallOfferMessage,
   CallAnswerMessage,
   IceCandidateMessage,
+  ScreenShareStateMessage,
 } from '@carehub/shared'
-import type { ClientType } from './clients'
+import type { ClientType } from './clients.js'
 
 /** Base WebSocket message structure */
 export interface WsMessage {
@@ -44,12 +45,26 @@ export type DeviceMessage =
   | CallAnswerMessage
   | IceCandidateMessage
 
+/** Device status changed — broadcast to portal users */
+export interface DeviceStatusChangedMessage {
+  type: 'device_status_changed'
+  deviceId: string
+  status: 'online' | 'offline'
+}
+
+/** Ping message from user (keep-alive heartbeat) */
+export interface PingMessage {
+  type: 'ping'
+}
+
 /** User-originated messages */
 export type UserMessage =
+  | PingMessage
   | CallInitiateMessage
   | CallEndedMessage
   | CallOfferMessage
   | IceCandidateMessage
+  | ScreenShareStateMessage
 
 /** Authenticated WebSocket message wrapper — includes sender info */
 export interface AuthenticatedWsMessage<T extends SignalingMessage = SignalingMessage> {
@@ -83,4 +98,5 @@ export type {
   CallOfferMessage,
   CallAnswerMessage,
   IceCandidateMessage,
+  ScreenShareStateMessage,
 }

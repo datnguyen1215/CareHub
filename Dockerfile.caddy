@@ -1,0 +1,42 @@
+# Build portal
+FROM node:20-alpine AS portal-build
+
+WORKDIR /app
+
+COPY package.json package-lock.json ./
+COPY packages/shared/package.json ./packages/shared/
+COPY packages/portal/package.json ./packages/portal/
+
+RUN npm ci --workspace=packages/portal --workspace=packages/shared --include-workspace-root
+
+COPY packages/shared/ ./packages/shared/
+COPY packages/portal/ ./packages/portal/
+
+RUN npm run build --workspace=packages/shared 2>/dev/null || true
+RUN npm run build --workspace=packages/portal
+
+# Build kiosk
+FROM node:20-alpine AS kiosk-build
+
+WORKDIR /app
+
+COPY package.json package-lock.json ./
+COPY packages/shared/package.json ./packages/shared/
+COPY packages/kiosk/package.json ./packages/kiosk/
+
+RUN npm ci --workspace=packages/kiosk --workspace=packages/shared --include-workspace-root
+
+COPY packages/shared/ ./packages/shared/
+COPY packages/kiosk/ ./packages/kiosk/
+
+RUN npm run build --workspace=packages/shared 2>/dev/null || true
+RUN npm run build --workspace=packages/kiosk
+
+# Caddy
+FROM caddy:2-alpine
+
+COPY --from=portal-build /app/packages/portal/build /srv/portal
+COPY --from=kiosk-build /app/packages/kiosk/build /srv/kiosk
+COPY Caddyfile /etc/caddy/Caddyfile
+
+EXPOSE 9380

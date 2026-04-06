@@ -1,9 +1,9 @@
 /** File upload routes — handles avatar and other image uploads. */
 import { Router, Request, Response, NextFunction } from 'express'
 import multer, { MulterError } from 'multer'
-import { requireAuth } from '../middleware/auth'
-import { getStorageService } from '../services/storage'
-import { logger } from '../services/logger'
+import { requireAuth } from '../middleware/auth.js'
+import { getStorageService } from '../services/storage/index.js'
+import { logger } from '../services/logger.js'
 
 export const uploadRouter = Router()
 

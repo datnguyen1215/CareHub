@@ -1,6 +1,6 @@
 /** WebSocket client registry — tracks connected devices and users. */
 import { WebSocket } from 'ws'
-import { logger } from '../services/logger'
+import { logger } from '../services/logger.js'
 
 /** Client type identifier */
 export type ClientType = 'device' | 'user'
@@ -179,6 +179,19 @@ export const getConnectedUserCount = (): number => {
     if (key.startsWith('user:')) count++
   }
   return count
+}
+
+/**
+ * Get IDs of all currently connected users.
+ */
+export const getConnectedUserIds = (): string[] => {
+  const ids: string[] = []
+  for (const key of clientRegistry.keys()) {
+    if (key.startsWith('user:')) {
+      ids.push(key.slice('user:'.length))
+    }
+  }
+  return ids
 }
 
 /**

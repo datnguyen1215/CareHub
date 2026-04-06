@@ -5,19 +5,37 @@
 
 import path from 'path'
 import { eq } from 'drizzle-orm'
-import { db } from '../db'
+import { db } from '../db/index.js'
 import { attachments } from '@carehub/shared'
-import { getOCRService } from './ocr'
-import { generateDescription, type DocumentCategory } from './ai'
-import { logger } from './logger'
+import { getOCRService } from './ocr/index.js'
+import { generateDescription, type DocumentCategory } from './ai/index.js'
+import { logger } from './logger.js'
 
 // Supported image types for OCR processing
 const OCR_SUPPORTED_TYPES = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.pdf']
+
+/** Timeout values (ms) for attachment processing steps */
+const OCR_TIMEOUT_MS = 60_000
+const AI_DESCRIPTION_TIMEOUT_MS = 30_000
 
 /** Check if a file type supports OCR */
 function isOCRSupported(fileUrl: string): boolean {
   const ext = path.extname(fileUrl).toLowerCase()
   return OCR_SUPPORTED_TYPES.includes(ext)
+}
+
+/**
+ * Wraps a promise with a timeout. Rejects with an Error if the promise
+ * doesn't settle within the given duration.
+ */
+function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+  let timer: ReturnType<typeof setTimeout>
+  return Promise.race([
+    promise.finally(() => clearTimeout(timer)),
+    new Promise<never>((_, reject) => {
+      timer = setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms)
+    }),
+  ])
 }
 
 // Storage configuration — matches storage service
@@ -68,10 +86,19 @@ export async function processAttachment(attachmentId: string): Promise<void> {
     let ocrText: string | null = null
     try {
       const ocrService = getOCRService()
-      ocrText = await ocrService.extractText(filePath)
+      ocrText = await withTimeout(
+        ocrService.extractText(filePath),
+        OCR_TIMEOUT_MS,
+        'OCR extraction'
+      )
       logger.info({ attachmentId, textLength: ocrText.length }, 'OCR extraction complete')
     } catch (ocrErr) {
-      logger.error({ err: ocrErr, attachmentId }, 'OCR extraction failed')
+      const isTimeout = ocrErr instanceof Error && ocrErr.message.includes('timed out')
+      if (isTimeout) {
+        logger.warn({ attachmentId }, 'OCR extraction timed out, continuing without OCR text')
+      } else {
+        logger.error({ err: ocrErr, attachmentId }, 'OCR extraction failed')
+      }
       // Continue — we can still update with null OCR text
     }
 
@@ -83,7 +110,11 @@ export async function processAttachment(attachmentId: string): Promise<void> {
       try {
         // Only generate if no user-provided description
         if (!attachment.description) {
-          const result = await generateDescription(ocrText)
+          const result = await withTimeout(
+            generateDescription(ocrText),
+            AI_DESCRIPTION_TIMEOUT_MS,
+            'AI description generation'
+          )
           description = result.description
           // Only update category if user didn't provide one (default is 'other')
           if (attachment.category === 'other') {
@@ -92,7 +123,12 @@ export async function processAttachment(attachmentId: string): Promise<void> {
           logger.info({ attachmentId, category }, 'AI description generated')
         }
       } catch (aiErr) {
-        logger.error({ err: aiErr, attachmentId }, 'AI description generation failed')
+        const isTimeout = aiErr instanceof Error && aiErr.message.includes('timed out')
+        if (isTimeout) {
+          logger.warn({ attachmentId }, 'AI description generation timed out, continuing without description')
+        } else {
+          logger.error({ err: aiErr, attachmentId }, 'AI description generation failed')
+        }
         // Continue — we'll still save the OCR text
       }
     }

@@ -1,9 +1,9 @@
 /** Call service — manages call session database operations. */
 import { eq, and, notInArray } from 'drizzle-orm'
-import { db } from '../db'
+import { db } from '../db/index.js'
 import { callSessions, deviceAccess, users, devices } from '@carehub/shared'
 import type { CallStatus, CallEndReason, CallParticipant } from '@carehub/shared'
-import { logger } from './logger'
+import { logger } from './logger.js'
 
 /** Terminal call statuses — calls in these states are considered ended */
 const TERMINAL_STATUSES: CallStatus[] = ['ended', 'failed']
@@ -20,7 +20,8 @@ export interface CreateCallSessionParams {
 export interface CallSessionRecord {
   id: string
   callerUserId: string
-  calleeDeviceId: string
+  /** Null when the device has been deleted (historical records preserved) */
+  calleeDeviceId: string | null
   calleeProfileId: string | null
   status: CallStatus
   initiatedAt: Date
@@ -354,7 +355,7 @@ export const tryCreateCallSession = async (
 const mapSessionToRecord = (row: {
   id: string
   caller_user_id: string
-  callee_device_id: string
+  callee_device_id: string | null
   callee_profile_id: string | null
   status: CallStatus
   initiated_at: Date

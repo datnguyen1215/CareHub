@@ -11,7 +11,14 @@ import type {
 	CallOfferMessage,
 	IceCandidateMessage,
 	CallEndedMessage,
-	IceCandidate
+	IceCandidate,
+	ScreenShareStateMessage
+} from '@carehub/shared';
+import {
+	getUserFriendlyError,
+	getTopLevelState,
+	createDurationTimer,
+	logger
 } from '@carehub/shared';
 import {
 	createMachine,
@@ -20,8 +27,10 @@ import {
 	calleeAssignActions,
 	CALL_EVENTS,
 	logWebRTCEvent,
+	logCallLifecycle,
 	type CallContext
 } from '@carehub/shared/webrtc/call-state-machine';
+import { CALL_SETUP_TIMEOUT_MS, RECONNECT_TIMEOUT_MS } from '@carehub/shared';
 import {
 	setCallHandlers,
 	sendCallAccepted,
@@ -32,45 +41,6 @@ import {
 } from '$lib/services/websocket';
 import * as webrtc from '$lib/services/webrtc';
 import { notification } from '$lib/stores/notifications';
-
-/** Maps technical errors to user-friendly messages */
-function getUserFriendlyError(error: string | null): string {
-	if (!error) return 'Call failed. Please try again.';
-
-	const errorLower = error.toLowerCase();
-
-	// WebSocket/connection issues
-	if (errorLower.includes('websocket') || errorLower.includes('unable to connect')) {
-		return 'Connection lost. Please check your internet and try again.';
-	}
-
-	// ICE/network issues
-	if (errorLower.includes('ice') || errorLower.includes('network')) {
-		return 'Could not establish video connection. Check your network.';
-	}
-
-	// Timeout
-	if (errorLower.includes('timeout') || errorLower.includes('timed out')) {
-		return 'Call timed out. Please try again.';
-	}
-
-	// Media permissions
-	if (
-		errorLower.includes('permission') ||
-		errorLower.includes('notallowed') ||
-		errorLower.includes('not allowed')
-	) {
-		return 'Camera/microphone access denied. Please allow permissions.';
-	}
-
-	// Media device issues
-	if (errorLower.includes('notfound') || errorLower.includes('not found')) {
-		return 'Camera or microphone not found. Please check your devices.';
-	}
-
-	// Return original error if already user-friendly or unrecognized
-	return error;
-}
 
 /** Call status values */
 export type CallStatus = 'idle' | 'incoming' | 'connecting' | 'connected' | 'ended';
@@ -87,6 +57,7 @@ export interface CallState {
 	duration: number;
 	error: string | null;
 	endReason: CallEndReason | null;
+	isRemoteScreenSharing: boolean;
 }
 
 /** Initial call state */
@@ -100,7 +71,8 @@ const initialState: CallState = {
 	connectedAt: null,
 	duration: 0,
 	error: null,
-	endReason: null
+	endReason: null,
+	isRemoteScreenSharing: false
 };
 
 /** Reactive call state - only initialized on client */
@@ -113,8 +85,19 @@ let callState: CallState = { ...initialState };
 let storedLocalStream: MediaStream | null = null;
 let storedRemoteStream: MediaStream | null = null;
 
-/** Duration timer interval */
-let durationTimer: ReturnType<typeof setInterval> | null = null;
+/** Setup timeout timer for ICE connection establishment */
+let setupTimerId: ReturnType<typeof setTimeout> | null = null;
+
+/** Reconnect timer for ICE disconnection grace period */
+let reconnectTimerId: ReturnType<typeof setTimeout> | null = null;
+
+/** Duration timer from shared package */
+const durationTimer = createDurationTimer((seconds) => {
+	if (callState.status === 'connected') {
+		callState.duration = seconds;
+		notify();
+	}
+});
 
 /** State machine instance */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -163,7 +146,7 @@ export function getCallState(): CallState {
  */
 function mapMachineStateToStatus(machineState: string): CallStatus {
 	// Handle hierarchical states (e.g., "signaling.incoming")
-	const topLevelState = machineState.split('.')[0];
+	const topLevelState = getTopLevelState(machineState);
 	const subState = machineState.split('.')[1];
 
 	switch (topLevelState) {
@@ -221,23 +204,14 @@ function syncStateFromMachine(state: string, context: CallContext): void {
  * Increments duration every second while connected.
  */
 function startDurationTimer(): void {
-	stopDurationTimer();
-	durationTimer = setInterval(() => {
-		if (callState.status === 'connected') {
-			callState.duration += 1;
-			notify();
-		}
-	}, 1000);
+	durationTimer.start(new Date());
 }
 
 /**
  * Stop duration timer.
  */
 function stopDurationTimer(): void {
-	if (durationTimer) {
-		clearInterval(durationTimer);
-		durationTimer = null;
-	}
+	durationTimer.stop();
 }
 
 /**
@@ -257,14 +231,16 @@ function createCallMachine() {
 			const currentState = machine?.state || 'unknown';
 			logWebRTCEvent('Transition', `${currentState} (${event.type})`);
 		},
-		logEnterIdle: () => logWebRTCEvent('State', 'idle'),
-		logEnterIncoming: () => logWebRTCEvent('State', 'signaling.incoming'),
+		logEnterIdle: () => logCallLifecycle('State', 'idle'),
+		logEnterIncoming: () => logCallLifecycle('State', 'signaling.incoming'),
+		logEnterAcquiringMedia: () => logWebRTCEvent('State', 'signaling.acquiringMedia'),
 		logEnterWaitingForOffer: () => logWebRTCEvent('State', 'signaling.waitingForOffer'),
 		logEnterCreatingAnswer: () => logWebRTCEvent('State', 'signaling.creatingAnswer'),
-		logEnterConnecting: () => logWebRTCEvent('State', 'connecting'),
-		logEnterConnected: () => logWebRTCEvent('State', 'connected'),
-		logEnterEnding: () => logWebRTCEvent('State', 'ending'),
-		logEnterFailed: () => logWebRTCEvent('State', 'failed'),
+		logEnterConnecting: () => logCallLifecycle('State', 'connecting'),
+		logEnterConnected: () => logCallLifecycle('State', 'connected'),
+		logEnterUnstable: () => logWebRTCEvent('State', 'connected.unstable'),
+		logEnterEnding: () => logCallLifecycle('State', 'ending'),
+		logEnterFailed: () => logCallLifecycle('State', 'failed'),
 
 		// Media actions
 		acquireLocalMedia: async () => {
@@ -276,7 +252,7 @@ function createCallMachine() {
 				machine.send(CALL_EVENTS.LOCAL_STREAM_READY, { stream });
 			} catch (err) {
 				const error = err as Error;
-				console.error('Failed to get local media:', error);
+				logger.error('Failed to get local media:', error);
 				machine.send(CALL_EVENTS.MEDIA_ERROR, { error: error.message });
 			}
 		},
@@ -317,14 +293,14 @@ function createCallMachine() {
 		// Signaling actions
 		sendCallAccepted: ({ context }: { context: CallContext }) => {
 			if (context.callId) {
-				logWebRTCEvent('Signaling', 'Sending call:accepted');
+				logCallLifecycle('Signaling', 'Sending call:accepted');
 				sendCallAccepted(context.callId);
 			}
 		},
 
 		sendCallDeclined: ({ context }: { context: CallContext }) => {
 			if (context.callId) {
-				logWebRTCEvent('Signaling', 'Sending call:declined');
+				logCallLifecycle('Signaling', 'Sending call:declined');
 				sendCallDeclined(context.callId);
 			}
 		},
@@ -336,7 +312,7 @@ function createCallMachine() {
 				await webrtc.handleOffer(event.sdp);
 			} catch (err) {
 				const error = err as Error;
-				console.error('Failed to handle offer:', error);
+				logger.error('Failed to handle offer:', error);
 				machine.send(CALL_EVENTS.CALL_ERROR, { error: error.message });
 			}
 		},
@@ -350,7 +326,7 @@ function createCallMachine() {
 				machine.send(CALL_EVENTS.ANSWER_CREATED);
 			} catch (err) {
 				const error = err as Error;
-				console.error('Failed to create answer:', error);
+				logger.error('Failed to create answer:', error);
 				machine.send(CALL_EVENTS.CALL_ERROR, { error: error.message });
 			}
 		},
@@ -371,8 +347,12 @@ function createCallMachine() {
 
 		flushPendingIceCandidates: async ({ context }: { context: CallContext }) => {
 			for (const candidate of context.pendingIceCandidates) {
-				logWebRTCEvent('ICE', 'Flushing pending ICE candidate');
-				await webrtc.addIceCandidate(candidate);
+				try {
+					logWebRTCEvent('ICE', 'Flushing pending ICE candidate');
+					await webrtc.addIceCandidate(candidate);
+				} catch (err) {
+					logWebRTCEvent('ICE', `Failed to flush pending candidate: ${(err as Error).message}`);
+				}
 			}
 		},
 
@@ -387,10 +367,41 @@ function createCallMachine() {
 			stopDurationTimer();
 		},
 
+		startSetupTimer: () => {
+			if (setupTimerId) clearTimeout(setupTimerId);
+			setupTimerId = setTimeout(() => {
+				machine?.send(CALL_EVENTS.SETUP_TIMEOUT);
+			}, CALL_SETUP_TIMEOUT_MS);
+			logWebRTCEvent('Timer', `Setup timeout started (${CALL_SETUP_TIMEOUT_MS}ms)`);
+		},
+
+		clearSetupTimer: () => {
+			if (setupTimerId) {
+				clearTimeout(setupTimerId);
+				setupTimerId = null;
+			}
+		},
+
+		startReconnectTimer: () => {
+			if (reconnectTimerId) clearTimeout(reconnectTimerId);
+			reconnectTimerId = setTimeout(() => {
+				machine?.send(CALL_EVENTS.RECONNECT_TIMEOUT);
+			}, RECONNECT_TIMEOUT_MS);
+			logWebRTCEvent('ICE', `Reconnect timer started (${RECONNECT_TIMEOUT_MS}ms)`);
+		},
+
+		clearReconnectTimer: () => {
+			if (reconnectTimerId) {
+				clearTimeout(reconnectTimerId);
+				reconnectTimerId = null;
+				logWebRTCEvent('ICE', 'Reconnect timer cleared');
+			}
+		},
+
 		// Call end actions
 		sendCallEnded: ({ context }: { context: CallContext }) => {
 			if (context.callId) {
-				logWebRTCEvent('Signaling', 'Sending call:ended');
+				logCallLifecycle('Signaling', 'Sending call:ended');
 				sendCallEnded(context.callId);
 			}
 		},
@@ -399,10 +410,19 @@ function createCallMachine() {
 		cleanup: () => {
 			logWebRTCEvent('Action', 'Cleaning up WebRTC resources');
 			webrtc.cleanup();
-			// Trigger cleanup complete after cleanup
-			setTimeout(() => {
+			// Clear setup timeout timer
+			if (setupTimerId) {
+				clearTimeout(setupTimerId);
+				setupTimerId = null;
+			}
+			// Clear reconnect timer
+			if (reconnectTimerId) {
+				clearTimeout(reconnectTimerId);
+				reconnectTimerId = null;
+			}
+			queueMicrotask(() => {
 				machine?.send(CALL_EVENTS.CLEANUP_COMPLETE);
-			}, 0);
+			});
 		},
 
 		resetContext: sharedAssignActions.resetContext
@@ -430,11 +450,12 @@ function handleIncomingCall(message: CallIncomingMessage): void {
 
 	// Guard: can only receive incoming call if idle
 	if (!machine.matches('idle')) {
-		console.warn('[Call] Ignoring incoming call: not in idle state');
+		logger.warn('[Call] Ignoring incoming call: not in idle state');
+		sendCallDeclined(message.callId);
 		return;
 	}
 
-	logWebRTCEvent('Signaling', `Incoming call from ${message.caller.name}`);
+	logCallLifecycle('Signaling', `Incoming call from ${message.caller.name}`);
 	machine.send(CALL_EVENTS.INCOMING_CALL, {
 		callId: message.callId,
 		caller: message.caller,
@@ -451,7 +472,7 @@ async function handleCallOffer(message: CallOfferMessage): Promise<void> {
 
 	// Ignore messages for other calls
 	if (callState.callId !== message.callId) {
-		console.warn('[Call] Ignoring offer for different call');
+		logger.warn('[Call] Ignoring offer for different call');
 		return;
 	}
 
@@ -487,8 +508,21 @@ function handleCallEnded(message: CallEndedMessage): void {
 		return;
 	}
 
-	logWebRTCEvent('Signaling', `Received call:ended (reason: ${message.reason})`);
+	logCallLifecycle('Signaling', `Received call:ended (reason: ${message.reason})`);
 	machine.send(CALL_EVENTS.CALL_ENDED, { reason: message.reason });
+}
+
+/**
+ * Handle screen share state change from caller.
+ */
+function handleScreenShare(message: ScreenShareStateMessage): void {
+	if (callState.callId !== message.callId) {
+		return;
+	}
+
+	callState.isRemoteScreenSharing = message.active;
+	logWebRTCEvent('Signaling', `Screen share ${message.active ? 'started' : 'stopped'}`);
+	notify();
 }
 
 /**
@@ -500,11 +534,11 @@ export async function acceptCall(): Promise<void> {
 
 	// Guard: can only accept in incoming state
 	if (!machine.matches('signaling.incoming')) {
-		console.warn('[Call] Cannot accept: not in incoming state');
+		logger.warn('[Call] Cannot accept: not in incoming state');
 		return;
 	}
 
-	logWebRTCEvent('Action', 'Accepting call');
+	logCallLifecycle('Action', 'Accepting call');
 	machine.send(CALL_EVENTS.ACCEPT);
 }
 
@@ -517,11 +551,11 @@ export function declineCall(): void {
 
 	// Guard: can only decline in incoming state
 	if (!machine.matches('signaling.incoming')) {
-		console.warn('[Call] Cannot decline: not in incoming state');
+		logger.warn('[Call] Cannot decline: not in incoming state');
 		return;
 	}
 
-	logWebRTCEvent('Action', 'Declining call');
+	logCallLifecycle('Action', 'Declining call');
 	machine.send(CALL_EVENTS.DECLINE);
 }
 
@@ -534,11 +568,11 @@ export function endCall(): void {
 
 	// Guard: can only end if not already idle or ending
 	if (machine.matches('idle') || machine.matches('ending')) {
-		console.warn('[Call] Cannot end: already idle or ending');
+		logger.warn('[Call] Cannot end: already idle or ending');
 		return;
 	}
 
-	logWebRTCEvent('Action', 'Ending call');
+	logCallLifecycle('Action', 'Ending call');
 	machine.send(CALL_EVENTS.END);
 }
 
@@ -551,6 +585,7 @@ export function resetCallState(): void {
 	storedLocalStream = null;
 	storedRemoteStream = null;
 	callState = { ...initialState };
+	machine = createCallMachine();
 	notify();
 }
 
@@ -567,6 +602,7 @@ export function initCallStore(): void {
 		onCallOffer: handleCallOffer,
 		onIceCandidate: handleIceCandidate,
 		onCallEnded: handleCallEnded,
+		onScreenShare: handleScreenShare,
 		onCallError: (message) => {
 			logWebRTCEvent('Error', message.error);
 			if (machine) {

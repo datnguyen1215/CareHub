@@ -1,82 +1,32 @@
 /** Care Profile routes — CRUD for profiles owned by users. */
 import { Router, Request, Response } from 'express'
 import { eq, and, sql } from 'drizzle-orm'
-import { db } from '../db'
+import { db } from '../db/index.js'
 import { careProfiles, profileShares, medications } from '@carehub/shared'
-import { requireAuth } from '../middleware/auth'
-import { logger } from '../services/logger'
+import { requireAuth } from '../middleware/auth.js'
+import { logger } from '../services/logger.js'
+import { validate } from '../middleware/validate.js'
+import { createProfileSchema, updateProfileSchema } from '../schemas/profiles.js'
+import { canViewProfile, canEditProfile, isProfileOwner } from '../services/access.js'
 
 export const profilesRouter = Router()
 
-/** Check if user can view a profile (owner or shared with them) */
-async function canViewProfile(userId: string, profileId: string) {
-  const [profile] = await db
-    .select()
-    .from(careProfiles)
-    .where(eq(careProfiles.id, profileId))
-    .limit(1)
-
-  if (!profile) return null
-
-  // Check if user owns the profile
-  if (profile.user_id === userId) {
-    return { profile, role: 'owner' as const }
-  }
-
-  // Check if profile is shared with user
-  const [share] = await db
-    .select()
-    .from(profileShares)
-    .where(and(eq(profileShares.profile_id, profileId), eq(profileShares.user_id, userId)))
-    .limit(1)
-
-  if (share) {
-    return { profile, role: share.role }
-  }
-
-  return null
-}
-
-/** Check if user can edit a profile (owner or shared with admin role) */
-async function canEditProfile(userId: string, profileId: string) {
-  const access = await canViewProfile(userId, profileId)
-  if (!access) return null
-  if (access.role === 'owner' || access.role === 'admin') return access
-  return null
-}
-
-/** Check if user owns the profile (only owner can delete) */
-async function isProfileOwner(userId: string, profileId: string) {
-  const [profile] = await db
-    .select()
-    .from(careProfiles)
-    .where(and(eq(careProfiles.id, profileId), eq(careProfiles.user_id, userId)))
-    .limit(1)
-
-  return profile ?? null
-}
-
 // POST /api/profiles
-profilesRouter.post('/', requireAuth, async (req: Request, res: Response): Promise<void> => {
+profilesRouter.post('/', requireAuth, validate(createProfileSchema), async (req: Request, res: Response): Promise<void> => {
   try {
     const { name, date_of_birth, relationship, conditions, avatar_url } = req.body as {
-      name?: string
+      name: string
       date_of_birth?: string
-      relationship?: string
+      relationship?: string | null
       conditions?: string[]
       avatar_url?: string | null
-    }
-
-    if (!name || typeof name !== 'string' || !name.trim()) {
-      res.status(400).json({ error: 'name is required' })
-      return
     }
 
     const [profile] = await db
       .insert(careProfiles)
       .values({
         user_id: req.user!.userId,
-        name: name.trim(),
+        name,
         date_of_birth: date_of_birth ?? null,
         relationship: relationship ?? null,
         conditions: Array.isArray(conditions) ? conditions : [],
@@ -187,7 +137,7 @@ profilesRouter.get('/:id', requireAuth, async (req: Request, res: Response): Pro
 })
 
 // PATCH /api/profiles/:id
-profilesRouter.patch('/:id', requireAuth, async (req: Request, res: Response): Promise<void> => {
+profilesRouter.patch('/:id', requireAuth, validate(updateProfileSchema), async (req: Request, res: Response): Promise<void> => {
   try {
     const id = req.params['id'] as string
     const { name, date_of_birth, relationship, conditions, avatar_url } = req.body as {
@@ -214,14 +164,8 @@ profilesRouter.patch('/:id', requireAuth, async (req: Request, res: Response): P
       updated_at: Date
     }> = { updated_at: new Date() }
 
-    if (name !== undefined) {
-      if (typeof name !== 'string' || !name.trim()) {
-        res.status(400).json({ error: 'name cannot be empty' })
-        return
-      }
-      updates.name = name.trim()
-    }
-    if (date_of_birth !== undefined) updates.date_of_birth = date_of_birth
+    if (name !== undefined) updates.name = name
+    if (date_of_birth !== undefined) updates.date_of_birth = date_of_birth === '' ? null : date_of_birth
     if (relationship !== undefined) updates.relationship = relationship
     if (conditions !== undefined) updates.conditions = Array.isArray(conditions) ? conditions : []
     if (avatar_url !== undefined) updates.avatar_url = avatar_url

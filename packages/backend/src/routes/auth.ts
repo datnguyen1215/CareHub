@@ -2,11 +2,15 @@
 import { Router, Request, Response } from 'express'
 import crypto from 'crypto'
 import { eq, and, gt, max } from 'drizzle-orm'
-import { db } from '../db'
+import { db } from '../db/index.js'
 import { otps, users } from '@carehub/shared'
-import { sendOtpEmail } from '../services/email'
-import { signToken, requireAuth } from '../middleware/auth'
-import { logger } from '../services/logger'
+import { sendOtpEmail } from '../services/email.js'
+import { signToken, requireAuth } from '../middleware/auth.js'
+import { authLimiter } from '../middleware/rateLimit.js'
+import { logger } from '../services/logger.js'
+import { validate } from '../middleware/validate.js'
+import { requestOtpSchema, verifyOtpSchema } from '../schemas/auth.js'
+import { TIMEOUTS } from '../config/constants.js'
 
 export const authRouter = Router()
 
@@ -17,13 +21,25 @@ interface WsTicket {
 }
 const wsTickets = new Map<string, WsTicket>()
 
-const WS_TICKET_TTL_MS = 30_000 // 30 seconds
-
 /**
  * Generates a cryptographically random WebSocket ticket.
  * @returns 32-character hex ticket
  */
 const generateWsTicket = (): string => crypto.randomBytes(16).toString('hex')
+
+/**
+ * Create a WebSocket ticket for a user (used by tests and the ws-ticket endpoint).
+ * @param userId - The user ID to associate with the ticket
+ * @returns The generated ticket string
+ */
+export const generateWsTicketForUser = (userId: string): string => {
+  const ticket = generateWsTicket()
+  wsTickets.set(ticket, {
+    userId,
+    expiresAt: Date.now() + TIMEOUTS.WS_TICKET_TTL_MS,
+  })
+  return ticket
+}
 
 /**
  * Validates and consumes a WebSocket ticket (one-time use).
@@ -49,9 +65,7 @@ setInterval(() => {
       wsTickets.delete(ticket)
     }
   }
-}, 60_000)
-
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+}, TIMEOUTS.WS_TICKET_CLEANUP_INTERVAL_MS)
 
 /**
  * Generates a cryptographically random 6-digit OTP.
@@ -60,13 +74,9 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const generateOtp = (): string => crypto.randomInt(100000, 1000000).toString()
 
 // POST /api/auth/request-otp
-authRouter.post('/request-otp', async (req: Request, res: Response): Promise<void> => {
+authRouter.post('/request-otp', authLimiter, validate(requestOtpSchema), async (req: Request, res: Response): Promise<void> => {
   try {
-    const { email } = req.body as { email?: string }
-    if (!email || typeof email !== 'string' || !EMAIL_RE.test(email)) {
-      res.status(400).json({ error: 'A valid email is required' })
-      return
-    }
+    const { email } = req.body as { email: string }
 
     // Enforce 60-second cooldown between OTP requests for the same email
     const [{ lastSent }] = await db
@@ -76,7 +86,7 @@ authRouter.post('/request-otp', async (req: Request, res: Response): Promise<voi
 
     if (lastSent) {
       const secondsElapsed = (Date.now() - new Date(lastSent).getTime()) / 1000
-      const retryAfter = Math.ceil(60 - secondsElapsed)
+      const retryAfter = Math.ceil(TIMEOUTS.OTP_REQUEST_COOLDOWN_S - secondsElapsed)
       if (retryAfter > 0) {
         res.status(429).json({ error: 'Please wait before requesting another OTP', retryAfter })
         return
@@ -84,12 +94,12 @@ authRouter.post('/request-otp', async (req: Request, res: Response): Promise<voi
     }
 
     const code = generateOtp()
-    const expiresAt = new Date(Date.now() + 15 * 60 * 1000)
+    const expiresAt = new Date(Date.now() + TIMEOUTS.OTP_EXPIRATION_MS)
 
     await sendOtpEmail(email, code)
     await db.insert(otps).values({ email, code, expires_at: expiresAt })
 
-    res.json({ message: 'OTP sent' })
+    res.json({ sent: true })
   } catch (err) {
     logger.error({ err }, 'request-otp error')
     res.status(500).json({ error: 'Failed to send OTP' })
@@ -97,13 +107,9 @@ authRouter.post('/request-otp', async (req: Request, res: Response): Promise<voi
 })
 
 // POST /api/auth/verify-otp
-authRouter.post('/verify-otp', async (req: Request, res: Response): Promise<void> => {
+authRouter.post('/verify-otp', authLimiter, validate(verifyOtpSchema), async (req: Request, res: Response): Promise<void> => {
   try {
-    const { email, code } = req.body as { email?: string; code?: string }
-    if (!email || typeof email !== 'string' || !code || typeof code !== 'string') {
-      res.status(400).json({ error: 'email and code are required' })
-      return
-    }
+    const { email, code } = req.body as { email: string; code: string }
 
     const now = new Date()
     const [otp] = await db
@@ -148,15 +154,11 @@ authRouter.post('/verify-otp', async (req: Request, res: Response): Promise<void
 
 // POST /api/auth/logout
 authRouter.post('/logout', (_req: Request, res: Response): void => {
-  res.clearCookie('token').json({ message: 'Logged out' })
+  res.clearCookie('token').status(204).end()
 })
 
 // GET /api/auth/ws-ticket - Get a short-lived ticket for WebSocket authentication
 authRouter.get('/ws-ticket', requireAuth, (req: Request, res: Response): void => {
-  const ticket = generateWsTicket()
-  wsTickets.set(ticket, {
-    userId: req.user!.userId,
-    expiresAt: Date.now() + WS_TICKET_TTL_MS,
-  })
+  const ticket = generateWsTicketForUser(req.user!.userId)
   res.json({ ticket })
 })

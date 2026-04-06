@@ -115,15 +115,30 @@ packages/portal/
 │   │   └── login/           # Authentication flow
 │   │       └── +page.svelte     # OTP login
 │   ├── lib/                  # Reusable code
-│   │   ├── components/      # Svelte components
+│   │   ├── components/      # Svelte components (organized by domain)
+│   │   │   ├── call/        # Call UI components (CallModal, CallControls)
+│   │   │   ├── devices/     # Device components (DeviceCard, DeviceStatusDot, BatteryIndicator)
+│   │   │   ├── documents/   # Document components (DocumentsTab, AttachmentCard, AttachmentUpload)
+│   │   │   ├── events/      # Event components (CalendarPanel, EventModal, EventDetail)
+│   │   │   ├── journal/     # Journal components (JournalPanel, JournalTab, JournalEntryModal, JournalEntryDetail)
+│   │   │   ├── medications/ # Medication components (MedicationsPanel, MedicationModal)
+│   │   │   ├── navigation/  # Navigation components (TopBar, BottomNav)
+│   │   │   ├── profiles/    # Profile components (OverviewPanel, ProfileModal, ProfileSelector, AvatarUpload)
+│   │   │   ├── shared/      # Shared components (DeleteConfirmModal, QRScanner)
+│   │   │   └── ui/          # UI primitives (Toast)
+│   │   ├── utils/           # Shared utilities (framework-agnostic)
+│   │   │   ├── focusTrap.ts # Focus trap for modal dialogs
+│   │   │   ├── error-utils.ts # Error message extraction utilities
+│   │   │   ├── format.ts    # Date/time formatting and string helpers
+│   │   │   ├── debounce.ts  # debounce() with .cancel() for cleanup
+│   │   │   └── categories.ts # Category/event type color and label maps
 │   │   ├── services/        # Core services
 │   │   │   ├── websocket.ts # WebSocket connection manager
 │   │   │   └── webrtc.ts    # WebRTC peer connection manager
-│   │   ├── Toast.svelte     # Toast notification component
 │   │   ├── api.ts           # API client for backend
 │   │   └── stores/
-│   │       ├── toast.ts     # Toast notification store
-│   │       └── call.ts      # Video call state store (Svelte 5 runes)
+│   │       ├── toast.svelte.ts     # Toast notification store (Svelte 5 $state runes)
+│   │       └── call.svelte.ts      # Video call state store (Svelte 5 $state runes)
 │   └── app.html              # HTML template
 ├── static/                   # Static assets
 ├── svelte.config.js          # SvelteKit configuration
@@ -137,7 +152,7 @@ packages/portal/
 - `/login` - OTP authentication flow
 - `/` (protected) - Dashboard
 - `/profiles` (protected) - Profile list and management
-- `/profiles/:id` (protected) - Profile details and medications
+- `/profiles/:id` (protected) - Profile details with tabbed interface (Overview, Meds, Calendar, Journal, Docs)
 
 All routes under `(app)` require authentication and redirect to `/login` if not authenticated.
 
@@ -160,12 +175,13 @@ All routes under `(app)` require authentication and redirect to `/login` if not 
 - Remote stream attachment
 - Audio/video mute controls
 
-**Call State Store** (`src/lib/stores/call.ts`):
+**Call State Store** (`src/lib/stores/call.svelte.ts`):
 
-- Svelte 5 runes-based reactive store
+- Svelte 5 runes-based reactive store using `$state` for fine-grained reactivity
 - Tracks call status, streams, duration, and errors
 - Integrates WebSocket signaling with WebRTC events
-- Provides actions: `initiateCall()`, `endCall()`, `toggleMute()`, `toggleVideo()`
+- Components import `callState` directly — Svelte 5 tracks dependencies automatically
+- Provides actions: `initiateCall()`, `endCall()`, `toggleMute()`, `toggleVideo()`, `toggleScreenShare()`
 - Auto-initializes handlers in `+layout.svelte`
 
 ## API Integration
@@ -294,7 +310,7 @@ npm run check
 
 ### Svelte 5 Runes
 
-This app uses Svelte 5 runes syntax for reactivity:
+This app uses Svelte 5 runes syntax for reactivity. Store files that use runes must use the `.svelte.ts` extension for the Svelte compiler to process them.
 
 ```svelte
 <script lang="ts">
@@ -310,6 +326,12 @@ This app uses Svelte 5 runes syntax for reactivity:
 	});
 </script>
 ```
+
+**Stores use `$state` runes instead of legacy `writable()`:**
+
+- State stores are in `.svelte.ts` files (e.g., `toast.svelte.ts`, `call.svelte.ts`)
+- Components import reactive state directly — no `subscribe()` needed
+- Use a getter function (e.g., `getToasts()`) when the state needs to be accessed as a `$derived` value in components
 
 Avoid deprecated Svelte features:
 
@@ -353,13 +375,13 @@ try {
 
 ### Toast Notifications
 
-The app includes a toast notification system for user feedback on actions.
+The app includes a toast notification system using Svelte 5 `$state` runes for reactivity. The toast store is in `src/lib/stores/toast.svelte.ts` (`.svelte.ts` extension required for runes). Store logic delegates to the shared `createToastStore()` factory from `@carehub/shared/ui/toast`, with a `$state` wrapper for Svelte reactivity.
 
 **Usage:**
 
 ```svelte
 <script lang="ts">
-	import { toast } from '$lib/stores/toast';
+	import { toast } from '$lib/stores/toast.svelte';
 
 	async function handleSave() {
 		try {

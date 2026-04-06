@@ -61,13 +61,23 @@ Styles are implemented with Tailwind CSS within the SvelteKit portal package. Mo
 
 ### Toast Notifications
 
-- Positioned at bottom of screen, above bottom navigation (z-index 40)
-- Three types: success (green), error (red), destructive (red)
-- Success/destructive: auto-dismiss after 3 seconds with slide-up animation
-- Error: manual dismiss button required
+- Store logic shared between portal and kiosk via `createToastStore()` in `@carehub/shared/ui/toast`
+- **Portal:** Positioned at bottom of screen, above modals (z-index 60), compact sizing
+- **Kiosk:** Positioned at top of screen, large sizing for tablet touch targets
+- Five types: success (green), error (red), warning (amber), info (blue), destructive (red)
+- Auto-dismiss timers: success 3s, info 5s, warning 5s, destructive 3s, error 10s
 - Each toast includes icon (checkmark for success, X for destructive, exclamation for error) and message
 - Rounded card style with colored background and border
-- Maximum width: responsive (full width on mobile with padding, max-w-md on larger screens)
+- Svelte components remain in each app (portal: `Toast.svelte`, kiosk: `Toast.svelte`) with app-specific positioning and sizing
+
+### Z-Index Stacking Order
+
+| Layer | z-index | Components |
+| ----- | ------- | ---------- |
+| Sticky headers | `z-30` | Profile detail tab bar |
+| Navigation | `z-40` | TopBar, BottomNav, profile detail fixed header |
+| Modals and overlays | `z-50` | All modal dialogs, confirmation dialogs, call modal |
+| Toast notifications | `z-[60]` | Toast messages (above modals) |
 
 ### Navigation -- Portal
 
@@ -78,17 +88,18 @@ Styles are implemented with Tailwind CSS within the SvelteKit portal package. Mo
 
 ### Navigation -- Profile Detail
 
-- **Tab navigation** within each profile: Overview, Meds, Calendar, Journal
+- **Tab navigation** within each profile: Overview, Meds, Calendar, Journal, Docs
 - Horizontal scrollable tabs below profile header
 - Active tab underlined with primary color
+- All panels mount eagerly (using `hidden` attribute) so tab switching is instant without re-fetches
 
 ### Device Card (Profile Overview)
 
 - Displayed in Profile Overview tab between avatar header and profile info card
 - Shows device name with 📱 icon and online/offline status dot
 - Battery level indicator (when available)
-- Three action buttons: "📷 Send Photo", "📞 Call", "⚙️" (Settings)
-- Send Photo and Call buttons disabled (grayed out) when device is offline
+- Two action buttons: "📞 Call", "⚙️" (Settings)
+- Call button disabled (grayed out) when device is offline
 - Settings button navigates to `/devices/[id]`
 - If profile has multiple devices, cards stack vertically
 - Empty state: "No device linked" with "+ Link Device" CTA linking to `/devices/pair`
@@ -156,6 +167,7 @@ Styles are implemented with Tailwind CSS within the SvelteKit portal package. Mo
 - Incoming call screen with near-full-screen Accept (green) and Decline (red) buttons
 - Active call UI with end call button
 - Missed call notifications
+- Screen share display mode on CallScreen: layout switches from `object-fit: cover` (dark background, face video) to `object-fit: contain` (light gray background, full document visibility) when caretaker shares their screen; "Screen shared by [name]" indicator displayed in call header
 
 ---
 
@@ -165,19 +177,19 @@ Styles are implemented with Tailwind CSS within the SvelteKit portal package. Mo
 
 | Component                 | File                       | Purpose                                                                                                                  |
 | ------------------------- | -------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| `DeviceCard.svelte`       | `src/lib/`                 | Device card with name, status dot, battery indicator, assigned profiles, and action buttons (Send Photo, Call, Settings) |
-| `DeviceStatusDot.svelte`  | `src/lib/`                 | Reusable online (green) / offline (gray) status indicator                                                                |
-| `BatteryIndicator.svelte` | `src/lib/`                 | Battery level progress bar with percentage (color-coded: green > 50%, yellow 20-50%, red < 20%)                          |
-| `QRScanner.svelte`        | `src/lib/`                 | Camera-based QR scanner using html5-qrcode with corner bracket overlay and manual code entry fallback                    |
-| `ProfileSelector.svelte`  | `src/lib/`                 | Checkbox list for selecting profiles with avatars                                                                        |
+| `DeviceCard.svelte`       | `src/lib/components/devices/` | Device card with name, status dot, battery indicator, assigned profiles, and action buttons (Call, Settings) |
+| `DeviceStatusDot.svelte`  | `src/lib/components/devices/` | Reusable online (green) / offline (gray) status indicator                                                                |
+| `BatteryIndicator.svelte` | `src/lib/components/devices/` | Battery level progress bar with percentage (color-coded: green > 50%, yellow 20-50%, red < 20%)                          |
+| `QRScanner.svelte`        | `src/lib/components/shared/` | Camera-based QR scanner using html5-qrcode with corner bracket overlay and manual code entry fallback                    |
+| `ProfileSelector.svelte`  | `src/lib/components/profiles/` | Checkbox list for selecting profiles with avatars                                                                        |
 | `CallModal.svelte`        | `src/lib/components/call/` | Full-screen modal for active video calls with local/remote video, call status, and controls                              |
-| `CallControls.svelte`     | `src/lib/components/call/` | Control buttons for mute, video toggle, and end call with keyboard shortcuts (M, V, Escape)                              |
+| `CallControls.svelte`     | `src/lib/components/call/` | Control buttons for mute, video toggle, screen share, and end call with keyboard shortcuts (M, V, S, Escape)            |
 
 ### Devices Page (`/devices`)
 
 - Device list with DeviceCard components
 - Each card shows: device name, status dot, assigned profile avatars, battery level, last active timestamp
-- Action buttons: "Send Photo" (disabled when offline), "Call" (disabled when offline), "Settings" (navigates to detail)
+- Action buttons: "Call" (disabled when offline), "Settings" (navigates to detail)
 - "+ Pair New Tablet" button (dashed border style) navigates to pairing flow
 - Empty state: tablet illustration, "No tablets paired yet", value prop, "+ Pair Your First Tablet" CTA
 
@@ -210,11 +222,12 @@ Styles are implemented with Tailwind CSS within the SvelteKit portal package. Mo
 
 - Header with back arrow and inline-editable device name (pencil icon)
 - Status section: online/offline dot, battery progress bar, last active timestamp
-- Actions section: "Send Photo" and "Call" buttons (disabled when offline or call in progress)
+- Actions section: "Call" button (disabled when offline or call in progress)
 - Call button shows "Calling..." text during initiating/ringing states
 - Clicking Call button initiates video call and opens full-screen CallModal
 - CallModal displays during active calls with call status, local/remote video streams, duration timer, and controls
-- CallControls provides mute (M key), video toggle (V key), and end call (Escape key) buttons
+- CallControls provides mute (M key), video toggle (V key), screen share (S key), and end call (Escape key) buttons
+- Screen share button uses green background when active, shows Heroicons `computer-desktop` icon, and is disabled during initiating/ringing/connecting states
 - Assigned Profiles section: grid of profile cards with remove (×) button, "+ Add" link
 - Danger Zone: "Unpair Device" button with confirmation modal
 

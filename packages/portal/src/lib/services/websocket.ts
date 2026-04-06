@@ -1,10 +1,12 @@
 /**
  * WebSocket client for real-time signaling communication.
- * Handles connection management, auto-reconnect, and message routing.
+ * Handles connection management, auto-reconnect, message routing,
+ * heartbeat keep-alive, and message queuing during reconnect.
  * Uses ticket-based authentication to work with httpOnly cookies.
  */
 
 import type { SignalingMessage } from '@carehub/shared';
+import { buildWsUrl, createReconnectStrategy, parseMessage, logger } from '@carehub/shared';
 import { getWsTicket } from '$lib/api';
 
 export type ConnectionState = 'connecting' | 'connected' | 'disconnected';
@@ -17,6 +19,37 @@ const INITIAL_RECONNECT_DELAY_MS = 1000;
 const MAX_RECONNECT_DELAY_MS = 30000;
 const RECONNECT_BACKOFF_MULTIPLIER = 2;
 
+/** Heartbeat configuration */
+const HEARTBEAT_INTERVAL_MS = 25000; // 25 seconds — matches kiosk interval
+const HEARTBEAT_TIMEOUT_MS = 5000; // 5 seconds to receive pong
+
+/** Message queue configuration */
+const MAX_QUEUE_SIZE = 50;
+const MESSAGE_TTL_MS = 30000; // 30 seconds — discard stale messages on flush
+
+/**
+ * Priority levels for signaling messages.
+ * Higher values = higher priority — dropped last under queue pressure.
+ *
+ * Critical (2): SDP offers/answers and ICE candidates cannot be recovered.
+ * Normal (1): Call lifecycle messages are important but less time-sensitive.
+ * Low (0): Screen share state changes and errors are recoverable or less urgent.
+ */
+const MESSAGE_PRIORITY: Record<SignalingMessage['type'], number> = {
+	'call:offer': 2,
+	'call:answer': 2,
+	'call:ice-candidate': 2,
+	'call:initiate': 1,
+	'call:incoming': 1,
+	'call:ringing': 1,
+	'call:accepted': 1,
+	'call:declined': 1,
+	'call:ended': 1,
+	'call:screen-share': 0,
+	'call:error': 0,
+	'device_status_changed': 1
+};
+
 /** WebSocket close codes */
 const CLOSE_NORMAL = 1000;
 const CLOSE_AUTH_FAILED = 4001;
@@ -28,30 +61,144 @@ let reconnectAttempts = 0;
 let reconnectTimeoutId: ReturnType<typeof setTimeout> | null = null;
 let isUserInitiatedClose = false;
 
+/** Heartbeat state */
+let heartbeatIntervalId: ReturnType<typeof setInterval> | null = null;
+let heartbeatTimeoutId: ReturnType<typeof setTimeout> | null = null;
+
+/** Message queue for buffering during reconnect */
+interface QueuedMessage {
+	message: SignalingMessage;
+	queuedAt: number;
+}
+let pendingMessages: QueuedMessage[] = [];
+
 const messageHandlers = new Set<MessageHandler>();
 const connectHandlers = new Set<ConnectionHandler>();
 const disconnectHandlers = new Set<ConnectionHandler>();
 
+const reconnectStrategy = createReconnectStrategy({
+	initialDelayMs: INITIAL_RECONNECT_DELAY_MS,
+	maxDelayMs: MAX_RECONNECT_DELAY_MS,
+	multiplier: RECONNECT_BACKOFF_MULTIPLIER
+});
+
+// ─── Heartbeat ────────────────────────────────────────────────────────────────
+
 /**
- * Builds WebSocket URL with ticket authentication.
- * @param ticket - The one-time ticket for authentication
- * @returns WebSocket URL with ticket query parameter
+ * Starts sending ping frames every HEARTBEAT_INTERVAL_MS.
+ * If no pong response within HEARTBEAT_TIMEOUT_MS, considers connection dead.
  */
-function buildWebSocketUrl(ticket: string): string {
-	const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-	const host = window.location.host;
-	return `${protocol}//${host}/ws?ticket=${ticket}`;
+function startHeartbeat(): void {
+	stopHeartbeat();
+	heartbeatIntervalId = setInterval(() => {
+		if (socket?.readyState === WebSocket.OPEN) {
+			socket.send(JSON.stringify({ type: 'ping' }));
+			// Clear any existing timeout before setting a new one
+			// (prevents stale timeout from closing a healthy connection)
+			if (heartbeatTimeoutId) {
+				clearTimeout(heartbeatTimeoutId);
+				heartbeatTimeoutId = null;
+			}
+			// Start timeout — if no pong within window, force reconnect
+			heartbeatTimeoutId = setTimeout(() => {
+				logger.warn('[WebSocket] Heartbeat timeout — no pong received');
+				// Close will trigger onclose → scheduleReconnect
+				socket?.close(4000, 'Heartbeat timeout');
+			}, HEARTBEAT_TIMEOUT_MS);
+		}
+	}, HEARTBEAT_INTERVAL_MS);
 }
 
 /**
- * Calculates reconnect delay with exponential backoff.
- * @returns Delay in milliseconds
+ * Stops heartbeat interval and any pending timeout.
  */
-function getReconnectDelay(): number {
-	const delay =
-		INITIAL_RECONNECT_DELAY_MS * Math.pow(RECONNECT_BACKOFF_MULTIPLIER, reconnectAttempts);
-	return Math.min(delay, MAX_RECONNECT_DELAY_MS);
+function stopHeartbeat(): void {
+	if (heartbeatIntervalId) {
+		clearInterval(heartbeatIntervalId);
+		heartbeatIntervalId = null;
+	}
+	if (heartbeatTimeoutId) {
+		clearTimeout(heartbeatTimeoutId);
+		heartbeatTimeoutId = null;
+	}
 }
+
+// ─── Message Queue ────────────────────────────────────────────────────────────
+
+/**
+ * Adds a message to the pending queue.
+ * When queue is at max capacity, drops the lowest-priority message.
+ * Critical signaling (SDP/ICE) is preserved over less urgent messages.
+ */
+function enqueueMessage(message: SignalingMessage): void {
+	if (pendingMessages.length >= MAX_QUEUE_SIZE) {
+		const priority = MESSAGE_PRIORITY[message.type];
+
+		// Find the index of the lowest-priority message.
+		// Ties broken by oldest first (FIFO).
+		let dropIndex = 0;
+		let dropPriority = MESSAGE_PRIORITY[pendingMessages[0].message.type];
+		for (let i = 1; i < pendingMessages.length; i++) {
+			const p = MESSAGE_PRIORITY[pendingMessages[i].message.type];
+			if (p < dropPriority) {
+				dropPriority = p;
+				dropIndex = i;
+			}
+		}
+
+		// If incoming message is lower or equal priority to the drop candidate,
+		// drop the incoming message instead — it's not worth evicting something equal.
+		if (priority <= dropPriority) {
+			logger.warn(
+				'[WebSocket] Message queue full — dropping incoming message',
+				message.type
+			);
+			return;
+		}
+
+		const dropped = pendingMessages.splice(dropIndex, 1)[0];
+		logger.warn(
+			'[WebSocket] Message queue full — dropping lowest-priority message',
+			dropped.message.type
+		);
+	}
+
+	pendingMessages.push({ message, queuedAt: Date.now() });
+	logger.debug(
+		'[WebSocket] Message queued:',
+		message.type,
+		`(${pendingMessages.length}/${MAX_QUEUE_SIZE})`
+	);
+}
+
+/**
+ * Sends all non-expired pending messages in order, then clears the queue.
+ */
+function flushMessageQueue(): void {
+	if (pendingMessages.length === 0) return;
+
+	const now = Date.now();
+	const fresh = pendingMessages.filter((entry) => now - entry.queuedAt < MESSAGE_TTL_MS);
+	const stale = pendingMessages.length - fresh.length;
+
+	if (stale > 0) {
+		logger.warn(`[WebSocket] Discarding ${stale} stale message(s) from queue`);
+	}
+
+	for (const entry of fresh) {
+		if (!socket || socket.readyState !== WebSocket.OPEN) break;
+		try {
+			socket.send(JSON.stringify(entry.message));
+		} catch (err) {
+			logger.error('[WebSocket] Failed to send queued message:', err);
+		}
+	}
+
+	logger.debug(`[WebSocket] Flushed ${fresh.length} queued message(s)`);
+	pendingMessages = [];
+}
+
+// ─── Connection ───────────────────────────────────────────────────────────────
 
 /**
  * Schedules a reconnection attempt with exponential backoff.
@@ -60,7 +207,7 @@ function scheduleReconnect(): void {
 	if (isUserInitiatedClose) return;
 	if (reconnectTimeoutId) return;
 
-	const delay = getReconnectDelay();
+	const delay = reconnectStrategy.getDelay(reconnectAttempts);
 	reconnectTimeoutId = setTimeout(() => {
 		reconnectTimeoutId = null;
 		reconnectAttempts++;
@@ -87,37 +234,40 @@ export async function connect(): Promise<void> {
 		const response = await getWsTicket();
 		ticket = response.ticket;
 	} catch (err) {
-		console.warn('[WebSocket] Failed to get auth ticket, user may not be logged in');
+		logger.warn('[WebSocket] Failed to get auth ticket, user may not be logged in');
 		connectionState = 'disconnected';
 		return;
 	}
 
-	const url = buildWebSocketUrl(ticket);
+	const url = buildWsUrl({ ticket });
 
 	try {
 		socket = new WebSocket(url);
 	} catch (err) {
-		console.error('[WebSocket] Failed to create WebSocket:', err);
+		logger.error('[WebSocket] Failed to create WebSocket:', err);
 		connectionState = 'disconnected';
 		scheduleReconnect();
 		return;
 	}
 
 	socket.onopen = () => {
-		console.log('[WebSocket] Connected');
+		logger.debug('[WebSocket] Connected');
 		connectionState = 'connected';
 		reconnectAttempts = 0;
+		startHeartbeat();
+		flushMessageQueue();
 		connectHandlers.forEach((handler) => handler());
 	};
 
 	socket.onclose = (event) => {
 		connectionState = 'disconnected';
 		socket = null;
+		stopHeartbeat();
 		disconnectHandlers.forEach((handler) => handler());
 
 		// Handle auth failure - redirect to login
 		if (event.code === CLOSE_AUTH_FAILED || event.code === CLOSE_INVALID_TICKET) {
-			console.warn('[WebSocket] Authentication failed, redirecting to login');
+			logger.warn('[WebSocket] Authentication failed, redirecting to login');
 			window.location.href = '/login';
 			return;
 		}
@@ -133,13 +283,20 @@ export async function connect(): Promise<void> {
 	};
 
 	socket.onmessage = (event) => {
-		try {
-			const message = JSON.parse(event.data) as SignalingMessage;
-			console.log('[WebSocket] Received:', message.type, message);
-			messageHandlers.forEach((handler) => handler(message));
-		} catch (err) {
-			console.error('[WebSocket] Failed to parse message:', err);
+		const message = parseMessage<SignalingMessage>(event.data);
+		if (!message) return;
+
+		// Handle pong response to heartbeat ping
+		if ('type' in message && (message as { type: string }).type === 'pong') {
+			if (heartbeatTimeoutId) {
+				clearTimeout(heartbeatTimeoutId);
+				heartbeatTimeoutId = null;
+			}
+			return;
 		}
+
+		logger.debug('[WebSocket] Received:', message.type, message);
+		messageHandlers.forEach((handler) => handler(message));
 	};
 }
 
@@ -155,7 +312,18 @@ export function disconnect(): void {
 		reconnectTimeoutId = null;
 	}
 
+	stopHeartbeat();
+
+	// Clear pending messages on intentional disconnect
+	pendingMessages = [];
+
 	if (socket) {
+		// Null out event handlers before closing to prevent stale events
+		// from firing after a new socket is created (race condition).
+		socket.onclose = null;
+		socket.onerror = null;
+		socket.onopen = null;
+		socket.onmessage = null;
 		socket.close(CLOSE_NORMAL, 'User disconnected');
 		socket = null;
 	}
@@ -176,6 +344,44 @@ export function reconnect(): void {
 }
 
 /**
+ * Immediately reconnects, bypassing exponential backoff.
+ * Preserves the pending message queue so queued messages survive the reconnect.
+ * Used when tab becomes visible and connection needs urgent restore.
+ */
+export function immediateReconnect(): void {
+	const savedQueue = [...pendingMessages];
+
+	isUserInitiatedClose = true;
+
+	if (reconnectTimeoutId) {
+		clearTimeout(reconnectTimeoutId);
+		reconnectTimeoutId = null;
+	}
+
+	stopHeartbeat();
+
+	if (socket) {
+		// Null out event handlers before closing to prevent stale events
+		// from firing after a new socket is created (race condition).
+		socket.onclose = null;
+		socket.onerror = null;
+		socket.onopen = null;
+		socket.onmessage = null;
+		socket.close(CLOSE_NORMAL, 'Immediate reconnect');
+		socket = null;
+	}
+
+	connectionState = 'disconnected';
+	reconnectAttempts = 0;
+	isUserInitiatedClose = false;
+
+	// Restore queue — disconnect() clears it, but we need to preserve it
+	pendingMessages = savedQueue;
+
+	connect();
+}
+
+/**
  * Returns current connection state.
  */
 export function getConnectionState(): ConnectionState {
@@ -184,22 +390,40 @@ export function getConnectionState(): ConnectionState {
 
 /**
  * Sends a signaling message over WebSocket.
+ * If disconnected, queues the message for delivery on reconnect.
  * @param message - Message to send
- * @returns True if message was sent, false if not connected
+ * @returns True if message was sent immediately, false if queued or failed
  */
 export function send(message: SignalingMessage): boolean {
-	if (!socket || socket.readyState !== WebSocket.OPEN) {
-		console.warn('[WebSocket] Cannot send message, not connected');
-		return false;
+	if (socket?.readyState === WebSocket.OPEN) {
+		try {
+			socket.send(JSON.stringify(message));
+			return true;
+		} catch (err) {
+			logger.error('[WebSocket] Failed to send message:', err);
+			enqueueMessage(message);
+			return false;
+		}
 	}
 
-	try {
-		socket.send(JSON.stringify(message));
-		return true;
-	} catch (err) {
-		console.error('[WebSocket] Failed to send message:', err);
-		return false;
-	}
+	// Queue for delivery on reconnect
+	enqueueMessage(message);
+	return false;
+}
+
+/**
+ * Returns the number of messages currently in the pending queue.
+ */
+export function getPendingMessageCount(): number {
+	return pendingMessages.length;
+}
+
+/**
+ * Returns a snapshot of pending message types in queue order.
+ * Intended for testing queue priority behavior.
+ */
+export function getPendingMessageTypes(): string[] {
+	return pendingMessages.map((entry) => entry.message.type);
 }
 
 /**

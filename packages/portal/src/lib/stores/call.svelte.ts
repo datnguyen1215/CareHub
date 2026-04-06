@@ -6,6 +6,12 @@
 
 import type { SignalingMessage, CallEndReason, IceCandidate } from '@carehub/shared';
 import {
+  getUserFriendlyError,
+  getTopLevelState,
+  createDurationTimer,
+  logger
+} from '@carehub/shared';
+import {
 	createMachine,
 	createCallerMachineConfig,
 	sharedAssignActions,
@@ -13,60 +19,13 @@ import {
 	CALL_EVENTS,
 	logTransition,
 	logWebRTCEvent,
+	logCallLifecycle,
 	type CallContext
 } from '@carehub/shared/webrtc/call-state-machine';
+import { CALL_SETUP_TIMEOUT_MS, RECONNECT_TIMEOUT_MS } from '@carehub/shared';
 import * as websocket from '$lib/services/websocket';
 import * as webrtc from '$lib/services/webrtc';
-import { toast } from '$lib/stores/toast';
-
-/** Maps technical errors to user-friendly messages */
-function getUserFriendlyError(error: string | null): string {
-	if (!error) return 'Call failed. Please try again.';
-
-	const errorLower = error.toLowerCase();
-
-	// WebSocket/connection issues
-	if (errorLower.includes('websocket') || errorLower.includes('unable to connect')) {
-		return 'Connection lost. Please check your internet and try again.';
-	}
-
-	// Device status issues
-	if (errorLower.includes('offline') || errorLower.includes('not connected')) {
-		return 'Device is offline. Please check the tablet.';
-	}
-
-	// Call declined
-	if (errorLower.includes('declined')) {
-		return 'Call was declined.';
-	}
-
-	// ICE/network issues
-	if (errorLower.includes('ice') || errorLower.includes('network')) {
-		return 'Could not establish video connection. Check your network.';
-	}
-
-	// Timeout
-	if (errorLower.includes('timeout') || errorLower.includes('timed out')) {
-		return 'Call timed out. Please try again.';
-	}
-
-	// Media permissions
-	if (
-		errorLower.includes('permission') ||
-		errorLower.includes('notallowed') ||
-		errorLower.includes('not allowed')
-	) {
-		return 'Camera/microphone access denied. Please allow permissions.';
-	}
-
-	// Media device issues
-	if (errorLower.includes('notfound') || errorLower.includes('not found')) {
-		return 'Camera or microphone not found. Please check your devices.';
-	}
-
-	// Return original error if already user-friendly or unrecognized
-	return error;
-}
+import { toast } from '$lib/stores/toast.svelte';
 
 /** Call status representing the call lifecycle */
 export type CallStatusType =
@@ -91,6 +50,7 @@ export interface CallState {
 	error: string | null;
 	isMuted: boolean;
 	isVideoOff: boolean;
+	isScreenSharing: boolean;
 }
 
 /** Initial call state */
@@ -105,7 +65,8 @@ const initialState: CallState = {
 	duration: 0,
 	error: null,
 	isMuted: false,
-	isVideoOff: false
+	isVideoOff: false,
+	isScreenSharing: false
 };
 
 /** Reactive call state using Svelte 5 runes */
@@ -118,35 +79,18 @@ export const callState = $state<CallState>({ ...initialState });
 let storedLocalStream: MediaStream | null = null;
 let storedRemoteStream: MediaStream | null = null;
 
-/** Subscription listeners for cross-module reactivity */
-type CallStateListener = (state: CallState) => void;
-const listeners = new Set<CallStateListener>();
+/** Setup timeout timer for ICE connection establishment */
+let setupTimerId: ReturnType<typeof setTimeout> | null = null;
 
-/**
- * Notifies all subscribers with a shallow copy of current state.
- * Shallow copy ensures new object reference triggers Svelte reactivity.
- */
-function notify(): void {
-	const snapshot = { ...callState };
-	listeners.forEach((listener) => listener(snapshot));
-}
+/** Reconnect timer for ICE disconnection grace period */
+let reconnectTimerId: ReturnType<typeof setTimeout> | null = null;
 
-/**
- * Subscribe to call state changes.
- * @param listener - Callback invoked when state changes
- * @returns Unsubscribe function
- */
-export function subscribe(listener: CallStateListener): () => void {
-	listeners.add(listener);
-	// Immediately call with current state
-	listener({ ...callState });
-	return () => {
-		listeners.delete(listener);
-	};
-}
-
-/** Duration timer interval ID */
-let durationIntervalId: ReturnType<typeof setInterval> | null = null;
+/** Duration timer from shared package */
+const durationTimer = createDurationTimer((seconds) => {
+	if (callState.status === 'connected') {
+		callState.duration = seconds;
+	}
+});
 
 /** State machine instance */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -157,7 +101,7 @@ let machine: any = null;
  */
 function mapMachineStateToStatus(machineState: string): CallStatusType {
 	// Handle hierarchical states (e.g., "signaling.waitingForAccept")
-	const topLevelState = machineState.split('.')[0];
+	const topLevelState = getTopLevelState(machineState);
 
 	switch (topLevelState) {
 		case 'idle':
@@ -210,33 +154,22 @@ function syncStateFromMachine(state: string, context: CallContext): void {
 	}
 
 	previousStatus = newStatus;
-
-	// Notify subscribers for cross-module reactivity
-	notify();
 }
 
 /**
  * Updates the duration counter every second when connected.
  */
 function startDurationTimer(): void {
-	if (durationIntervalId) return;
-
-	durationIntervalId = setInterval(() => {
-		if (callState.status === 'connected' && callState.startedAt) {
-			callState.duration = Math.floor((Date.now() - callState.startedAt.getTime()) / 1000);
-			notify();
-		}
-	}, 1000);
+	if (callState.startedAt) {
+		durationTimer.start(callState.startedAt);
+	}
 }
 
 /**
  * Stops the duration counter.
  */
 function stopDurationTimer(): void {
-	if (durationIntervalId) {
-		clearInterval(durationIntervalId);
-		durationIntervalId = null;
-	}
+	durationTimer.stop();
 }
 
 /**
@@ -252,7 +185,6 @@ function createCallMachine() {
 		...callerAssignActions,
 
 		// Override assignRemoteStream to update reactive state directly
-		// (self-transitions don't trigger subscribe callback)
 		assignRemoteStream: ({ event }: { event: { stream: MediaStream } }) => {
 			storedRemoteStream = event.stream;
 			callState.remoteStream = event.stream;
@@ -263,15 +195,16 @@ function createCallMachine() {
 			const currentState = machine?.state || 'unknown';
 			logTransition(currentState, currentState, event.type);
 		},
-		logEnterIdle: () => logWebRTCEvent('State', 'idle'),
-		logEnterInitiating: () => logWebRTCEvent('State', 'initiating'),
+		logEnterIdle: () => logCallLifecycle('State', 'idle'),
+		logEnterInitiating: () => logCallLifecycle('State', 'initiating'),
 		logEnterWaitingForAccept: () => logWebRTCEvent('State', 'signaling.waitingForAccept'),
 		logEnterCreatingOffer: () => logWebRTCEvent('State', 'signaling.creatingOffer'),
 		logEnterExchangingIce: () => logWebRTCEvent('State', 'signaling.exchangingIce'),
-		logEnterConnecting: () => logWebRTCEvent('State', 'connecting'),
-		logEnterConnected: () => logWebRTCEvent('State', 'connected'),
-		logEnterEnding: () => logWebRTCEvent('State', 'ending'),
-		logEnterFailed: () => logWebRTCEvent('State', 'failed'),
+		logEnterConnecting: () => logCallLifecycle('State', 'connecting'),
+		logEnterConnected: () => logCallLifecycle('State', 'connected'),
+		logEnterUnstable: () => logWebRTCEvent('State', 'connected.unstable'),
+		logEnterEnding: () => logCallLifecycle('State', 'ending'),
+		logEnterFailed: () => logCallLifecycle('State', 'failed'),
 
 		// Media actions
 		acquireLocalMedia: async () => {
@@ -294,7 +227,7 @@ function createCallMachine() {
 
 		// Signaling actions
 		sendCallInitiate: ({ context }: { context: CallContext }) => {
-			logWebRTCEvent('Signaling', `Sending call:initiate to ${context.targetDeviceId}`);
+			logCallLifecycle('Signaling', `Sending call:initiate to ${context.targetDeviceId}`);
 			const sent = websocket.send({
 				type: 'call:initiate',
 				callId: context.callId!,
@@ -356,8 +289,12 @@ function createCallMachine() {
 
 		flushPendingIceCandidates: async ({ context }: { context: CallContext }) => {
 			for (const candidate of context.pendingIceCandidates) {
-				logWebRTCEvent('ICE', 'Flushing pending ICE candidate');
-				await webrtc.addIceCandidate(candidate);
+				try {
+					logWebRTCEvent('ICE', 'Flushing pending ICE candidate');
+					await webrtc.addIceCandidate(candidate);
+				} catch (err) {
+					logWebRTCEvent('ICE', `Failed to flush pending candidate: ${(err as Error).message}`);
+				}
 			}
 		},
 
@@ -372,10 +309,41 @@ function createCallMachine() {
 			stopDurationTimer();
 		},
 
+		startSetupTimer: () => {
+			if (setupTimerId) clearTimeout(setupTimerId);
+			setupTimerId = setTimeout(() => {
+				machine?.send(CALL_EVENTS.SETUP_TIMEOUT);
+			}, CALL_SETUP_TIMEOUT_MS);
+			logWebRTCEvent('Timer', `Setup timeout started (${CALL_SETUP_TIMEOUT_MS}ms)`);
+		},
+
+		clearSetupTimer: () => {
+			if (setupTimerId) {
+				clearTimeout(setupTimerId);
+				setupTimerId = null;
+			}
+		},
+
+		startReconnectTimer: () => {
+			if (reconnectTimerId) clearTimeout(reconnectTimerId);
+			reconnectTimerId = setTimeout(() => {
+				machine?.send(CALL_EVENTS.RECONNECT_TIMEOUT);
+			}, RECONNECT_TIMEOUT_MS);
+			logWebRTCEvent('ICE', `Reconnect timer started (${RECONNECT_TIMEOUT_MS}ms)`);
+		},
+
+		clearReconnectTimer: () => {
+			if (reconnectTimerId) {
+				clearTimeout(reconnectTimerId);
+				reconnectTimerId = null;
+				logWebRTCEvent('ICE', 'Reconnect timer cleared');
+			}
+		},
+
 		// Call end actions
 		sendCallEnded: ({ context }: { context: CallContext }) => {
 			if (context.callId) {
-				logWebRTCEvent('Signaling', 'Sending call:ended');
+				logCallLifecycle('Signaling', 'Sending call:ended');
 				websocket.send({
 					type: 'call:ended',
 					callId: context.callId,
@@ -387,15 +355,27 @@ function createCallMachine() {
 		// Cleanup actions
 		cleanup: () => {
 			logWebRTCEvent('Action', 'Cleaning up WebRTC resources');
+			if (callState.isScreenSharing) {
+				stopScreenShare();
+			}
 			webrtc.stopLocalStream();
 			webrtc.closePeerConnection();
 			// Clear stored streams
 			storedLocalStream = null;
 			storedRemoteStream = null;
-			// Trigger cleanup complete after cleanup
-			setTimeout(() => {
+			// Clear setup timeout timer
+			if (setupTimerId) {
+				clearTimeout(setupTimerId);
+				setupTimerId = null;
+			}
+			// Clear reconnect timer
+			if (reconnectTimerId) {
+				clearTimeout(reconnectTimerId);
+				reconnectTimerId = null;
+			}
+			queueMicrotask(() => {
 				machine?.send(CALL_EVENTS.CLEANUP_COMPLETE);
-			}, 0);
+			});
 		},
 
 		resetContext: sharedAssignActions.resetContext
@@ -423,7 +403,8 @@ export async function initiateCall(deviceId: string, deviceName: string): Promis
 
 	// Guard: can only initiate from idle state
 	if (!machine.matches('idle')) {
-		console.warn('[Call] Cannot initiate: not in idle state');
+		logger.warn('[Call] Cannot initiate: not in idle state');
+		toast.warning('A call is already in progress');
 		return;
 	}
 
@@ -439,7 +420,7 @@ export function endCall(_reason: CallEndReason = 'completed'): void {
 
 	// Guard: can only end if not already idle or ending
 	if (machine.matches('idle') || machine.matches('ending')) {
-		console.warn('[Call] Cannot end: already idle or ending');
+		logger.warn('[Call] Cannot end: already idle or ending');
 		return;
 	}
 
@@ -458,7 +439,6 @@ export function toggleMute(): void {
 	callState.isMuted = !callState.isMuted;
 	webrtc.setAudioEnabled(!callState.isMuted);
 	logWebRTCEvent('Media', `Audio ${callState.isMuted ? 'muted' : 'unmuted'}`);
-	notify();
 }
 
 /**
@@ -468,7 +448,110 @@ export function toggleVideo(): void {
 	callState.isVideoOff = !callState.isVideoOff;
 	webrtc.setVideoEnabled(!callState.isVideoOff);
 	logWebRTCEvent('Media', `Video ${callState.isVideoOff ? 'off' : 'on'}`);
-	notify();
+}
+
+// ─── Screen Share ──────────────────────────────────────────────────────────
+
+/** Stores the original camera track so it can be restored after screen sharing. */
+let originalCameraTrack: MediaStreamTrack | null = null;
+
+/** The active screen stream, if any. */
+let screenStream: MediaStream | null = null;
+
+/** Guards against concurrent toggleScreenShare calls (e.g. rapid button taps). */
+let screenShareInProgress = false;
+
+/**
+ * Stops screen sharing: restores the camera track, stops screen stream tracks,
+ * resets state, and notifies the remote peer.
+ */
+function stopScreenShare(): void {
+	const pc = webrtc.getPeerConnection();
+	if (pc && originalCameraTrack) {
+		const sender = pc.getSenders().find((s) => s.track?.kind === 'video');
+		if (sender) {
+			sender.replaceTrack(originalCameraTrack).catch((err) => {
+				logWebRTCEvent('Error', `Failed to restore camera track: ${(err as Error).message}`);
+			});
+		}
+	}
+	originalCameraTrack = null;
+
+	if (screenStream) {
+		screenStream.getTracks().forEach((t) => t.stop());
+		screenStream = null;
+	}
+
+	callState.isScreenSharing = false;
+	logWebRTCEvent('Media', 'Screen sharing stopped');
+
+	if (callState.sessionId) {
+		websocket.send({
+			type: 'call:screen-share',
+			callId: callState.sessionId,
+			active: false
+		});
+	}
+}
+
+/**
+ * Toggles screen sharing on/off during an active call.
+ * Uses replaceTrack to swap the camera track for a screen capture track,
+ * which does not require WebRTC renegotiation.
+ */
+export async function toggleScreenShare(): Promise<void> {
+	if (callState.isScreenSharing) {
+		stopScreenShare();
+		return;
+	}
+
+	if (screenShareInProgress) return;
+	screenShareInProgress = true;
+
+	try {
+		screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+		const screenTrack = screenStream.getVideoTracks()[0];
+
+		const pc = webrtc.getPeerConnection();
+		if (!pc) {
+			screenStream.getTracks().forEach((t) => t.stop());
+			screenStream = null;
+			return;
+		}
+
+		const sender = pc.getSenders().find((s) => s.track?.kind === 'video');
+		if (!sender) {
+			screenStream.getTracks().forEach((t) => t.stop());
+			screenStream = null;
+			return;
+		}
+
+		// Save the original camera track for restoration
+		originalCameraTrack = sender.track ?? null;
+
+		await sender.replaceTrack(screenTrack);
+
+		// Listen for the user stopping share via browser/OS UI
+		screenTrack.addEventListener('ended', () => {
+			stopScreenShare();
+		});
+
+		callState.isScreenSharing = true;
+		logWebRTCEvent('Media', 'Screen sharing started');
+
+		if (callState.sessionId) {
+			websocket.send({
+				type: 'call:screen-share',
+				callId: callState.sessionId,
+				active: true
+			});
+		}
+	} catch (err) {
+		logWebRTCEvent('Error', `getDisplayMedia failed: ${(err as Error).message}`);
+		toast.error('Unable to share screen. Permission denied or not supported.');
+	} finally {
+		screenShareInProgress = false;
+	}
 }
 
 /**
@@ -477,7 +560,7 @@ export function toggleVideo(): void {
  * @param message - Signaling message from WebSocket
  */
 export async function handleIncomingSignal(message: SignalingMessage): Promise<void> {
-	console.log(
+	logger.debug(
 		'[Call] handleIncomingSignal:',
 		message.type,
 		'machine:',
@@ -487,13 +570,20 @@ export async function handleIncomingSignal(message: SignalingMessage): Promise<v
 	);
 	if (!machine) return;
 
+	// Only process signals if this tab has an active call.
+	// Prevents multi-tab interference — only the initiating tab is non-idle.
+	if (callState.status === 'idle') {
+		logger.warn('[Call] handleIncomingSignal: dropping message while idle, type:', message.type);
+		return;
+	}
+
 	// Ignore messages for other calls (except call:ringing which establishes the session)
 	if (
 		'callId' in message &&
 		message.type !== 'call:ringing' &&
 		message.callId !== callState.sessionId
 	) {
-		console.log(
+		logger.debug(
 			'[Call] Ignoring message - callId mismatch:',
 			(message as { callId: string }).callId,
 			'!==',
@@ -510,18 +600,21 @@ export async function handleIncomingSignal(message: SignalingMessage): Promise<v
 			// Update both the UI state and the machine's context with the server's callId
 			callState.sessionId = message.callId;
 			machine.send(CALL_EVENTS.SESSION_CONFIRMED, { callId: message.callId });
-			logWebRTCEvent('Signaling', `Call ringing, sessionId updated to ${message.callId}`);
+			logCallLifecycle('Signaling', `Call ringing, sessionId updated to ${message.callId}`);
 			break;
 
 		case 'call:accepted':
+			logCallLifecycle('Signaling', 'Call accepted by callee');
 			machine.send(CALL_EVENTS.CALL_ACCEPTED);
 			break;
 
 		case 'call:declined':
+			logCallLifecycle('Signaling', 'Call declined by callee');
 			machine.send(CALL_EVENTS.CALL_DECLINED);
 			break;
 
 		case 'call:ended':
+			logCallLifecycle('Signaling', `Call ended (reason: ${message.reason})`);
 			machine.send(CALL_EVENTS.CALL_ENDED, { reason: message.reason });
 			break;
 
@@ -534,6 +627,7 @@ export async function handleIncomingSignal(message: SignalingMessage): Promise<v
 			break;
 
 		case 'call:error':
+			logCallLifecycle('Signaling', `Call error received: ${message.error}`);
 			machine.send(CALL_EVENTS.CALL_ERROR, { error: message.error });
 			break;
 	}
@@ -598,6 +692,9 @@ export function initializeCallHandlers(): () => void {
 		}
 	});
 
+	// Handle tab visibility changes during active calls
+	const unsubVisibility = setupVisibilityHandler();
+
 	// Return cleanup function
 	return () => {
 		unsubTrack();
@@ -606,8 +703,119 @@ export function initializeCallHandlers(): () => void {
 		unsubError();
 		unsubMessage();
 		unsubDisconnect();
+		unsubVisibility();
 		stopDurationTimer();
 	};
+}
+
+// ─── Tab Visibility ───────────────────────────────────────────────────────────
+
+/**
+ * Whether the tab was hidden while a call was active.
+ * Used to detect return from background during a call.
+ */
+let wasHiddenDuringCall = false;
+
+/**
+ * Checks if local media tracks are still live.
+ * Browsers may pause tracks when tab goes to background.
+ */
+function areLocalTracksLive(): boolean {
+	if (!storedLocalStream) return false;
+	return storedLocalStream.getTracks().some((track) => track.readyState !== 'ended');
+}
+
+/**
+ * Attempts to re-acquire the local media stream if tracks went dead
+ * while the tab was in background. Stops the dead stream first to clear
+ * the cache, acquires a fresh stream, then replaces tracks on the active
+ * peer connection so the remote peer receives the new media.
+ */
+async function recoverLocalStream(): Promise<void> {
+	if (!storedLocalStream || areLocalTracksLive()) return;
+
+	logWebRTCEvent('Media', 'Local tracks appear dead — attempting recovery');
+
+	try {
+		// Stop the dead stream first to clear the cache in webrtc.getLocalStream()
+		webrtc.stopLocalStream();
+
+		// Acquire a fresh local stream
+		const newStream = await webrtc.getLocalStream();
+		storedLocalStream = newStream;
+		callState.localStream = newStream;
+
+		// Capture peer connection AFTER async getLocalStream to avoid stale reference
+		const pc = webrtc.getPeerConnection();
+
+		// Replace tracks on the active peer connection so remote peer gets new media
+		if (pc) {
+			const senders = pc.getSenders();
+			const newTracks = newStream.getTracks();
+
+			for (const sender of senders) {
+				const oldTrack = sender.track;
+				if (!oldTrack) continue;
+				// Skip video sender if screen sharing — replacing the screen track
+				// with a camera track would silently break the active screen share.
+				if (oldTrack.kind === 'video' && callState.isScreenSharing) continue;
+				const replacement = newTracks.find(
+					(t) => t.kind === oldTrack.kind
+				);
+				if (replacement) {
+					await sender.replaceTrack(replacement);
+					logWebRTCEvent(
+						'Media',
+						`Replaced ${oldTrack.kind} track on peer connection`
+					);
+				}
+			}
+		}
+
+		logWebRTCEvent('Media', 'Local stream recovered successfully');
+	} catch (err) {
+		logWebRTCEvent('Error', `Failed to recover local stream: ${(err as Error).message}`);
+	}
+}
+
+/**
+ * Sets up a visibilitychange listener to handle tab focus changes during calls.
+ * When the tab becomes visible during an active call, verifies WebSocket and
+ * media stream health, triggering recovery as needed.
+ * @returns Cleanup function to remove the listener
+ */
+function setupVisibilityHandler(): () => void {
+	const handler = () => {
+		if (document.visibilityState === 'hidden') {
+			if (callState.status !== 'idle' && callState.status !== 'ended') {
+				wasHiddenDuringCall = true;
+				logWebRTCEvent('Visibility', 'Tab hidden during active call');
+			}
+			return;
+		}
+
+		// Tab became visible
+		if (!wasHiddenDuringCall) return;
+		wasHiddenDuringCall = false;
+
+		logWebRTCEvent('Visibility', 'Tab visible — checking connection health');
+
+		// If WebSocket disconnected while hidden, reconnect immediately (bypass backoff)
+		if (websocket.getConnectionState() !== 'connected') {
+			logWebRTCEvent('Visibility', 'WebSocket disconnected — forcing immediate reconnect');
+			websocket.immediateReconnect();
+		}
+
+		// If local media tracks went dead, attempt recovery
+		if (callState.status === 'connected') {
+			recoverLocalStream().catch((err) => {
+				logWebRTCEvent('Error', `Unhandled stream recovery error: ${(err as Error).message}`);
+			});
+		}
+	};
+
+	document.addEventListener('visibilitychange', handler);
+	return () => document.removeEventListener('visibilitychange', handler);
 }
 
 // Derived state getters

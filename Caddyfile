@@ -1,0 +1,33 @@
+(backend_proxy) {
+	handle /api/* {
+		reverse_proxy backend:9391
+	}
+
+	handle /ws {
+		reverse_proxy backend:9391
+	}
+
+	handle /uploads/* {
+		reverse_proxy backend:9391
+	}
+}
+
+:9390 {
+	import backend_proxy
+
+	handle {
+		root * /srv/portal
+		try_files {path} {path}/ /index.html
+		file_server
+	}
+}
+
+:9393 {
+	import backend_proxy
+
+	handle {
+		root * /srv/kiosk
+		try_files {path} {path}/ /index.html
+		file_server
+	}
+}

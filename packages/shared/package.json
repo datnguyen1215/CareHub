@@ -17,6 +17,14 @@
     "./webrtc/call-state-machine": {
       "import": "./dist/webrtc/call-state-machine.js",
       "types": "./dist/webrtc/call-state-machine.d.ts"
+    },
+    "./websocket/connection": {
+      "import": "./dist/websocket/connection.js",
+      "types": "./dist/websocket/connection.d.ts"
+    },
+    "./ui/toast": {
+      "import": "./dist/ui/toast.js",
+      "types": "./dist/ui/toast.d.ts"
     }
   },
   "scripts": {

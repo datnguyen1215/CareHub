@@ -8,10 +8,11 @@
  *
  * Signaling sub-states:
  * - Caller: waitingForAccept -> creatingOffer -> exchangingIce
- * - Callee: incoming -> waitingForOffer -> creatingAnswer -> exchangingIce
+ * - Callee: incoming -> acquiringMedia -> waitingForOffer -> creatingAnswer -> exchangingIce
  */
 
 import { createMachine, assign } from '@datnguyen1215/hsmjs'
+import { logger } from '../logger.js'
 import type { CallParticipant, CallEndReason, IceCandidate } from './types.js'
 
 /** Call state names - top level */
@@ -30,6 +31,7 @@ export type CallerSignalingState = 'waitingForAccept' | 'creatingOffer' | 'excha
 /** Signaling sub-states for callee */
 export type CalleeSignalingState =
   | 'incoming'
+  | 'acquiringMedia'
   | 'waitingForOffer'
   | 'creatingAnswer'
   | 'exchangingIce'
@@ -70,6 +72,8 @@ export const CALL_EVENTS = {
 
   // Internal
   CLEANUP_COMPLETE: 'CLEANUP_COMPLETE',
+  SETUP_TIMEOUT: 'SETUP_TIMEOUT',
+  RECONNECT_TIMEOUT: 'RECONNECT_TIMEOUT',
 } as const
 
 /** Context shared by both caller and callee state machines */
@@ -114,16 +118,32 @@ export const initialCallContext: CallContext = {
  */
 export function logTransition(oldState: string, newState: string, event: string): void {
   const timestamp = new Date().toISOString()
-  console.log(`[Call:${timestamp}] ${oldState} -> ${newState} (trigger: ${event})`)
+  logger.debug(`[Call:${timestamp}] ${oldState} -> ${newState} (trigger: ${event})`)
 }
 
 /**
- * Logs WebRTC events.
+ * Logs WebRTC events at debug level (suppressed in production).
+ * Use for verbose events: ICE candidates, SDP details, timer events, connection state changes.
  */
 export function logWebRTCEvent(eventType: string, details?: string): void {
   const timestamp = new Date().toISOString()
   const message = details ? `${eventType}: ${details}` : eventType
-  console.log(`[Call:WebRTC:${timestamp}] ${message}`)
+  logger.debug(`[Call:WebRTC:${timestamp}] ${message}`)
+}
+
+/**
+ * Logs key call lifecycle events at warn level (always visible in production).
+ * Use for: call initiated, incoming, accepted/declined, connected, ended, failed,
+ * and top-level state machine transitions.
+ *
+ * Uses warn level because logger.info is suppressed in production; these are
+ * informational lifecycle events, not warnings.
+ */
+export function logCallLifecycle(eventType: string, details?: string): void {
+  const timestamp = new Date().toISOString()
+  const message = details ? `${eventType}: ${details}` : eventType
+  // Uses warn level because logger.info is suppressed in production; these are informational lifecycle events, not warnings.
+  logger.warn(`[Call:${timestamp}] ${message}`)
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -244,7 +264,8 @@ export function createCallerMachineConfig(): MachineConfigAny {
         },
       },
       connecting: {
-        entry: ['logEnterConnecting', 'flushPendingIceCandidates'],
+        entry: ['logEnterConnecting', 'flushPendingIceCandidates', 'startSetupTimer'],
+        exit: ['clearSetupTimer'],
         on: {
           ICE_CONNECTED: {
             target: 'connected',
@@ -253,6 +274,10 @@ export function createCallerMachineConfig(): MachineConfigAny {
           ICE_FAILED: {
             target: 'failed',
             actions: ['assignIceFailedError', 'logTransition'],
+          },
+          SETUP_TIMEOUT: {
+            target: 'failed',
+            actions: ['assignSetupTimeoutError', 'logTransition'],
           },
           ICE_CANDIDATE: {
             target: 'connecting',
@@ -273,7 +298,36 @@ export function createCallerMachineConfig(): MachineConfigAny {
         },
       },
       connected: {
+        initial: 'stable',
         entry: ['logEnterConnected', 'startDurationTimer'],
+        states: {
+          stable: {
+            on: {
+              ICE_DISCONNECTED: {
+                target: 'unstable',
+                actions: ['logTransition'],
+              },
+            },
+          },
+          unstable: {
+            entry: ['logEnterUnstable', 'startReconnectTimer'],
+            exit: ['clearReconnectTimer'],
+            on: {
+              ICE_CONNECTED: {
+                target: 'stable',
+                actions: ['logTransition'],
+              },
+              RECONNECT_TIMEOUT: {
+                target: '#callerCall.failed',
+                actions: ['assignDisconnectedError', 'logTransition'],
+              },
+              ICE_FAILED: {
+                target: '#callerCall.failed',
+                actions: ['assignIceFailedError', 'logTransition'],
+              },
+            },
+          },
+        },
         on: {
           END: {
             target: 'ending',
@@ -283,20 +337,14 @@ export function createCallerMachineConfig(): MachineConfigAny {
             target: 'ending',
             actions: ['assignEndReason', 'logTransition'],
           },
-          ICE_DISCONNECTED: {
-            target: 'failed',
-            actions: ['assignDisconnectedError', 'logTransition'],
-          },
           ICE_FAILED: {
             target: 'failed',
             actions: ['assignIceFailedError', 'logTransition'],
           },
           REMOTE_STREAM_READY: {
-            target: 'connected',
             actions: ['assignRemoteStream'],
           },
           ICE_CANDIDATE: {
-            target: 'connected',
             actions: ['addRemoteIceCandidate'],
           },
         },
@@ -348,13 +396,8 @@ export function createCalleeMachineConfig(): MachineConfigAny {
             entry: ['logEnterIncoming'],
             on: {
               ACCEPT: {
-                target: 'waitingForOffer',
-                actions: [
-                  'acquireLocalMedia',
-                  'createPeerConnection',
-                  'sendCallAccepted',
-                  'logTransition',
-                ],
+                target: 'acquiringMedia',
+                actions: ['logTransition'],
               },
               DECLINE: {
                 target: '#calleeCall.ending',
@@ -362,17 +405,27 @@ export function createCalleeMachineConfig(): MachineConfigAny {
               },
             },
           },
-          waitingForOffer: {
-            entry: ['logEnterWaitingForOffer'],
+          acquiringMedia: {
+            entry: ['logEnterAcquiringMedia', 'acquireLocalMedia'],
             on: {
               LOCAL_STREAM_READY: {
                 target: 'waitingForOffer',
-                actions: ['assignLocalStream'],
+                actions: [
+                  'assignLocalStream',
+                  'createPeerConnection',
+                  'sendCallAccepted',
+                  'logTransition',
+                ],
               },
               MEDIA_ERROR: {
                 target: '#calleeCall.failed',
                 actions: ['assignError', 'sendCallEnded', 'logTransition'],
               },
+            },
+          },
+          waitingForOffer: {
+            entry: ['logEnterWaitingForOffer'],
+            on: {
               OFFER_RECEIVED: {
                 target: 'creatingAnswer',
                 actions: ['handleOffer', 'logTransition'],
@@ -412,7 +465,8 @@ export function createCalleeMachineConfig(): MachineConfigAny {
         },
       },
       connecting: {
-        entry: ['logEnterConnecting', 'flushPendingIceCandidates'],
+        entry: ['logEnterConnecting', 'flushPendingIceCandidates', 'startSetupTimer'],
+        exit: ['clearSetupTimer'],
         on: {
           ICE_CONNECTED: {
             target: 'connected',
@@ -421,6 +475,10 @@ export function createCalleeMachineConfig(): MachineConfigAny {
           ICE_FAILED: {
             target: 'failed',
             actions: ['assignIceFailedError', 'logTransition'],
+          },
+          SETUP_TIMEOUT: {
+            target: 'failed',
+            actions: ['assignSetupTimeoutError', 'logTransition'],
           },
           ICE_CANDIDATE: {
             target: 'connecting',
@@ -441,7 +499,36 @@ export function createCalleeMachineConfig(): MachineConfigAny {
         },
       },
       connected: {
+        initial: 'stable',
         entry: ['logEnterConnected', 'startDurationTimer'],
+        states: {
+          stable: {
+            on: {
+              ICE_DISCONNECTED: {
+                target: 'unstable',
+                actions: ['logTransition'],
+              },
+            },
+          },
+          unstable: {
+            entry: ['logEnterUnstable', 'startReconnectTimer'],
+            exit: ['clearReconnectTimer'],
+            on: {
+              ICE_CONNECTED: {
+                target: 'stable',
+                actions: ['logTransition'],
+              },
+              RECONNECT_TIMEOUT: {
+                target: '#calleeCall.failed',
+                actions: ['assignDisconnectedError', 'logTransition'],
+              },
+              ICE_FAILED: {
+                target: '#calleeCall.failed',
+                actions: ['assignIceFailedError', 'logTransition'],
+              },
+            },
+          },
+        },
         on: {
           END: {
             target: 'ending',
@@ -451,20 +538,14 @@ export function createCalleeMachineConfig(): MachineConfigAny {
             target: 'ending',
             actions: ['assignEndReason', 'logTransition'],
           },
-          ICE_DISCONNECTED: {
-            target: 'failed',
-            actions: ['assignDisconnectedError', 'logTransition'],
-          },
           ICE_FAILED: {
             target: 'failed',
             actions: ['assignIceFailedError', 'logTransition'],
           },
           REMOTE_STREAM_READY: {
-            target: 'connected',
             actions: ['assignRemoteStream'],
           },
           ICE_CANDIDATE: {
-            target: 'connected',
             actions: ['addRemoteIceCandidate'],
           },
         },
@@ -512,6 +593,9 @@ export const sharedAssignActions = {
   }),
   assignIceFailedError: assign({
     error: () => 'Connection failed. Please check your network and try again.',
+  }),
+  assignSetupTimeoutError: assign({
+    error: () => 'Could not connect. Please check your network and try again.',
   }),
   assignDisconnectedError: assign({
     error: () => 'Connection lost',

@@ -17,7 +17,7 @@ Establish authentication, core data structures, and basic health tracking.
 - **Care profile CRUD** -- Add, edit, and remove profiles with name, photo, relationship, date of birth, and known conditions
 - **Medication management** -- Add/edit/remove medications via modal; fields: name, dosage, schedule (multi-select: morning/afternoon/evening/bedtime), status (active/discontinued); discontinued medications hidden by default with a "Show discontinued" toggle
 - **Home dashboard** -- Card grid showing all profiles; each card displays name, relationship, conditions (tags), and active medication count
-- **Profile detail view** -- Overview and Medications tabs
+- **Profile detail view** -- Tabbed interface with Overview, Medications, Calendar, Journal, and Documents panels
 - **Deployment** -- Production Docker Compose with Traefik reverse proxy, Let's Encrypt SSL, separate portal/backend containers, PostgreSQL with persistent volume
 - **Mobile-responsive layout** -- Bottom navigation, card-based UI, mobile-first
 
@@ -93,23 +93,34 @@ Enable the tablet kiosk experience, Capacitor mobile app, and real-time communic
 - [x] **WebRTC peer manager** -- Local media (720p, echo cancel), SDP negotiation, ICE gathering
 - [x] **Call state machine** -- Hierarchical state machine (@datnguyen1215/hsmjs) with guards, logging, and ICE candidate queueing
 - [x] **Call state store** -- State machine-based store with reactive UI state mapping
-- [x] **Call actions** -- `initiateCall()`, `endCall()`, `toggleMute()`, `toggleVideo()`
+- [x] **Call actions** -- `initiateCall()`, `endCall()`, `toggleMute()`, `toggleVideo()`, `toggleScreenShare()`
 - [x] **Signaling integration** -- WebSocket message routing, ICE candidate exchange
 - [x] **Error handling** -- getUserMedia errors, ICE failure detection, WebSocket disconnect
 - [x] **Layout integration** -- WebSocket connects on app mount, handlers auto-initialized
 - [x] **State machine guards** -- Prevent invalid transitions, queue ICE candidates before peer connection ready
-- [x] **Debug logging** -- All state transitions and WebRTC events logged with timestamps
+- [x] **Call lifecycle logging** -- Key lifecycle events (initiated, incoming, accepted/declined, connecting, connected, ended, failed) logged at warn level via `logCallLifecycle()` (always visible in production); verbose events (ICE candidates, SDP, timers) logged at debug level via `logWebRTCEvent()` (silenced in production)
+- [x] **Setup timeout** -- ICE negotiation in `connecting` state automatically fails after 15s (`CALL_SETUP_TIMEOUT_MS`) if connection stalls, with user-friendly error and retry option
+- [x] **ICE disconnected grace period** -- `connected` state uses hierarchical sub-states (`stable`/`unstable`); on `ICE_DISCONNECTED`, call enters `unstable` with a 10s reconnect timer (`RECONNECT_TIMEOUT_MS`); recovers to `stable` on `ICE_CONNECTED`, fails on timeout; prevents dropped calls on brief network blips
+- [x] **WebSocket heartbeat** -- Ping every 25 seconds with 5-second pong timeout; dead connections detected within 30 seconds
+- [x] **Message queue** -- Signaling messages buffered during disconnection (max 50, 30s TTL), flushed on reconnect; priority-based eviction drops lowest-priority messages first (critical SDP/ICE preserved)
+- [x] **Tab visibility handling** -- Detects hidden tab during call; on return, forces immediate reconnect if WebSocket disconnected, recovers dead local media streams via track replacement
+- [x] **Backend ping/pong** -- User WebSocket handler supports `ping` messages and responds with `pong`
+- [x] **Race condition prevention** -- Old socket event handlers nulled before close to prevent stale events from corrupting new connections
+- [x] **Multi-tab signal isolation** -- `handleIncomingSignal()` skips signals when tab call state is idle; prevents duplicate SDP offers and conflicting ICE negotiations when a user has multiple portal tabs open
+- [x] **Real-time device status** -- `device_status_changed` WebSocket events broadcast from backend; portal `deviceStatus.svelte.ts` store seeded from REST API on load and updated reactively; device list, device detail, DeviceCard, and OverviewPanel all reflect live status; call button disabled state derived from live store; `handleCall` guards in devices page and OverviewPanel use `getDeviceStatus()` for defense-in-depth
 
 - [x] **Call UI components** -- Full-screen call interface on portal with CallModal and CallControls
 - [x] **Portal call initiation** -- Call from device detail page and profile overview tab, both wired to call store
 
-- [x] **Call state reactivity** -- Subscription-based cross-module reactivity for both Portal and Kiosk call stores; `subscribe(callback)` registers listeners that receive shallow copies on every mutation; replaces polling in kiosk CallOverlay
+- [x] **Call state reactivity** -- Portal call store uses Svelte 5 `$state` runes with direct import reactivity (components import `callState` directly); Kiosk still uses `subscribe()` pattern (not yet migrated)
+
+- [x] **Kiosk screen share display** -- CallScreen layout adapts when caretaker shares screen: `object-fit: contain` with light gray background, "Screen shared by [name]" indicator; state driven by `call:screen-share` signaling message via `isRemoteScreenSharing` in CallState
 
 **Planned:**
 
 - **Incoming call screen (tablet)** -- Full-screen display with large Accept/Decline buttons
 - **Kiosk call initiation** -- Tap caretaker card to start call
-- **Missed call handling** -- "No answer" timeout state
+- **Missed call handling** -- "No answer" timeout state; backend sends `call:ended` (reason: `missed`) to both portal and kiosk on 30s ring timeout, kiosk returns to idle
 
 ### Phase 3.6: Capacitor Native (In Progress)
 
@@ -121,6 +132,7 @@ Enable the tablet kiosk experience, Capacitor mobile app, and real-time communic
 - [x] **Android project** -- Capacitor Android platform with Lock Task Mode, auto-launch on boot, foreground service permissions
 - [x] **Build workflow** -- Scripts for `cap:sync`, `cap:open`, `cap:build`
 - [x] **Capacitor portal integration** -- Portal configured with adapter-static, Capacitor Android platform, and client-side auth
+- [x] **Device Owner provisioning** -- `DeviceAdminReceiver` registered in manifest with `BIND_DEVICE_ADMIN` permission; `device_admin.xml` declares empty `<uses-policies>` (Device Owner inherits all privileges); `REQUEST_INSTALL_PACKAGES` and `REQUEST_DELETE_PACKAGES` permissions added; one-time ADB provisioning script at `packages/kiosk/scripts/provision-device-owner.sh`; setup steps documented in `packages/kiosk/SETUP.md`
 - [x] **Release pipeline** -- `scripts/release.sh` for kiosk and portal: bumps versionCode/versionName, builds signed APK, uploads to backend; `npm run release:kiosk` and `npm run release:portal` at root; see [RELEASING.md](../RELEASING.md)
 
 **Planned:**
@@ -128,6 +140,7 @@ Enable the tablet kiosk experience, Capacitor mobile app, and real-time communic
 - **Firebase Cloud Messaging** -- FCM integration for high-priority push notifications
 - **Native incoming call UI** -- Full-screen call notification on caretaker's phone with ringtone
 - **Foreground service implementation** -- Keep WebSocket alive on tablet
+- **Silent APK updates** -- Use Device Owner `DevicePolicyManager` to install APK updates without user interaction
 - **Capgo OTA updates** -- Over-the-air web bundle updates; automatic updates without APK reinstall
 
 ### Screens Implemented
