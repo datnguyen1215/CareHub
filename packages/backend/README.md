@@ -196,7 +196,8 @@ WebSocket endpoint: `ws://localhost:9391/ws`
 
 For implementation details, see:
 
-- `src/websocket/index.ts` - WebSocket server setup and routing
+- `src/index.ts` - HTTP server entry point; centralized SIGTERM/SIGINT graceful shutdown
+- `src/websocket/index.ts` - WebSocket server setup and routing; returns `WebSocketServer` instance
 - `src/websocket/clients.ts` - Client registry with multi-tab support
 - `src/websocket/handlers/device.ts` - Device message handlers
 - `src/websocket/handlers/user.ts` - User message handlers
