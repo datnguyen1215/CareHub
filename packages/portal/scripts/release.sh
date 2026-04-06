@@ -70,6 +70,7 @@ if [[ ! -f "$ENV_FILE" ]]; then
   exit 1
 fi
 
+# set -a auto-exports all sourced vars; .env.release must contain only KEY=VALUE lines (no shell commands)
 # shellcheck disable=SC1090
 set -a
 source "$ENV_FILE"
@@ -118,14 +119,16 @@ echo "==> Releasing $APP_NAME v$VERSION"
 # ── Auto-increment versionCode and set versionName ────────────────────────────
 echo "==> Updating build.gradle version..."
 
-CURRENT_VERSION_CODE=$(grep -oP 'versionCode \K[0-9]+' "$BUILD_GRADLE" | head -1)
+CURRENT_VERSION_CODE=$(grep -o 'versionCode [0-9]*' "$BUILD_GRADLE" | head -1 | awk '{print $2}')
 NEW_VERSION_CODE=$((CURRENT_VERSION_CODE + 1))
 
+# Use temp files for sed substitution (portable across macOS and Linux)
 TMP_GRADLE=$(mktemp)
+TMP_GRADLE2=$(mktemp)
 sed "s/\(versionCode \)$CURRENT_VERSION_CODE$/\1$NEW_VERSION_CODE/" "$BUILD_GRADLE" > "$TMP_GRADLE"
-sed -i "s/versionName \"[^\"]*\"/versionName \"$VERSION\"/" "$TMP_GRADLE"
-cp "$TMP_GRADLE" "$BUILD_GRADLE"
-rm -f "$TMP_GRADLE"
+sed "s/versionName \"[^\"]*\"/versionName \"$VERSION\"/" "$TMP_GRADLE" > "$TMP_GRADLE2"
+cp "$TMP_GRADLE2" "$BUILD_GRADLE"
+rm -f "$TMP_GRADLE" "$TMP_GRADLE2"
 
 echo "    versionCode: $CURRENT_VERSION_CODE → $NEW_VERSION_CODE"
 echo "    versionName: $VERSION"
