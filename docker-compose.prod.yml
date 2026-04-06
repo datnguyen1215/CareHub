@@ -55,6 +55,8 @@ services:
       context: .
       dockerfile: packages/backend/Dockerfile
     restart: unless-stopped
+    init: true
+    stop_grace_period: 3s
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       JWT_SECRET: ${JWT_SECRET}
