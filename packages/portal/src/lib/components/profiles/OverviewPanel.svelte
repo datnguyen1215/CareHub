@@ -156,11 +156,6 @@
 		goto('/profiles');
 	}
 
-	function handleSendPhoto(device: Device) {
-		// TODO: Implement send photo functionality
-		toast.success(`Opening photo picker for ${device.name}...`);
-	}
-
 	function handleCall(device: Device) {
 		if (getDeviceStatus(device.id, device.status) !== 'online') {
 			toast.warning('Device is offline. Cannot place call.');
@@ -299,18 +294,6 @@
 				{/if}
 
 				<div class="flex gap-2">
-					<button
-						type="button"
-						onclick={() => handleSendPhoto(device)}
-						disabled={!isOnline}
-						class="flex-1 px-2 py-1.5 text-sm rounded-card border border-gray-300
-							{isOnline
-							? 'text-text-primary hover:bg-gray-50'
-							: 'text-gray-400 cursor-not-allowed'} transition-colors"
-						title={!isOnline ? 'Device is offline' : 'Send a photo to this device'}
-					>
-						📷 Send Photo
-					</button>
 					<button
 						type="button"
 						onclick={() => handleCall(device)}
