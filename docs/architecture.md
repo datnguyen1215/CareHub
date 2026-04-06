@@ -321,6 +321,8 @@ Tablet push notifications, device status monitoring, and video call signaling al
 - Client registry tracks connected devices and users separately with multi-tab support for users
 - Ping/pong for connection health (30s interval)
 - Updates `last_seen_at` and `status` on device connect/disconnect
+- `initWebSocketServer(server)` returns the `WebSocketServer` instance so `index.ts` can coordinate shutdown
+- Graceful shutdown is centralized in `packages/backend/src/index.ts`: SIGTERM/SIGINT handlers call `clearAllClients()`, `wss.close()`, and `server.close()`, then `process.exit(0)`; a 5-second unref'd timeout forces exit if lingering timers stall the close callback
 
 **Client Registry:**
 
