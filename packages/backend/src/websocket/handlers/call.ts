@@ -182,7 +182,7 @@ const handleCallAccepted = async (
 
   // Get call session
   const session = await getCallSession(callId)
-  if (!session || session.calleeDeviceId !== deviceId) {
+  if (!session || session.calleeDeviceId === null || session.calleeDeviceId !== deviceId) {
     logger.warn({ callId, deviceId }, 'Invalid call accept - session not found or wrong device')
     return
   }
@@ -225,7 +225,7 @@ const handleCallDeclined = async (
 
   // Get call session
   const session = await getCallSession(callId)
-  if (!session || session.calleeDeviceId !== deviceId) {
+  if (!session || session.calleeDeviceId === null || session.calleeDeviceId !== deviceId) {
     logger.warn({ callId, deviceId }, 'Invalid call decline - session not found or wrong device')
     return
   }
@@ -277,7 +277,7 @@ const handleCallEnded = async (
   // Validate sender is part of the call
   const isValidSender =
     (senderType === 'user' && session.callerUserId === senderId) ||
-    (senderType === 'device' && session.calleeDeviceId === senderId)
+    (senderType === 'device' && session.calleeDeviceId !== null && session.calleeDeviceId === senderId)
 
   if (!isValidSender) {
     logger.warn({ callId, senderId, senderType }, 'Unauthorized call end attempt')
@@ -296,11 +296,13 @@ const handleCallEnded = async (
 
   // Notify the other party
   if (senderType === 'user') {
-    broadcastToDevice(session.calleeDeviceId, {
-      type: 'call:ended',
-      callId,
-      reason,
-    })
+    if (session.calleeDeviceId !== null) {
+      broadcastToDevice(session.calleeDeviceId, {
+        type: 'call:ended',
+        callId,
+        reason,
+      })
+    }
   } else {
     broadcastToUser(session.callerUserId, {
       type: 'call:ended',
@@ -326,7 +328,7 @@ const handleOffer = async (
 
   // Get call session
   const session = await getCallSession(callId)
-  if (!session || session.callerUserId !== userId) {
+  if (!session || session.callerUserId !== userId || session.calleeDeviceId === null) {
     sendError(ws, callId, 'Invalid call session')
     return
   }
@@ -357,7 +359,7 @@ const handleAnswer = async (
 
   // Get call session
   const session = await getCallSession(callId)
-  if (!session || session.calleeDeviceId !== deviceId) {
+  if (!session || session.calleeDeviceId === null || session.calleeDeviceId !== deviceId) {
     sendError(ws, callId, 'Invalid call session')
     return
   }
@@ -407,7 +409,7 @@ const handleIceCandidate = async (
   // Validate sender is part of the call
   const isValidSender =
     (senderType === 'user' && session.callerUserId === senderId) ||
-    (senderType === 'device' && session.calleeDeviceId === senderId)
+    (senderType === 'device' && session.calleeDeviceId !== null && session.calleeDeviceId === senderId)
 
   if (!isValidSender) {
     logger.warn({ callId, senderId, senderType }, 'Unauthorized ICE candidate')
@@ -416,11 +418,13 @@ const handleIceCandidate = async (
 
   // Forward to the other party
   if (senderType === 'user') {
-    broadcastToDevice(session.calleeDeviceId, {
-      type: 'call:ice-candidate',
-      callId,
-      candidate,
-    })
+    if (session.calleeDeviceId !== null) {
+      broadcastToDevice(session.calleeDeviceId, {
+        type: 'call:ice-candidate',
+        callId,
+        candidate,
+      })
+    }
   } else {
     broadcastToUser(session.callerUserId, {
       type: 'call:ice-candidate',
@@ -452,7 +456,7 @@ const handleScreenShare = async (
 
   // Get call session
   const session = await getCallSession(callId)
-  if (!session) {
+  if (!session || session.calleeDeviceId === null) {
     sendError(ws, callId, 'Invalid call session')
     return
   }

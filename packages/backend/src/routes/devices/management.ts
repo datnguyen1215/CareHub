@@ -5,9 +5,10 @@ import { db } from '../../db'
 import { devices, deviceAccess, deviceCareProfiles, careProfiles } from '@carehub/shared'
 import { requireAuth } from '../../middleware/auth'
 import { logger } from '../../services/logger'
-import { broadcastToDevice } from '../../websocket'
+import { broadcastToDevice, broadcastToUser } from '../../websocket'
 import { validate } from '../../middleware/validate'
 import { updateDeviceSchema } from '../../schemas/devices'
+import { getActiveCallForDevice, endCall } from '../../services/call'
 
 export const managementRouter = Router()
 
@@ -123,6 +124,25 @@ managementRouter.delete('/:id', requireAuth, async (req: Request, res: Response)
       return
     }
 
+    // End any active call on this device before deletion
+    const activeCall = await getActiveCallForDevice(deviceId)
+    if (activeCall) {
+      await endCall(activeCall.id, 'cancelled')
+      // Notify caller that the call was cancelled
+      broadcastToUser(activeCall.callerUserId, {
+        type: 'call:ended',
+        callId: activeCall.id,
+        reason: 'cancelled',
+      })
+      // Notify device (best-effort — it may disconnect after device_revoked)
+      broadcastToDevice(deviceId, {
+        type: 'call:ended',
+        callId: activeCall.id,
+        reason: 'cancelled',
+      })
+      logger.info({ callId: activeCall.id, deviceId }, 'Active call cancelled before device deletion')
+    }
+
     // Notify device before deletion
     broadcastToDevice(deviceId, {
       type: 'device_revoked',
@@ -130,6 +150,7 @@ managementRouter.delete('/:id', requireAuth, async (req: Request, res: Response)
     })
 
     // Delete device (cascades to device_care_profiles, device_access, device_pairing_tokens)
+    // call_sessions.callee_device_id is set to NULL by FK ON DELETE SET NULL
     await db.delete(devices).where(eq(devices.id, deviceId))
 
     res.status(204).send()

@@ -84,11 +84,13 @@ export const handleUserConnection = (ws: WebSocket, userId: string): void => {
     const activeCall = await getActiveCallForUser(userId)
     if (activeCall) {
       await markCallFailed(activeCall.id)
-      broadcastToDevice(activeCall.calleeDeviceId, {
-        type: 'call:ended',
-        callId: activeCall.id,
-        reason: 'failed',
-      })
+      if (activeCall.calleeDeviceId !== null) {
+        broadcastToDevice(activeCall.calleeDeviceId, {
+          type: 'call:ended',
+          callId: activeCall.id,
+          reason: 'failed',
+        })
+      }
     }
   })
 

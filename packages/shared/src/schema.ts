@@ -258,9 +258,9 @@ export const callSessions = pgTable(
     caller_user_id: uuid('caller_user_id')
       .notNull()
       .references(() => users.id),
+    // Nullable FK — call history is preserved when a device is deleted (set to null)
     callee_device_id: uuid('callee_device_id')
-      .notNull()
-      .references(() => devices.id),
+      .references(() => devices.id, { onDelete: 'set null' }),
     callee_profile_id: uuid('callee_profile_id').references(() => careProfiles.id),
     status: callStatusEnum('status').notNull(),
     initiated_at: timestamp('initiated_at', { withTimezone: true }).defaultNow().notNull(),

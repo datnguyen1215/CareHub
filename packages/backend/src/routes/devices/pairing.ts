@@ -67,7 +67,7 @@ pairingRouter.get('/', requireAuth, async (req: Request, res: Response): Promise
       if (row.profile_id) {
         deviceMap.get(row.id)!.profiles.push({
           id: row.profile_id,
-          name: row.profile_name,
+          name: row.profile_name ?? '',
           avatar_url: row.profile_avatar_url,
         })
       }
