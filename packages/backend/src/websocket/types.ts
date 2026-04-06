@@ -45,6 +45,13 @@ export type DeviceMessage =
   | CallAnswerMessage
   | IceCandidateMessage
 
+/** Device status changed — broadcast to portal users */
+export interface DeviceStatusChangedMessage {
+  type: 'device_status_changed'
+  deviceId: string
+  status: 'online' | 'offline'
+}
+
 /** Ping message from user (keep-alive heartbeat) */
 export interface PingMessage {
   type: 'ping'

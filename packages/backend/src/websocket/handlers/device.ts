@@ -2,13 +2,47 @@
 import { WebSocket } from 'ws'
 import { eq } from 'drizzle-orm'
 import { db } from '../../db'
-import { devices } from '@carehub/shared'
+import { devices, deviceAccess } from '@carehub/shared'
 import { logger } from '../../services/logger'
-import { addClient, removeClient, broadcastToUser } from '../clients'
+import { addClient, removeClient, broadcastToUser, getConnectedUserIds } from '../clients'
 import type { DeviceMessage } from '../types'
 import { handleCallMessage } from './call'
 import { getActiveCallForDevice, markCallFailed } from '../../services/call'
 import { TIMEOUTS } from '../../config/constants'
+
+/**
+ * Broadcast device status change to all connected portal users who have access to the device.
+ * Skips DB query if no portal users are currently connected.
+ */
+const broadcastDeviceStatus = async (
+  deviceId: string,
+  status: 'online' | 'offline'
+): Promise<void> => {
+  const connectedUserIds = getConnectedUserIds()
+  if (connectedUserIds.length === 0) return
+
+  const accessRows = await db
+    .select({ user_id: deviceAccess.user_id })
+    .from(deviceAccess)
+    .where(eq(deviceAccess.device_id, deviceId))
+
+  const usersWithAccess = accessRows
+    .map((row) => row.user_id)
+    .filter((userId) => connectedUserIds.includes(userId))
+
+  if (usersWithAccess.length === 0) return
+
+  const message = { type: 'device_status_changed' as const, deviceId, status }
+
+  for (const userId of usersWithAccess) {
+    broadcastToUser(userId, message)
+  }
+
+  logger.info(
+    { deviceId, status, usersNotified: usersWithAccess.length },
+    'Broadcast device_status_changed to portal users'
+  )
+}
 
 /**
  * Handle new device WebSocket connection.
@@ -30,6 +64,9 @@ export const handleDeviceConnection = async (ws: WebSocket, deviceId: string): P
       'Device connected but failed to update status to online — DB status may be stale'
     )
   }
+
+  // Notify portal users with access that device is now online
+  await broadcastDeviceStatus(deviceId, 'online')
 
   // Setup ping interval
   const pingInterval = setInterval(() => {
@@ -91,6 +128,9 @@ export const handleDeviceConnection = async (ws: WebSocket, deviceId: string): P
 
     // Update device status to offline
     await db.update(devices).set({ status: 'offline' }).where(eq(devices.id, deviceId))
+
+    // Notify portal users with access that device is now offline
+    await broadcastDeviceStatus(deviceId, 'offline')
 
     // Handle any active calls (mark as failed)
     const activeCall = await getActiveCallForDevice(deviceId)
