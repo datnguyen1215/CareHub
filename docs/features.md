@@ -181,6 +181,17 @@ Detailed feature breakdown organized by area. See [phases.md](phases.md) for imp
 - Device name (editable inline with pencil icon)
 - Assigned profiles list with avatars
 
+### Software Updates (OTA)
+
+- Device detail page shows current kiosk version (`device.app_version`) and latest available release
+- Latest release fetched from `GET /api/releases/latest?app=kiosk` on page load; fails gracefully (no release = "No releases yet", endpoint error = page still loads)
+- "Update to vX.Y.Z" button on device detail page:
+  - Disabled when device is offline or already on the latest version
+  - Shows confirmation dialog before triggering ("Update kiosk to vX.Y.Z? The kiosk will restart after the update completes.")
+  - Calls `POST /api/devices/:id/update` with `{ releaseId }`
+- Real-time progress via WebSocket `device_status_changed` messages: progress bar (0–100%) during download, success/failure toast on completion
+- Device card on the dashboard shows a subtle amber "↑ Update" badge when the device version is behind the latest release
+
 ### Access Control
 
 - Multiple devices per profile, multiple profiles per device

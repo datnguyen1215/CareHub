@@ -177,7 +177,7 @@ Styles are implemented with Tailwind CSS within the SvelteKit portal package. Mo
 
 | Component                 | File                       | Purpose                                                                                                                  |
 | ------------------------- | -------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| `DeviceCard.svelte`       | `src/lib/components/devices/` | Device card with name, status dot, battery indicator, assigned profiles, and action buttons (Call, Settings) |
+| `DeviceCard.svelte`       | `src/lib/components/devices/` | Device card with name, status dot, battery indicator, assigned profiles, action buttons (Call, Settings), and optional amber "↑ Update" badge when device version is behind the latest release |
 | `DeviceStatusDot.svelte`  | `src/lib/components/devices/` | Reusable online (green) / offline (gray) status indicator                                                                |
 | `BatteryIndicator.svelte` | `src/lib/components/devices/` | Battery level progress bar with percentage (color-coded: green > 50%, yellow 20-50%, red < 20%)                          |
 | `QRScanner.svelte`        | `src/lib/components/shared/` | Camera-based QR scanner using html5-qrcode with corner bracket overlay and manual code entry fallback                    |
@@ -190,6 +190,7 @@ Styles are implemented with Tailwind CSS within the SvelteKit portal package. Mo
 - Device list with DeviceCard components
 - Each card shows: device name, status dot, assigned profile avatars, battery level, last active timestamp
 - Action buttons: "Call" (disabled when offline), "Settings" (navigates to detail)
+- Latest release fetched on page load and passed to every DeviceCard; cards show the "↑ Update" badge when a newer version is available
 - "+ Pair New Tablet" button (dashed border style) navigates to pairing flow
 - Empty state: tablet illustration, "No tablets paired yet", value prop, "+ Pair Your First Tablet" CTA
 
@@ -229,6 +230,14 @@ Styles are implemented with Tailwind CSS within the SvelteKit portal package. Mo
 - CallControls provides mute (M key), video toggle (V key), screen share (S key), and end call (Escape key) buttons
 - Screen share button uses green background when active, shows Heroicons `computer-desktop` icon, and is disabled during initiating/ringing/connecting states
 - Assigned Profiles section: grid of profile cards with remove (×) button, "+ Add" link
+- **Software Update section** (above Danger Zone):
+  - Current version (from `device.app_version`, or "Unknown" if null)
+  - Latest available version (from `GET /api/releases/latest`, or "No releases yet" if none published)
+  - Release notes for the latest version (shown when non-empty)
+  - "Update to vX.Y.Z" button — enabled only when device is online and version differs
+  - Confirmation dialog before triggering the update
+  - Progress bar (0–100%) shown during download via `device_status_changed` WebSocket messages
+  - Success or failure toast when update completes
 - Danger Zone: "Unpair Device" button with confirmation modal
 
 ---

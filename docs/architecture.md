@@ -263,6 +263,14 @@ All entities are defined as Drizzle ORM schemas in `packages/shared`.
 - `created_at`
 - `app_version` (varchar, nullable) — semver string of the app version currently installed on the device, as last reported by the kiosk on check-in; null until the device reports its version
 
+**Release**
+
+- `id` (UUID, primary key)
+- `app` (string) — app identifier (e.g. `"kiosk"`)
+- `version` (string) — semver string (e.g. `"1.2.0"`)
+- `notes` (text, nullable) — release notes / changelog
+- `created_at`
+
 **DeviceCareProfile** (join table)
 
 - `device_id` (FK -> Device, cascade delete)
@@ -392,6 +400,12 @@ Tablet push notifications, device status monitoring, and video call signaling al
 - `call:ice-candidate` - ICE candidate for WebRTC connection
 - `pong` - Response to `ping` heartbeat
 - `app:update-status` - OTA update progress forwarded from device; payload: `{ deviceId, releaseId, status, version?, error? }`; sent to all portal users with access to the updating device
+
+**Events (Server → Portal/User):**
+
+- `device_status_changed` - Broadcast to the device owner when device OTA update status changes; shape: `{ type, deviceId, updateStatus, updateProgress }`
+  - `updateStatus`: `"downloading"` | `"complete"` | `"failed"`
+  - `updateProgress`: number 0–100 (present when `updateStatus` is `"downloading"`)
 
 **Events (User → Server):**
 
@@ -815,7 +829,7 @@ Email + OTP passwordless login via Nodemailer + Gmail SMTP.
 | `POST`   | `/api/devices/:id/profiles`                                | Required    | Assign profiles to device (body validated with Zod)                                                                    |
 | `DELETE` | `/api/devices/:id/profiles/:profileId`                     | Required    | Remove profile from device                                                                                             |
 | `POST`   | `/api/releases/upload`                                     | Required    | Upload an APK release; multipart/form-data with `file`, `app`, `version`, `version_code`, `notes`; validates APK magic bytes; returns 201 with release metadata (excludes `file_path`) |
-| `GET`    | `/api/releases/latest?app=kiosk\|portal`                   | Required    | Return the release with the highest `version_code` for the given app type                                              |
+| `GET`    | `/api/releases/latest?app=kiosk\|portal`                   | Required    | Return the release with the highest `version_code` for the given app type; returns `Release` or 204 if none published  |
 | `GET`    | `/api/releases/:id/download`                               | Device Auth | Serve the APK binary for download (`Content-Type: application/vnd.android.package-archive`); validates device token    |
 
 **SMTP configuration via environment variables:**
