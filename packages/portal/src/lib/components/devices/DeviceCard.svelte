@@ -8,11 +8,10 @@
 
 	interface Props {
 		device: Device;
-		onSendPhoto?: (device: Device) => void;
 		onCall?: (device: Device) => void;
 	}
 
-	let { device, onSendPhoto, onCall }: Props = $props();
+	let { device, onCall }: Props = $props();
 
 	/** Live status from store, falls back to REST-loaded value */
 	const liveStatus = $derived(getDeviceStatus(device.id, device.status));
@@ -76,18 +75,6 @@
 
 	<!-- Action Buttons -->
 	<div class="flex gap-2">
-		<button
-			type="button"
-			onclick={() => onSendPhoto?.(device)}
-			disabled={!isOnline}
-			class="flex-1 px-2 py-1.5 text-sm rounded-card border border-gray-300
-				{isOnline
-				? 'text-text-primary hover:bg-gray-50'
-				: 'text-gray-400 cursor-not-allowed'} transition-colors"
-			title={!isOnline ? 'Device is offline' : 'Send a photo to this device'}
-		>
-			📷 Send Photo
-		</button>
 		<button
 			type="button"
 			onclick={() => onCall?.(device)}

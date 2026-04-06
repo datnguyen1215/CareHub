@@ -217,11 +217,6 @@
 	}
 
 
-	function handleSendPhoto() {
-		// Phase 3: Opens photo picker - placeholder for now
-		console.log('Send photo to device:', device?.id);
-	}
-
 	function handleCall() {
 		if (!device || liveStatus !== 'online') {
 			toast.warning('Device is offline. Cannot place call.');
@@ -394,17 +389,6 @@
 				Actions
 			</h3>
 			<div class="flex gap-2">
-				<button
-					type="button"
-					onclick={handleSendPhoto}
-					disabled={liveStatus !== 'online'}
-					class="flex-1 px-3 py-2 rounded-card border border-gray-300 font-medium
-						{liveStatus === 'online'
-						? 'text-text-primary hover:bg-gray-50'
-						: 'text-gray-400 cursor-not-allowed'} transition-colors"
-				>
-					📷 Send Photo
-				</button>
 				<button
 					type="button"
 					onclick={handleCall}

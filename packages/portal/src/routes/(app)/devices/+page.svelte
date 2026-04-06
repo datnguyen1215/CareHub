@@ -47,11 +47,6 @@
 		loadData();
 	});
 
-	function handleSendPhoto(device: Device) {
-		// Phase 3: Opens photo picker - placeholder for now
-		console.log('Send photo to device:', device.id);
-	}
-
 	function handleCall(device: Device) {
 		if (getDeviceStatus(device.id, device.status) !== 'online') {
 			toast.warning('Device is offline. Cannot place call.');
@@ -134,7 +129,7 @@
 		<!-- Device List -->
 		<div class="space-y-unit-2">
 			{#each devices as device (device.id)}
-				<DeviceCard {device} onSendPhoto={handleSendPhoto} onCall={handleCall} />
+				<DeviceCard {device} onCall={handleCall} />
 			{/each}
 
 			<!-- Add new device card (dashed border style) -->

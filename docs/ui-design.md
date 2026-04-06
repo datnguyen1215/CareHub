@@ -98,8 +98,8 @@ Styles are implemented with Tailwind CSS within the SvelteKit portal package. Mo
 - Displayed in Profile Overview tab between avatar header and profile info card
 - Shows device name with 📱 icon and online/offline status dot
 - Battery level indicator (when available)
-- Three action buttons: "📷 Send Photo", "📞 Call", "⚙️" (Settings)
-- Send Photo and Call buttons disabled (grayed out) when device is offline
+- Two action buttons: "📞 Call", "⚙️" (Settings)
+- Call button disabled (grayed out) when device is offline
 - Settings button navigates to `/devices/[id]`
 - If profile has multiple devices, cards stack vertically
 - Empty state: "No device linked" with "+ Link Device" CTA linking to `/devices/pair`
@@ -177,7 +177,7 @@ Styles are implemented with Tailwind CSS within the SvelteKit portal package. Mo
 
 | Component                 | File                       | Purpose                                                                                                                  |
 | ------------------------- | -------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| `DeviceCard.svelte`       | `src/lib/components/devices/` | Device card with name, status dot, battery indicator, assigned profiles, and action buttons (Send Photo, Call, Settings) |
+| `DeviceCard.svelte`       | `src/lib/components/devices/` | Device card with name, status dot, battery indicator, assigned profiles, and action buttons (Call, Settings) |
 | `DeviceStatusDot.svelte`  | `src/lib/components/devices/` | Reusable online (green) / offline (gray) status indicator                                                                |
 | `BatteryIndicator.svelte` | `src/lib/components/devices/` | Battery level progress bar with percentage (color-coded: green > 50%, yellow 20-50%, red < 20%)                          |
 | `QRScanner.svelte`        | `src/lib/components/shared/` | Camera-based QR scanner using html5-qrcode with corner bracket overlay and manual code entry fallback                    |
@@ -189,7 +189,7 @@ Styles are implemented with Tailwind CSS within the SvelteKit portal package. Mo
 
 - Device list with DeviceCard components
 - Each card shows: device name, status dot, assigned profile avatars, battery level, last active timestamp
-- Action buttons: "Send Photo" (disabled when offline), "Call" (disabled when offline), "Settings" (navigates to detail)
+- Action buttons: "Call" (disabled when offline), "Settings" (navigates to detail)
 - "+ Pair New Tablet" button (dashed border style) navigates to pairing flow
 - Empty state: tablet illustration, "No tablets paired yet", value prop, "+ Pair Your First Tablet" CTA
 
@@ -222,7 +222,7 @@ Styles are implemented with Tailwind CSS within the SvelteKit portal package. Mo
 
 - Header with back arrow and inline-editable device name (pencil icon)
 - Status section: online/offline dot, battery progress bar, last active timestamp
-- Actions section: "Send Photo" and "Call" buttons (disabled when offline or call in progress)
+- Actions section: "Call" button (disabled when offline or call in progress)
 - Call button shows "Calling..." text during initiating/ringing states
 - Clicking Call button initiates video call and opens full-screen CallModal
 - CallModal displays during active calls with call status, local/remote video streams, duration timer, and controls

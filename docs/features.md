@@ -55,7 +55,7 @@ Detailed feature breakdown organized by area. See [phases.md](phases.md) for imp
 
 - Device card displayed in Profile Overview tab for linked devices
 - Shows device name, online/offline status dot, battery level indicator
-- Quick action buttons: Send Photo, Call (both disabled when offline), Settings
+- Quick action buttons: Call (disabled when offline), Settings
 - Multiple devices supported (cards stack vertically)
 - Empty state with "+ Link Device" CTA when no device assigned
 
