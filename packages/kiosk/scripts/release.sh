@@ -33,6 +33,11 @@ VERSION=""
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --version)
+      if [[ $# -lt 2 ]]; then
+        echo "Error: --version requires a value." >&2
+        echo "Usage: $0 --version X.Y.Z" >&2
+        exit 1
+      fi
       VERSION="$2"
       shift 2
       ;;
@@ -118,7 +123,7 @@ NEW_VERSION_CODE=$((CURRENT_VERSION_CODE + 1))
 
 # Use temp file for in-place sed (portable across macOS and Linux)
 TMP_GRADLE=$(mktemp)
-sed "s/versionCode $CURRENT_VERSION_CODE/versionCode $NEW_VERSION_CODE/" "$BUILD_GRADLE" > "$TMP_GRADLE"
+sed "s/\(versionCode \)$CURRENT_VERSION_CODE$/\1$NEW_VERSION_CODE/" "$BUILD_GRADLE" > "$TMP_GRADLE"
 sed -i "s/versionName \"[^\"]*\"/versionName \"$VERSION\"/" "$TMP_GRADLE"
 cp "$TMP_GRADLE" "$BUILD_GRADLE"
 rm -f "$TMP_GRADLE"
@@ -156,11 +161,11 @@ echo "==> APK built: $APK_PATH"
 
 # ── Upload to backend ──────────────────────────────────────────────────────────
 echo "==> Uploading to $BACKEND_URL/api/releases/upload..."
-RESPONSE=$(curl -sf \
+RESPONSE=$(curl -sSf \
   -F "apk=@$APK_PATH" \
   -F "version=$VERSION" \
   -F "app=$APP_NAME" \
-  "$BACKEND_URL/api/releases/upload")
+  "$BACKEND_URL/api/releases/upload") || { echo "Error: Upload failed. Check the backend URL and server logs." >&2; exit 1; }
 
 RELEASE_ID=$(echo "$RESPONSE" | grep -oP '"id"\s*:\s*"\K[^"]+' || echo "$RESPONSE" | grep -oP '"id"\s*:\s*\K[0-9]+' || true)
 
