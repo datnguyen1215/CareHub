@@ -4,6 +4,7 @@
 	import DeviceStatusDot from '$lib/components/devices/DeviceStatusDot.svelte';
 	import BatteryIndicator from '$lib/components/devices/BatteryIndicator.svelte';
 	import { getInitial, formatRelativeTime } from '$lib/utils/format';
+	import { getDeviceStatus } from '$lib/stores/deviceStatus.svelte';
 
 	interface Props {
 		device: Device;
@@ -13,7 +14,9 @@
 
 	let { device, onSendPhoto, onCall }: Props = $props();
 
-	const isOnline = $derived(device.status === 'online');
+	/** Live status from store, falls back to REST-loaded value */
+	const liveStatus = $derived(getDeviceStatus(device.id, device.status));
+	const isOnline = $derived(liveStatus === 'online');
 
 
 	function handleSettings() {
@@ -25,10 +28,10 @@
 	<!-- Header: Name and Status -->
 	<div class="flex items-start justify-between mb-unit-2">
 		<div class="flex items-center gap-2">
-			<DeviceStatusDot status={device.status} />
+			<DeviceStatusDot status={liveStatus} />
 			<h3 class="text-h3 font-semibold text-text-primary">{device.name}</h3>
 		</div>
-		<span class="text-xs text-text-secondary capitalize">{device.status}</span>
+		<span class="text-xs text-text-secondary capitalize">{liveStatus}</span>
 	</div>
 
 	<!-- Assigned Profiles -->

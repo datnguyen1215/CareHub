@@ -76,6 +76,13 @@ export interface CallErrorMessage {
   error: string
 }
 
+/** Backend broadcasts a device coming online or going offline */
+export interface DeviceStatusChangedMessage {
+  type: 'device_status_changed'
+  deviceId: string
+  status: 'online' | 'offline'
+}
+
 /** Union type for all signaling messages */
 export type SignalingMessage =
   | CallInitiateMessage
@@ -89,3 +96,4 @@ export type SignalingMessage =
   | IceCandidateMessage
   | ScreenShareStateMessage
   | CallErrorMessage
+  | DeviceStatusChangedMessage

@@ -46,7 +46,8 @@ const MESSAGE_PRIORITY: Record<SignalingMessage['type'], number> = {
 	'call:declined': 1,
 	'call:ended': 1,
 	'call:screen-share': 0,
-	'call:error': 0
+	'call:error': 0,
+	'device_status_changed': 1
 };
 
 /** WebSocket close codes */
