@@ -757,6 +757,8 @@ Production runs via `docker-compose.prod.yml` with 4 services: Traefik, portal, 
 - Portal and backend are separate Docker images built with multi-stage builds
 - PostgreSQL data persisted via named Docker volume
 - All containers configured with health checks and `restart: unless-stopped` for reliability
+- Backend runs with `init: true` (tini as PID 1) for reliable signal forwarding to the Node.js process
+- Backend uses `stop_grace_period: 3s` to reduce Docker's maximum wait from 10s to 3s on shutdown
 
 **Configuration:**
 
