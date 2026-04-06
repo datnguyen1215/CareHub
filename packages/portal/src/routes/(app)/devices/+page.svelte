@@ -31,6 +31,8 @@
 		try {
 			const [deviceList, releaseData] = await Promise.all([
 				listDevices(),
+				// Wrapped with .catch() so a missing/broken releases endpoint
+				// does not prevent the device list from loading.
 				getLatestRelease('kiosk').catch(() => undefined)
 			]);
 			devices = deviceList;

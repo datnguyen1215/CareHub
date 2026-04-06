@@ -79,6 +79,8 @@
 			const [deviceData, profilesData, releaseData] = await Promise.all([
 				getDevice(deviceId),
 				listProfiles(),
+				// Wrapped with .catch() so a missing/broken releases endpoint
+				// does not prevent device info from loading.
 				getLatestRelease('kiosk').catch(() => undefined)
 			]);
 			device = deviceData;
@@ -116,6 +118,8 @@
 		 * (commit 5818216f). Cast to any until shared types are updated.
 		 */
 		unsubscribeWs = websocket.onMessage((message) => {
+			// device_status_changed is not in SignalingMessage — it's added by the OTA backend
+			// (commit 5818216f). Cast to any until shared types are updated.
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			const msg = message as any;
 			if (msg.type !== 'device_status_changed') return;
@@ -298,6 +302,9 @@
 	/**
 	 * True when device is online, a release exists, device version is known, and differs from latest.
 	 * The update button is only enabled in this state.
+	 * Note: app_version is explicitly checked for null and undefined because the backend
+	 * GET /api/devices/:id must include appVersion in its response (added in commit 5818216f).
+	 * If the field is absent, we don't allow updates since the current version is unknown.
 	 */
 	const canUpdate = $derived(
 		device !== null &&
