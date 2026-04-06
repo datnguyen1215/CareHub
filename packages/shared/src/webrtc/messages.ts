@@ -83,6 +83,36 @@ export interface DeviceStatusChangedMessage {
   status: 'online' | 'offline'
 }
 
+/**
+ * Server → device: trigger an OTA app update.
+ * The device downloads the APK from `downloadUrl`, verifies `checksum`, and installs it.
+ */
+export interface AppUpdateMessage {
+  type: 'app:update'
+  releaseId: string
+  version: string
+  downloadUrl: string
+  checksum: string
+}
+
+/** Update status values reported by the device during an OTA update */
+export type AppUpdateStatus = 'downloading' | 'installing' | 'success' | 'failed'
+
+/**
+ * Device → server: progress/result of an OTA update.
+ * On `success` the backend persists the new `version` to the device record.
+ * On `failed` the backend forwards the failure to portal users.
+ */
+export interface AppUpdateStatusMessage {
+  type: 'app:update-status'
+  releaseId: string
+  status: AppUpdateStatus
+  /** Installed version string — provided when status is "success" */
+  version?: string
+  /** Human-readable error description — provided when status is "failed" */
+  error?: string
+}
+
 /** Union type for all signaling messages */
 export type SignalingMessage =
   | CallInitiateMessage
@@ -97,3 +127,5 @@ export type SignalingMessage =
   | ScreenShareStateMessage
   | CallErrorMessage
   | DeviceStatusChangedMessage
+  | AppUpdateMessage
+  | AppUpdateStatusMessage

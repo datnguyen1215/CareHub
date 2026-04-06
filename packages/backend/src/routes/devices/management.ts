@@ -8,6 +8,7 @@ import {
   deviceCareProfiles,
   careProfiles,
   callSessions,
+  appReleases,
 } from '@carehub/shared'
 import type { CallStatus, CallEndReason } from '@carehub/shared'
 import { requireAuth } from '../../middleware/auth.js'
@@ -63,6 +64,7 @@ managementRouter.get('/:id', requireAuth, async (req: Request, res: Response): P
       name: device.name,
       status: device.status,
       batteryLevel: device.battery_level,
+      appVersion: device.app_version,
       lastSeenAt: device.last_seen_at,
       pairedAt: device.paired_at,
       createdAt: device.created_at,
@@ -110,6 +112,91 @@ managementRouter.patch(
     } catch (err) {
       logger.error({ err }, 'PATCH /devices/:id error')
       res.status(500).json({ error: 'Failed to update device' })
+    }
+  }
+)
+
+/**
+ * POST /api/devices/:id/update
+ *
+ * Trigger an OTA app update on a connected kiosk device.
+ *
+ * Request body: { releaseId: string }
+ * Response 200: { status: "update_triggered" }
+ * Response 404: device not found / no access / release not found
+ * Response 409: device is offline
+ * Response 500: internal server error
+ *
+ * Sends an `app:update` WebSocket message to the device with download URL, version, and checksum.
+ * The download URL points to GET /api/releases/:id/download, which requires device-token auth.
+ */
+managementRouter.post(
+  '/:id/update',
+  requireAuth,
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      const userId = req.user!.userId
+      const deviceId = req.params.id as string
+      const { releaseId } = req.body as { releaseId?: string }
+
+      if (!releaseId || typeof releaseId !== 'string') {
+        res.status(400).json({ error: 'releaseId is required' })
+        return
+      }
+
+      // Verify user has access to this device
+      const [access] = await db
+        .select()
+        .from(deviceAccess)
+        .where(and(eq(deviceAccess.device_id, deviceId), eq(deviceAccess.user_id, userId)))
+        .limit(1)
+
+      if (!access) {
+        res.status(404).json({ error: 'Device not found' })
+        return
+      }
+
+      // Look up the release
+      const [release] = await db
+        .select()
+        .from(appReleases)
+        .where(eq(appReleases.id, releaseId))
+        .limit(1)
+
+      if (!release) {
+        res.status(404).json({ error: 'Release not found' })
+        return
+      }
+
+      // Build download URL — device fetches APK via the authenticated download endpoint
+      const baseUrl = `${req.protocol}://${req.get('host')}`
+      const downloadUrl = `${baseUrl}/api/releases/${release.id}/download`
+
+      // Forward the update command to the device.
+      // broadcastToDevice returns false if the device is not connected (checks readyState),
+      // which also handles the TOCTOU race between a connectivity check and actual send.
+      const sent = broadcastToDevice(deviceId, {
+        type: 'app:update',
+        releaseId: release.id,
+        version: release.version,
+        downloadUrl,
+        checksum: release.checksum,
+      })
+
+      if (!sent) {
+        res.status(409).json({ error: 'Device is offline' })
+        return
+      }
+
+      logger.info(
+        { deviceId, releaseId: release.id, version: release.version },
+        'OTA update triggered for device'
+      )
+
+      res.json({ status: 'update_triggered' })
+    } catch (err) {
+      logger.error({ err }, 'POST /devices/:id/update error')
+      res.status(500).json({ error: 'Failed to trigger update' })
     }
   }
 )

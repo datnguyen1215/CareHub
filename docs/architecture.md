@@ -351,7 +351,7 @@ Tablet push notifications, device status monitoring, and video call signaling al
 
 **Message Handlers:**
 
-- `packages/backend/src/websocket/handlers/device.ts` - Device heartbeat, status updates
+- `packages/backend/src/websocket/handlers/device.ts` - Device heartbeat (persists `last_seen_at`, `battery_level`, `app_version`), status updates, and OTA update status handling (`app:update-status`); exposes `getUsersWithDeviceAccess()` helper that intersects connected portal user IDs with DB `DeviceAccess` rows, used by both `broadcastDeviceStatus` and `handleAppUpdateStatus`
 - `packages/backend/src/websocket/handlers/user.ts` - User connection with JWT authentication, heartbeat ping/pong support
 - `packages/backend/src/websocket/handlers/call.ts` - Call signaling (offer/answer/ICE/screen-share)
 
@@ -368,16 +368,18 @@ Tablet push notifications, device status monitoring, and video call signaling al
 - `call:answer` - SDP answer from device (WebRTC)
 - `call:ice-candidate` - ICE candidate for WebRTC connection
 - `call:screen-share` - Screen share state change from portal (active/inactive)
+- `app:update` - Trigger OTA app update; payload: `{ releaseId, version, downloadUrl, checksum }` — kiosk downloads APK, verifies checksum, and installs silently via Device Owner mode
 
 **Events (Kiosk → Server):**
 
-- `heartbeat` - Periodic ping with battery level
+- `heartbeat` - Periodic ping with optional `batteryLevel` (number) and `appVersion` (semver string); persists `last_seen_at`, `battery_level`, and `app_version` on the device record when provided
 - `status_update` - Online/offline state changes
 - `call:accepted` - Device accepts incoming call
 - `call:declined` - Device declines incoming call
 - `call:ended` - Device ends call
 - `call:answer` - SDP answer to user's offer
 - `call:ice-candidate` - ICE candidate for WebRTC connection
+- `app:update-status` - OTA update progress; payload: `{ releaseId, status: 'downloading'|'installing'|'success'|'failed', version?, error? }`; on `success` the backend persists the new version and notifies portal users; on all statuses, portal users with device access receive the status event
 
 **Events (Server → Portal Users):**
 
@@ -389,6 +391,7 @@ Tablet push notifications, device status monitoring, and video call signaling al
 - `call:answer` - SDP answer from device (WebRTC)
 - `call:ice-candidate` - ICE candidate for WebRTC connection
 - `pong` - Response to `ping` heartbeat
+- `app:update-status` - OTA update progress forwarded from device; payload: `{ deviceId, releaseId, status, version?, error? }`; sent to all portal users with access to the updating device
 
 **Events (User → Server):**
 
@@ -454,7 +457,7 @@ Common UI, WebRTC, and WebSocket logic is extracted into the shared package to a
 
 **Shared WebRTC/WebSocket Utilities:**
 
-- `packages/shared/src/webrtc/messages.ts` — TypeScript interfaces for all WebSocket signaling messages (`SignalingMessage` union); includes `DeviceStatusChangedMessage` (`type: 'device_status_changed'`, `deviceId`, `status: 'online' | 'offline'`) used by both backend broadcast and portal device status store
+- `packages/shared/src/webrtc/messages.ts` — TypeScript interfaces for all WebSocket signaling messages (`SignalingMessage` union); includes `DeviceStatusChangedMessage` (`type: 'device_status_changed'`, `deviceId`, `status: 'online' | 'offline'`) used by both backend broadcast and portal device status store; `AppUpdateMessage` (server→device OTA trigger) and `AppUpdateStatusMessage` (device→server OTA progress) with `AppUpdateStatus` union type (`'downloading' | 'installing' | 'success' | 'failed'`)
 - `packages/shared/src/webrtc/webrtc-core.ts` — Peer connection cleanup, stream acquisition (`acquireLocalStream`), stream cleanup (`cleanupStream`), peer connection cleanup (`cleanupPeerConnection`), default media constraints (720p video, echo cancellation), re-exports `ICE_SERVERS`
 - `packages/shared/src/webrtc/error-utils.ts` — `getUserFriendlyError()` maps technical errors to user-friendly messages
 - `packages/shared/src/webrtc/call-utils.ts` — `createDurationTimer()` for call length tracking, `getTopLevelState()` for state machine state parsing
@@ -608,8 +611,9 @@ Both the caretaker phone app and the elderly tablet kiosk are Capacitor APKs bui
 
 **No separate codebase** -- The entire UI remains Svelte 5 running in a web view. Capacitor only provides the native bridge for push notifications, call UI, kiosk lock-down, background services, and silent APK updates.
 
-### Over-the-Air Updates (Capgo)
+### Over-the-Air Updates
 
+**Capgo (web bundle updates):**
 All Capacitor apps (caretaker phones and elderly tablets) receive UI and logic updates over-the-air via Capgo (self-hosted). This avoids manually sideloading a new APK for every change.
 
 - App checks for updates periodically (e.g., every hour) or on launch.
@@ -662,6 +666,20 @@ await SilentUpdate.downloadAndInstall({ url, checksum });
 // Get current version
 const { version, versionCode } = await SilentUpdate.getCurrentVersion();
 ```
+
+**Server-initiated APK updates (OTA update trigger):**
+For full APK updates (native plugin changes, Capacitor version bumps), the portal can push a new APK to a kiosk device remotely:
+
+1. Admin uploads a new APK release via `POST /api/releases/upload` (stores file in `data/releases/`, records metadata in `app_releases` table).
+2. Admin triggers update via `POST /api/devices/:id/update` with `{ releaseId }`.
+   - Returns 409 if the device is offline.
+   - Sends `app:update` WebSocket message to the device with `{ releaseId, version, downloadUrl, checksum }`.
+3. Kiosk downloads the APK from the authenticated `GET /api/releases/:id/download` endpoint, verifies the SHA-256 checksum, and installs silently via Device Owner mode.
+4. Kiosk reports progress back to the server via `app:update-status` messages (`downloading` → `installing` → `success` | `failed`).
+5. On `success`, the backend persists the new `app_version` on the device record and forwards the status to portal users.
+6. Portal users receive `app:update-status` events for all intermediate statuses so the UI can show update progress.
+
+The device's currently installed version is tracked in the `app_version` column on the `devices` table, updated both on successful OTA install and via the `appVersion` field in heartbeat messages.
 
 ### Push Notification Strategy (FCM for Portal Only)
 
@@ -776,9 +794,10 @@ Email + OTP passwordless login via Nodemailer + Gmail SMTP.
 | `GET`    | `/api/devices/pairing-status`                              | Device Auth | Poll for pairing completion                                                                                            |
 | `GET`    | `/api/devices`                                             | Required    | List devices user has access to                                                                                        |
 | `POST`   | `/api/devices/pair`                                        | Required    | Complete pairing by scanning QR token; link device to profiles; sets status based on actual WebSocket connection state |
-| `GET`    | `/api/devices/:id`                                         | Required    | Get device details (requires access)                                                                                   |
+| `GET`    | `/api/devices/:id`                                         | Required    | Get device details (requires access); response includes `appVersion` (current installed app semver, nullable)          |
 | `PATCH`  | `/api/devices/:id`                                         | Required    | Update device name (body validated with Zod)                                                                           |
 | `DELETE` | `/api/devices/:id`                                         | Required    | Unpair/remove device                                                                                                   |
+| `POST`   | `/api/devices/:id/update`                                  | Required    | Trigger OTA APK update; body: `{ releaseId }`; returns 409 if device offline; sends `app:update` WS message to device |
 | `POST`   | `/api/devices/:id/profiles`                                | Required    | Assign profiles to device (body validated with Zod)                                                                    |
 | `DELETE` | `/api/devices/:id/profiles/:profileId`                     | Required    | Remove profile from device                                                                                             |
 | `POST`   | `/api/releases/upload`                                     | Required    | Upload an APK release; multipart/form-data with `file`, `app`, `version`, `version_code`, `notes`; validates APK magic bytes; returns 201 with release metadata (excludes `file_path`) |
