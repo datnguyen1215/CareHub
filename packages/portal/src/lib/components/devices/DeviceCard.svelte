@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import type { Device } from '$lib/api';
+	import type { Device, Release } from '$lib/api';
 	import DeviceStatusDot from '$lib/components/devices/DeviceStatusDot.svelte';
 	import BatteryIndicator from '$lib/components/devices/BatteryIndicator.svelte';
 	import { getInitial, formatRelativeTime } from '$lib/utils/format';
@@ -8,15 +8,26 @@
 
 	interface Props {
 		device: Device;
+		latestRelease?: Release | null;
 		onCall?: (device: Device) => void;
 	}
 
-	let { device, onCall }: Props = $props();
+	let { device, latestRelease = null, onCall }: Props = $props();
 
 	/** Live status from store, falls back to REST-loaded value */
 	const liveStatus = $derived(getDeviceStatus(device.id, device.status));
 	const isOnline = $derived(liveStatus === 'online');
 
+	/**
+	 * True when a newer release exists and the device version differs.
+	 * Guards against undefined (list endpoint doesn't return app_version)
+	 * and null (device hasn't reported version yet).
+	 */
+	const hasUpdate = $derived(
+		latestRelease !== null &&
+			device.app_version != null &&
+			device.app_version !== latestRelease.version
+	);
 
 	function handleSettings() {
 		goto(`/devices/${device.id}`);
@@ -26,9 +37,17 @@
 <div class="card">
 	<!-- Header: Name and Status -->
 	<div class="flex items-start justify-between mb-unit-2">
-		<div class="flex items-center gap-2">
+		<div class="flex items-center gap-2 flex-wrap">
 			<DeviceStatusDot status={liveStatus} />
 			<h3 class="text-h3 font-semibold text-text-primary">{device.name}</h3>
+			{#if hasUpdate}
+				<span
+					class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-700"
+					title="Update available: v{latestRelease?.version}"
+				>
+					↑ Update
+				</span>
+			{/if}
 		</div>
 		<span class="text-xs text-text-secondary capitalize">{liveStatus}</span>
 	</div>

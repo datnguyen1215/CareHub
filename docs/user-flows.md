@@ -377,3 +377,25 @@ From the profile detail page (`/profiles/:id`):
 25. If a call is already in progress, Call button is disabled; if the user triggers `initiateCall` while not idle (e.g., via keyboard shortcut), a warning toast displays: "A call is already in progress"
 26. Alternative from profile detail: tap "📞 Call" on device card in Profile Overview tab to initiate call
 27. During the call, the caretaker can share their screen; the kiosk switches to screen share display mode (full document visible, light gray background) with a "Screen shared by [name]" indicator; stopping screen share returns to normal video layout
+
+---
+
+## 16. Triggering a Software Update
+
+**Actor:** Caretaker (Admin)
+
+1. Navigate to the Devices tab in portal
+2. Device cards show an amber "↑ Update" badge next to device name if a newer kiosk version is available
+3. Tap the settings icon on a device card to open the device detail page
+4. Scroll to the **Software Update** section:
+   - "Current version" shows the installed kiosk version (or "Unknown" if not yet reported)
+   - "Latest available" shows the newest published release version (or "No releases yet")
+   - Release notes for the latest version are shown when present
+5. If the device is online and the installed version differs from the latest, the "Update to vX.Y.Z" button is enabled
+6. Tap "Update to vX.Y.Z"
+7. Confirmation dialog appears: "Update [Device Name] to vX.Y.Z? The kiosk will restart after the update completes."
+8. Tap "Update to vX.Y.Z" to confirm; portal calls `POST /api/devices/:id/update` with `{ releaseId }`
+9. A download progress bar appears (0–100%) updated in real-time via `device_status_changed` WebSocket messages
+10. On completion: success toast "Kiosk updated successfully." appears; device detail reloads to show new version
+11. On failure: error toast "Kiosk update failed. Please try again." appears; update button re-enables
+12. If the device is offline the update button is disabled with a "Device must be online to update" hint

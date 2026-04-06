@@ -19,6 +19,8 @@ export interface Device {
 	paired_at: string | null;
 	created_at: string;
 	profiles: DeviceProfile[];
+	/** Current app version installed on the device, reported via heartbeat. Null if not yet reported. */
+	app_version: string | null;
 }
 
 // Backend returns camelCase for single device responses.
@@ -33,6 +35,7 @@ interface DeviceApiResponse {
 	pairedAt: string | null;
 	createdAt: string;
 	profiles: DeviceProfile[];
+	appVersion: string | null;
 }
 
 export function listDevices() {
@@ -49,7 +52,8 @@ export async function getDevice(id: string): Promise<Device> {
 		last_seen_at: response.lastSeenAt,
 		paired_at: response.pairedAt,
 		created_at: response.createdAt,
-		profiles: response.profiles
+		profiles: response.profiles,
+		app_version: response.appVersion ?? null
 	};
 }
 

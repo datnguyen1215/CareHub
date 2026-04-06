@@ -58,3 +58,6 @@ export {
 	removeProfileFromDevice
 } from './devices';
 export type { Device, DeviceProfile } from './devices';
+
+export { getLatestRelease, triggerDeviceUpdate } from './releases';
+export type { Release } from './releases';
