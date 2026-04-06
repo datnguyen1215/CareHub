@@ -135,6 +135,17 @@ Base URL: `http://localhost:9391/api`
 - `PATCH /groups/:groupId/profiles/:profileId/medications/:id` - Update medication
 - `DELETE /groups/:groupId/profiles/:profileId/medications/:id` - Delete medication
 
+### Devices
+
+- `GET /devices` - List devices user has access to
+- `POST /devices/pair` - Complete pairing by scanning QR token
+- `GET /devices/:id` - Get device details; response includes `appVersion` (current installed app semver, nullable)
+- `PATCH /devices/:id` - Update device name
+- `DELETE /devices/:id` - Unpair/remove device
+- `POST /devices/:id/update` - Trigger OTA APK update; body: `{ releaseId }`; returns 409 if device offline
+- `POST /devices/:id/profiles` - Assign profiles to device
+- `DELETE /devices/:id/profiles/:profileId` - Remove profile from device
+
 All protected endpoints require JWT token via httpOnly cookie.
 
 ### WebSocket API

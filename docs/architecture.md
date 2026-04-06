@@ -670,7 +670,7 @@ const { version, versionCode } = await SilentUpdate.getCurrentVersion();
 **Server-initiated APK updates (OTA update trigger):**
 For full APK updates (native plugin changes, Capacitor version bumps), the portal can push a new APK to a kiosk device remotely:
 
-1. Admin uploads a new APK release via `POST /api/releases` (stores file in `data/releases/`, records metadata in `app_releases` table).
+1. Admin uploads a new APK release via `POST /api/releases/upload` (stores file in `data/releases/`, records metadata in `app_releases` table).
 2. Admin triggers update via `POST /api/devices/:id/update` with `{ releaseId }`.
    - Returns 409 if the device is offline.
    - Sends `app:update` WebSocket message to the device with `{ releaseId, version, downloadUrl, checksum }`.
@@ -794,9 +794,10 @@ Email + OTP passwordless login via Nodemailer + Gmail SMTP.
 | `GET`    | `/api/devices/pairing-status`                              | Device Auth | Poll for pairing completion                                                                                            |
 | `GET`    | `/api/devices`                                             | Required    | List devices user has access to                                                                                        |
 | `POST`   | `/api/devices/pair`                                        | Required    | Complete pairing by scanning QR token; link device to profiles; sets status based on actual WebSocket connection state |
-| `GET`    | `/api/devices/:id`                                         | Required    | Get device details (requires access)                                                                                   |
+| `GET`    | `/api/devices/:id`                                         | Required    | Get device details (requires access); response includes `appVersion` (current installed app semver, nullable)          |
 | `PATCH`  | `/api/devices/:id`                                         | Required    | Update device name (body validated with Zod)                                                                           |
 | `DELETE` | `/api/devices/:id`                                         | Required    | Unpair/remove device                                                                                                   |
+| `POST`   | `/api/devices/:id/update`                                  | Required    | Trigger OTA APK update; body: `{ releaseId }`; returns 409 if device offline; sends `app:update` WS message to device |
 | `POST`   | `/api/devices/:id/profiles`                                | Required    | Assign profiles to device (body validated with Zod)                                                                    |
 | `DELETE` | `/api/devices/:id/profiles/:profileId`                     | Required    | Remove profile from device                                                                                             |
 | `POST`   | `/api/releases/upload`                                     | Required    | Upload an APK release; multipart/form-data with `file`, `app`, `version`, `version_code`, `notes`; validates APK magic bytes; returns 201 with release metadata (excludes `file_path`) |
