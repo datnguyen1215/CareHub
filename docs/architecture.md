@@ -460,7 +460,7 @@ The portal operates as the caller (initiator) in all video calls:
 - Signaling sub-states ensure proper sequencing (waitingForAccept → creatingOffer → exchangingIce)
 - **Connected sub-states** — `connected` is a hierarchical state with `stable` and `unstable` sub-states; `ICE_DISCONNECTED` transitions from `stable` to `unstable` and starts a 10-second reconnect timer (`RECONNECT_TIMEOUT_MS`); `ICE_CONNECTED` transitions back to `stable`; timer expiry transitions to `failed`
 - Guards prevent invalid transitions (e.g., sending ICE candidates before peer connection exists)
-- All state transitions logged with timestamps for debugging (via shared `logger.debug()`, silenced in production)
+- Key lifecycle state transitions logged at warn level (always visible in production) via shared `logCallLifecycle()`; verbose events (ICE candidates, SDP, timers) remain at debug level via `logWebRTCEvent()`
 - Call only marked "connected" when ICE connection actually established
 - Pending ICE candidates queued and flushed when appropriate
 - Local and remote stream management (stream cleanup via shared utilities)
@@ -529,9 +529,10 @@ Both Portal and Kiosk use hierarchical state machines (via `@datnguyen1215/hsmjs
 **Logging:**
 
 - All logging uses the shared `logger` from `packages/shared/src/logger.ts` (`debug`/`info` silenced in production, `warn`/`error` always visible)
-- All state transitions logged with format: `[Call:TIMESTAMP] oldState → newState (trigger: eventName)`
-- WebRTC events logged: ICE state changes, connection state changes, SDP offer/answer
-- Signaling messages logged: sent/received with direction and type
+- Two logging functions in `call-state-machine.ts`:
+  - `logCallLifecycle(eventType, details)` — uses `logger.warn` (always visible in production); used for key lifecycle events: call initiated, incoming, accepted/declined, connected, ended, failed, and top-level state entries (`idle`, `initiating`, `connecting`, `connected`, `ending`, `failed`). Uses `warn` because `logger.info` is suppressed in production.
+  - `logWebRTCEvent(eventType, details)` — uses `logger.debug` (suppressed in production); used for verbose events: ICE candidates, SDP offer/answer details, timer start/clear, connection state changes, signaling sub-state entries
+- All state transitions also logged at debug level with format: `[Call:WebRTC:TIMESTAMP] oldState → newState (trigger: eventName)`
 
 **Events:**
 

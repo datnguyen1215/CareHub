@@ -265,7 +265,7 @@ Detailed feature breakdown organized by area. See [phases.md](phases.md) for imp
 - Firebase Cloud Messaging (FCM) for call notifications to caretaker devices
 - Capacitor native shell on both caretaker phones and elderly tablets
 - State machine guards prevent invalid transitions and race conditions
-- All state transitions logged with timestamps for debugging via shared structured logger (debug/info silenced in production builds)
+- Key lifecycle events (initiated, incoming, accepted/declined, connected, ended, failed) logged at warn level via `logCallLifecycle()` (always visible in production); verbose events (ICE, SDP, timers) remain debug-only via `logWebRTCEvent()`
 
 ### Capabilities
 

@@ -27,6 +27,7 @@ import {
 	calleeAssignActions,
 	CALL_EVENTS,
 	logWebRTCEvent,
+	logCallLifecycle,
 	type CallContext
 } from '@carehub/shared/webrtc/call-state-machine';
 import { CALL_SETUP_TIMEOUT_MS, RECONNECT_TIMEOUT_MS } from '@carehub/shared';
@@ -230,16 +231,16 @@ function createCallMachine() {
 			const currentState = machine?.state || 'unknown';
 			logWebRTCEvent('Transition', `${currentState} (${event.type})`);
 		},
-		logEnterIdle: () => logWebRTCEvent('State', 'idle'),
-		logEnterIncoming: () => logWebRTCEvent('State', 'signaling.incoming'),
+		logEnterIdle: () => logCallLifecycle('State', 'idle'),
+		logEnterIncoming: () => logCallLifecycle('State', 'signaling.incoming'),
 		logEnterAcquiringMedia: () => logWebRTCEvent('State', 'signaling.acquiringMedia'),
 		logEnterWaitingForOffer: () => logWebRTCEvent('State', 'signaling.waitingForOffer'),
 		logEnterCreatingAnswer: () => logWebRTCEvent('State', 'signaling.creatingAnswer'),
-		logEnterConnecting: () => logWebRTCEvent('State', 'connecting'),
-		logEnterConnected: () => logWebRTCEvent('State', 'connected'),
+		logEnterConnecting: () => logCallLifecycle('State', 'connecting'),
+		logEnterConnected: () => logCallLifecycle('State', 'connected'),
 		logEnterUnstable: () => logWebRTCEvent('State', 'connected.unstable'),
-		logEnterEnding: () => logWebRTCEvent('State', 'ending'),
-		logEnterFailed: () => logWebRTCEvent('State', 'failed'),
+		logEnterEnding: () => logCallLifecycle('State', 'ending'),
+		logEnterFailed: () => logCallLifecycle('State', 'failed'),
 
 		// Media actions
 		acquireLocalMedia: async () => {
@@ -292,14 +293,14 @@ function createCallMachine() {
 		// Signaling actions
 		sendCallAccepted: ({ context }: { context: CallContext }) => {
 			if (context.callId) {
-				logWebRTCEvent('Signaling', 'Sending call:accepted');
+				logCallLifecycle('Signaling', 'Sending call:accepted');
 				sendCallAccepted(context.callId);
 			}
 		},
 
 		sendCallDeclined: ({ context }: { context: CallContext }) => {
 			if (context.callId) {
-				logWebRTCEvent('Signaling', 'Sending call:declined');
+				logCallLifecycle('Signaling', 'Sending call:declined');
 				sendCallDeclined(context.callId);
 			}
 		},
@@ -400,7 +401,7 @@ function createCallMachine() {
 		// Call end actions
 		sendCallEnded: ({ context }: { context: CallContext }) => {
 			if (context.callId) {
-				logWebRTCEvent('Signaling', 'Sending call:ended');
+				logCallLifecycle('Signaling', 'Sending call:ended');
 				sendCallEnded(context.callId);
 			}
 		},
@@ -453,7 +454,7 @@ function handleIncomingCall(message: CallIncomingMessage): void {
 		return;
 	}
 
-	logWebRTCEvent('Signaling', `Incoming call from ${message.caller.name}`);
+	logCallLifecycle('Signaling', `Incoming call from ${message.caller.name}`);
 	machine.send(CALL_EVENTS.INCOMING_CALL, {
 		callId: message.callId,
 		caller: message.caller,
@@ -506,7 +507,7 @@ function handleCallEnded(message: CallEndedMessage): void {
 		return;
 	}
 
-	logWebRTCEvent('Signaling', `Received call:ended (reason: ${message.reason})`);
+	logCallLifecycle('Signaling', `Received call:ended (reason: ${message.reason})`);
 	machine.send(CALL_EVENTS.CALL_ENDED, { reason: message.reason });
 }
 
@@ -536,7 +537,7 @@ export async function acceptCall(): Promise<void> {
 		return;
 	}
 
-	logWebRTCEvent('Action', 'Accepting call');
+	logCallLifecycle('Action', 'Accepting call');
 	machine.send(CALL_EVENTS.ACCEPT);
 }
 
@@ -553,7 +554,7 @@ export function declineCall(): void {
 		return;
 	}
 
-	logWebRTCEvent('Action', 'Declining call');
+	logCallLifecycle('Action', 'Declining call');
 	machine.send(CALL_EVENTS.DECLINE);
 }
 
@@ -570,7 +571,7 @@ export function endCall(): void {
 		return;
 	}
 
-	logWebRTCEvent('Action', 'Ending call');
+	logCallLifecycle('Action', 'Ending call');
 	machine.send(CALL_EVENTS.END);
 }
 
