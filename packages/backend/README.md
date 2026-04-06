@@ -148,13 +148,14 @@ WebSocket endpoint: `ws://localhost:9391/ws`
 
 **Device Messages (Kiosk → Server):**
 
-- `heartbeat` - Periodic keepalive with battery level
+- `heartbeat` - Periodic keepalive with optional `batteryLevel` (number) and `appVersion` (semver string)
 - `status_update` - Device online/offline status changes
 - `call:accepted` - Device accepts incoming call
 - `call:declined` - Device declines incoming call
 - `call:answer` - SDP answer to user's offer (WebRTC)
 - `call:ice-candidate` - ICE candidate for WebRTC connection
 - `call:ended` - Device ends call
+- `app:update-status` - OTA update progress (downloading/installing/success/failed); on success the backend persists the new version; portal users are notified via server broadcast
 
 **User Messages (Portal → Server):**
 
@@ -177,6 +178,7 @@ WebSocket endpoint: `ws://localhost:9391/ws`
 - `call:ice-candidate` - ICE candidate for WebRTC connection
 - `call:ended` - Call terminated (with reason: normal, missed, failed, declined)
 - `call:error` - Call error (e.g., device offline, permission denied)
+- `app:update` - Trigger OTA app update; payload: `{ releaseId, version, downloadUrl, checksum }`
 
 **Call Session States:**
 

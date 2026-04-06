@@ -246,9 +246,10 @@ Detailed feature breakdown organized by area. See [phases.md](phases.md) for imp
 ## Remote Tablet Control
 
 - Manage device from portal: rename, assign/remove profiles, unpair
-- View device status: online/offline, battery level, last seen
+- View device status: online/offline, battery level, last seen, current app version
 - Profile updates pushed to kiosk via `profiles_updated` WebSocket event
 - Remote unpair sends `device_revoked` event to clear kiosk data
+- OTA APK update trigger: `POST /api/devices/:id/update` pushes `app:update` WebSocket message to connected kiosk; returns 409 if device is offline; kiosk reports progress via `app:update-status` messages (`downloading` → `installing` → `success` | `failed`); installed version tracked in `app_version` on the `devices` table
 - Video calling (Phase 3.5)
 - Content push: photos, appointments, messages (Phase 4)
 
