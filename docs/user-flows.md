@@ -177,7 +177,7 @@ From the profile detail page (`/profiles/:id`):
 **If the tablet is busy (already in a call):**
 
 1. Tablet receives `call:incoming` but is not in idle state
-2. Tablet immediately sends `call:declined` back with reason `busy` so the caller gets explicit feedback
+2. Tablet immediately sends `call:declined` back so the caller gets explicit feedback
 3. Portal call state transitions to failed with a declined error
 
 **If the call is not answered (ring timeout):**

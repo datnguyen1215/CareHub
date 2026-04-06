@@ -535,7 +535,7 @@ Both Portal and Kiosk use hierarchical state machines (via `@datnguyen1215/hsmjs
 - Cannot create offer unless peer connection exists and local stream attached
 - Cannot transition to `connected` unless ICE connection state is `connected`
 - Cannot accept call unless in `incoming` state
-- Kiosk rejects incoming calls when not idle: sends `call:declined` back to the server (reason: busy) so the caller receives explicit feedback instead of silence
+- Kiosk rejects incoming calls when not idle: sends `call:declined` back to the server so the caller receives explicit feedback instead of silence
 - ICE candidates received before peer connection ready are queued in `pendingIceCandidates` and flushed when entering `connecting` state
 
 **Logging:**
