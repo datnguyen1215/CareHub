@@ -111,9 +111,11 @@ Copy `.env.example` to `.env` and configure the following:
 ### Root Level
 
 - `npm run dev` - Start all services concurrently (frontend, backend, shared)
-- `npm run db:up` - Start PostgreSQL database container
-- `npm run db:down` - Stop PostgreSQL database container
-- `npm run test:portal` - Run portal tests (Vitest)
+- `npm run db:up` - Start PostgreSQL `db` service only (scoped to avoid spinning up backend/caddy)
+- `npm run db:down` - Stop all Docker services
+- `npm test` - Full test suite: starts db, builds shared, runs backend + portal tests
+- `npm run test:backend` - Run backend tests only (Vitest)
+- `npm run test:portal` - Run portal tests only (Vitest)
 - `npm run release:kiosk -- --version X.Y.Z` - Build, sign, and upload kiosk APK
 - `npm run release:portal -- --version X.Y.Z` - Build, sign, and upload portal APK
 
