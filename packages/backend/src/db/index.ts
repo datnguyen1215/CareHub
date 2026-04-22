@@ -15,7 +15,7 @@ function getPool(): Pool {
   if (!_pool) {
     _pool = new Pool({
       connectionString:
-        process.env.DATABASE_URL ?? 'postgresql://carehub:carehub_dev@localhost:5432/carehub',
+        process.env.DATABASE_URL ?? 'postgresql://carehub:carehub_dev@localhost:9392/carehub',
       max: 20,
     })
   }

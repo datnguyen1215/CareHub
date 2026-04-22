@@ -21,7 +21,7 @@ const migrationsFolder = path.join(
 
 async function runMigrations(
   url: string = process.env.DATABASE_URL ??
-    'postgresql://carehub:carehub_dev@localhost:5432/carehub'
+    'postgresql://carehub:carehub_dev@localhost:9392/carehub'
 ) {
   const pool = new Pool({ connectionString: url })
   const db = drizzle(pool)

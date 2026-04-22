@@ -290,6 +290,10 @@ npm run test
 
 Tests use Vitest and Supertest for API endpoint testing, and the `ws` package for WebSocket integration tests (connection auth, client registry, device lifecycle, call signaling). Tests run with `fileParallelism: false`.
 
+The `pretest` hook automatically rebuilds `@carehub/shared` before each test run, ensuring `packages/shared/dist/` is always up to date. This prevents stale compiled output from causing ESM import errors.
+
+Database connection for tests is read from `DATABASE_URL_TEST` in the shell environment (or `.env`). The default in `src/config/env.ts` is `postgresql://carehub:carehub_dev@localhost:9392/carehub_test`, matching the dev Docker service.
+
 ## Troubleshooting
 
 ### JWT_SECRET Not Loading
