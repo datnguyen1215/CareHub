@@ -290,9 +290,14 @@ npm run test
 
 Tests use Vitest and Supertest for API endpoint testing, and the `ws` package for WebSocket integration tests (connection auth, client registry, device lifecycle, call signaling). Tests run with `fileParallelism: false`.
 
-The `pretest` hook automatically rebuilds `@carehub/shared` before each test run, ensuring `packages/shared/dist/` is always up to date. This prevents stale compiled output from causing ESM import errors.
+The `pretest` hook does two things automatically before each test run:
+
+1. **Rebuilds `@carehub/shared`** — ensures `packages/shared/dist/` is always up to date, preventing stale compiled output from causing ESM import errors.
+2. **Provisions `carehub_test`** — runs `scripts/ensure-test-db.ts`, which connects to Postgres and creates the `carehub_test` database if it doesn't already exist. This is idempotent: it's a no-op when the database exists. After the database is confirmed present, `tests/setup.ts` runs Drizzle migrations automatically.
 
 Database connection for tests is read from `DATABASE_URL_TEST` in the shell environment (or `.env`). The default in `src/config/env.ts` is `postgresql://carehub:carehub_dev@localhost:9392/carehub_test`, matching the dev Docker service.
+
+If Postgres is not running when you run `npm test`, the pretest script exits immediately with a clear error message pointing you at `docker compose up -d db`.
 
 ## Troubleshooting
 
@@ -323,6 +328,21 @@ kill -9 <PID>
 # Or change port in .env
 PORT=3001
 ```
+
+### Test Database Missing
+
+**Symptom**: `error: database "carehub_test" does not exist` when running `npm test`
+
+**Cause**: The `carehub_test` database was not provisioned. This can happen on fresh Docker volumes or existing volumes initialized before `carehub_test` existed.
+
+**Solution**: The `pretest` hook creates it automatically when Postgres is running. Just ensure the database container is up:
+
+```bash
+docker compose up -d db
+npm test
+```
+
+The `scripts/ensure-test-db.ts` script connects to the `postgres` system database and issues `CREATE DATABASE carehub_test` if the database is missing. It is safe to run repeatedly — it no-ops if the database already exists.
 
 ### Database Connection Failed
 

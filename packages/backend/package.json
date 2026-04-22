@@ -8,7 +8,7 @@
     "dev": "nodemon --exec tsx src/index.ts",
     "build": "tsc --build",
     "start": "node dist/index.js",
-    "pretest": "npm run build --workspace=@carehub/shared",
+    "pretest": "npm run build --workspace=@carehub/shared && tsx scripts/ensure-test-db.ts",
     "test": "vitest run --reporter=verbose"
   },
   "dependencies": {
