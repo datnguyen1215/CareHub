@@ -8,14 +8,14 @@ Project milestones and progress tracking for CareHub healthcare management platf
 
 ## Current Status
 
-**Phase 2: Calendar and Documents** — 🚧 In Progress
-Journal entries, attachments, and OCR complete. Calendar view remaining.
+**Phase 2: Calendar and Documents** — 🚧 Deferred
+Journal entries, attachments, OCR, and documents search complete. Calendar view and event CRUD still outstanding.
 
-**Phase 3: Tablet and Communication** — 🚧 Partially Complete
+**Phase 3: Tablet and Communication** — 🚧 In Progress
 
 - ✅ Phase 3.0: Kiosk Foundation (device management, pairing, kiosk UI)
-- 📅 Phase 3.5: Video Calling (planned)
-- 📅 Phase 3.6: Capacitor Native Apps (planned)
+- ✅ Phase 3.5: Video Calling (WebRTC calling, screen share, call state machine)
+- 🚧 Phase 3.6: Capacitor Native Apps (APKs shipping, OTA in place; FCM/foreground service remaining)
 
 ---
 
@@ -38,9 +38,9 @@ Established authentication, core data structures, and basic health tracking.
 
 ---
 
-## 🚧 Phase 2: Calendar and Documents — Next Up
+## 🚧 Phase 2: Calendar and Documents — Deferred
 
-Add scheduling, journaling, and AI-powered document management.
+Add scheduling, journaling, and AI-powered document management. Journaling and documents shipped; calendar deferred while Phase 3 work took priority.
 
 ### Key Deliverables
 
@@ -79,24 +79,31 @@ Enable tablet kiosk experience and real-time communication.
 - [x] Portal device management (list, pair, assign profiles, rename, unpair)
 - [x] Remote unpair (device_revoked event clears kiosk data)
 
-### Phase 3.5: Video Calling — Planned
+### Phase 3.5: Video Calling — ✅ Complete
 
-- [ ] WebRTC video calling (caretaker-to-tablet and tablet-to-caretaker)
-- [ ] Incoming call screen on tablet (large Accept/Decline buttons)
-- [ ] Call state management (call stores on kiosk and portal)
-- [ ] Missed call handling ("no answer" timeout state)
+- [x] WebRTC video calling (caretaker-to-tablet and tablet-to-caretaker)
+- [x] Incoming call screen on tablet (large Accept/Decline buttons)
+- [x] Call state management (shared HSM call state machine on kiosk and portal)
+- [x] Missed call handling ("no answer" timeout state)
+- [x] Screen share (portal → kiosk via getDisplayMedia)
+- [x] ICE disconnect grace period and call setup timeout
+- [x] Structured WebRTC logging and production-visible call lifecycle logs
 
-### Phase 3.6: Capacitor Native Apps — In Progress
+### Phase 3.6: Capacitor Native Apps — 🚧 In Progress
 
 - [x] Capacitor wrapper for kiosk (Android APK)
 - [x] Lock Task Mode (prevent app exit)
 - [x] Auto-launch on boot
 - [x] Secure storage migration (device_token to Capacitor Preferences)
 - [x] Capacitor wrapper for portal (Android APK with client-side auth)
+- [x] Device Owner + DeviceAdminReceiver on kiosk
+- [x] Custom Capacitor plugin for silent APK install
+- [x] Release pipeline (automated build, sign, upload) — `npm run release:kiosk|portal`
+- [x] Backend release upload/query endpoints and `app_releases` table
+- [x] WebSocket `app:update` trigger and version reporting in heartbeat
 - [ ] Foreground service for persistent WebSocket
 - [ ] Firebase Cloud Messaging (FCM for push notifications)
 - [ ] Native incoming call UI on caretaker phones
-- [ ] Capgo OTA updates (over-the-air web bundle updates)
 
 **Screens**:
 
@@ -105,8 +112,8 @@ Enable tablet kiosk experience and real-time communication.
 - ✅ Tablet QR Pairing (kiosk pairing screen)
 - ✅ Tablet Home (profile selection)
 - ✅ Tablet Profile Dashboard (caretaker cards)
-- 📅 Tablet Incoming Call (Phase 3.5)
-- 📅 Portal Call UI (Phase 3.5)
+- ✅ Tablet Incoming Call (Phase 3.5)
+- ✅ Portal Call UI (Phase 3.5)
 
 ---
 
@@ -136,4 +143,4 @@ Refine experience with collaboration, AI improvements, and notifications.
 
 ---
 
-**Last Updated**: 2026-03-31
+**Last Updated**: 2026-04-21
