@@ -29,7 +29,8 @@ Create a `.env` file in the **project root** (not in this package directory) wit
 ```bash
 # Database
 DATABASE_URL=postgresql://carehub:carehub_dev@localhost:9392/carehub
-DATABASE_URL_TEST=postgresql://carehub:carehub_dev@localhost:9392/carehub_test
+# DATABASE_URL_TEST — override only to point tests at a non-default Postgres server
+# (default: postgresql://carehub:carehub_dev@localhost:9392/carehub_test)
 
 # Auth
 JWT_SECRET=<generate-random-string>  # Use: openssl rand -base64 32

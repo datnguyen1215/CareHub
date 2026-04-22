@@ -69,6 +69,14 @@ The application will be available at:
 - **Backend API**: http://localhost:9391
 - **Database**: localhost:9392
 
+## Running Tests
+
+Tests run against a real Postgres 16 container on port 9392. `npm test` handles everything: it starts the Docker db service, auto-creates the `carehub_test` database if needed, builds shared, then runs backend and portal tests. No manual DB setup required.
+
+Set `DATABASE_URL_TEST` only if you need to point tests at a non-default Postgres server.
+
+**If tests fail to start**: ensure the Docker daemon is running (`docker ps`).
+
 ## Environment Configuration
 
 Copy `.env.example` to `.env` and configure the following:
@@ -113,9 +121,9 @@ Copy `.env.example` to `.env` and configure the following:
 - `npm run dev` - Start all services concurrently (frontend, backend, shared)
 - `npm run db:up` - Start PostgreSQL `db` service only (scoped to avoid spinning up backend/caddy)
 - `npm run db:down` - Stop all Docker services
-- `npm test` - Full test suite: starts db, builds shared (via backend pretest), runs backend + portal tests
-- `npm run test:backend` - Run backend tests only (Vitest) — assumes DB is running and shared is built
-- `npm run test:portal` - Run portal tests only (Vitest) — assumes DB is running and shared is built
+- `npm test` - Full test suite: starts Docker db, auto-provisions `carehub_test`, builds shared, runs backend + portal tests
+- `npm run test:backend` - Backend tests only (Vitest) — assumes DB is running and shared is built
+- `npm run test:portal` - Portal tests only (Vitest)
 - `npm run release:kiosk -- --version X.Y.Z` - Build, sign, and upload kiosk APK
 - `npm run release:portal -- --version X.Y.Z` - Build, sign, and upload portal APK
 
