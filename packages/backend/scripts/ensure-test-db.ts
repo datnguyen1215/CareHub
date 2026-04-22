@@ -43,7 +43,7 @@ async function main() {
     )
 
     if (result.rowCount === 0) {
-      // Identifier cannot be parameterized in CREATE DATABASE
+      // Double-quote quoting is the correct PostgreSQL identifier escaping; dbName comes from DATABASE_URL_TEST (developer-controlled), not user input
       await client.query(`CREATE DATABASE "${dbName}"`)
       console.log(`Created database: ${dbName}`)
     } else {
@@ -54,4 +54,7 @@ async function main() {
   }
 }
 
-main()
+main().catch(err => {
+  console.error('Error:', err.message)
+  process.exit(1)
+})
