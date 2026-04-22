@@ -943,6 +943,8 @@ The tablet kiosk requires one-time Device Owner provisioning to enable Lock Task
 
 ### Testing Strategy
 
+**Running the full suite:** `npm test` at the root chains `db:up → backend tests → portal tests`. `db:up` runs `docker compose up -d db` (only the `db` service — backend and caddy are not started). The backend's `pretest` hook handles shared build and test-DB provisioning, so no manual setup is required. If Docker is not running, the chain fails loudly at `db:up` with a non-zero exit. Standalone scripts `npm run test:backend` and `npm run test:portal` are also available but assume the DB is already running and shared is built.
+
 **Backend:** Integration tests using Vitest + Supertest against the Express API and the `ws` package for WebSocket tests. Covers the critical API surface. The `pretest` hook in `packages/backend/package.json` does two things before each test run: (1) rebuilds `@carehub/shared` to prevent stale ESM output; (2) runs `scripts/ensure-test-db.ts`, which idempotently creates `carehub_test` if it doesn't exist — so the database is provisioned correctly on fresh volumes, existing volumes, and CI without any manual steps. `DATABASE_URL_TEST` is read from the shell environment; the default in `src/config/env.ts` (`postgresql://carehub:carehub_dev@localhost:9392/carehub_test`) matches the dev Docker service on port 9392.
 
 **HTTP endpoint tests** cover authentication, devices, profiles, medications, attachments, releases, and health — using Supertest against the Express app.
@@ -960,7 +962,7 @@ Test helpers:
 - **Vitest config:** `packages/portal/vitest.config.ts` — Svelte 5 compiler plugin, `$lib` path alias, jsdom environment, v8 coverage
 - **Test setup:** `packages/portal/vitest-setup.ts` — jest-dom matchers
 - **Scripts:** `npm run test` (single run), `npm run test:watch` (watch mode), `npm run test:coverage` (with coverage report)
-- **Run from root:** `npm run test:portal`
+- **Run from root:** `npm run test:portal` — assumes DB is running and shared is built
 
 Test coverage targets business logic and error handling rather than aiming for 100%. `fetch` is mocked for API tests to avoid hitting the backend. Svelte 5 runes (`.svelte.ts` files) are handled by the Svelte compiler plugin; pure logic functions are extracted for testing without Svelte dependency where possible.
 

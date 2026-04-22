@@ -7,9 +7,11 @@
   ],
   "scripts": {
     "dev": "concurrently \"npm run dev --workspace=packages/shared\" \"npm run dev --workspace=packages/portal\" \"npm run dev --workspace=packages/backend\"",
-    "db:up": "docker compose up -d",
+    "db:up": "docker compose up -d db",
     "db:down": "docker compose down",
-    "test:portal": "npm run test --workspace=packages/portal",
+    "test": "npm run db:up && npm run test --workspace=@carehub/backend && npm run test --workspace=@carehub/portal",
+    "test:backend": "npm run test --workspace=@carehub/backend",
+    "test:portal": "npm run test --workspace=@carehub/portal",
     "release:kiosk": "npm run release -w @carehub/kiosk --",
     "release:portal": "npm run release -w @carehub/portal --"
   },
