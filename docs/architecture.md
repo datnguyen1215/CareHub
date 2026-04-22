@@ -943,7 +943,7 @@ The tablet kiosk requires one-time Device Owner provisioning to enable Lock Task
 
 ### Testing Strategy
 
-**Backend:** Integration tests using Vitest + Supertest against the Express API and the `ws` package for WebSocket tests. Covers the critical API surface. A `pretest` hook in `packages/backend/package.json` rebuilds `@carehub/shared` before each test run to prevent stale ESM output. `DATABASE_URL_TEST` is read from the shell environment; the default in `src/config/env.ts` (`postgresql://carehub:carehub_dev@localhost:9392/carehub_test`) matches the dev Docker service on port 9392.
+**Backend:** Integration tests using Vitest + Supertest against the Express API and the `ws` package for WebSocket tests. Covers the critical API surface. The `pretest` hook in `packages/backend/package.json` does two things before each test run: (1) rebuilds `@carehub/shared` to prevent stale ESM output; (2) runs `scripts/ensure-test-db.ts`, which idempotently creates `carehub_test` if it doesn't exist — so the database is provisioned correctly on fresh volumes, existing volumes, and CI without any manual steps. `DATABASE_URL_TEST` is read from the shell environment; the default in `src/config/env.ts` (`postgresql://carehub:carehub_dev@localhost:9392/carehub_test`) matches the dev Docker service on port 9392.
 
 **HTTP endpoint tests** cover authentication, devices, profiles, medications, attachments, releases, and health — using Supertest against the Express app.
 
